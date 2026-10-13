@@ -3,13 +3,13 @@
 Generated from locally extracted original strings, Localization/ja.tsv and Localization/ja-preserve.tsv. Original game text is not included in this report.
 
 - Nonempty source strings: **7091**
-- Translated: **4700**
-- Intentionally preserved original strings: **118**
-- Remaining requiring translation: **2273**
+- Translated: **5062**
+- Intentionally preserved original strings: **120**
+- Remaining requiring translation: **1909**
 - Empty source entries: **3893**
 - Original string blocks: **122**
-- Translation coverage: **66.28%**
-- Reviewed coverage (translated plus preserved): **67.95%**
+- Translation coverage: **71.39%**
+- Reviewed coverage (translated plus preserved): **73.08%**
 
 | Block | Nonempty | Translated | Preserved | Remaining |
 |---:|---:|---:|---:|---:|
@@ -95,14 +95,14 @@ Generated from locally extracted original strings, Localization/ja.tsv and Local
 | 3768 | 29 | 29 | 0 | 0 |
 | 3769 | 38 | 38 | 0 | 0 |
 | 3770 | 40 | 40 | 0 | 0 |
-| 3771 | 74 | 0 | 0 | 74 |
-| 3772 | 40 | 0 | 0 | 40 |
-| 3773 | 48 | 0 | 0 | 48 |
-| 3774 | 41 | 0 | 0 | 41 |
-| 3775 | 61 | 0 | 0 | 61 |
-| 3776 | 17 | 0 | 0 | 17 |
-| 3777 | 26 | 0 | 0 | 26 |
-| 3778 | 57 | 0 | 0 | 57 |
+| 3771 | 74 | 72 | 2 | 0 |
+| 3772 | 40 | 40 | 0 | 0 |
+| 3773 | 48 | 48 | 0 | 0 |
+| 3774 | 41 | 41 | 0 | 0 |
+| 3775 | 61 | 61 | 0 | 0 |
+| 3776 | 17 | 17 | 0 | 0 |
+| 3777 | 26 | 26 | 0 | 0 |
+| 3778 | 57 | 57 | 0 | 0 |
 | 3792 | 44 | 0 | 0 | 44 |
 | 3793 | 42 | 0 | 0 | 42 |
 | 3794 | 41 | 0 | 0 | 41 |
