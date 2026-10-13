@@ -3,13 +3,13 @@
 Generated from locally extracted original strings, Localization/ja.tsv and Localization/ja-preserve.tsv. Original game text is not included in this report.
 
 - Nonempty source strings: **7091**
-- Translated: **3637**
-- Intentionally preserved original strings: **107**
-- Remaining requiring translation: **3347**
+- Translated: **4700**
+- Intentionally preserved original strings: **118**
+- Remaining requiring translation: **2273**
 - Empty source entries: **3893**
 - Original string blocks: **122**
-- Translation coverage: **51.29%**
-- Reviewed coverage (translated plus preserved): **52.8%**
+- Translation coverage: **66.28%**
+- Reviewed coverage (translated plus preserved): **67.95%**
 
 | Block | Nonempty | Translated | Preserved | Remaining |
 |---:|---:|---:|---:|---:|
@@ -77,24 +77,24 @@ Generated from locally extracted original strings, Localization/ja.tsv and Local
 | 3697 | 67 | 57 | 10 | 0 |
 | 3698 | 30 | 13 | 17 | 0 |
 | 3699 | 18 | 18 | 0 | 0 |
-| 3720 | 84 | 0 | 0 | 84 |
-| 3721 | 54 | 0 | 0 | 54 |
-| 3722 | 33 | 0 | 0 | 33 |
-| 3723 | 81 | 0 | 0 | 81 |
-| 3724 | 37 | 0 | 0 | 37 |
-| 3725 | 59 | 0 | 0 | 59 |
-| 3726 | 11 | 0 | 0 | 11 |
-| 3727 | 75 | 0 | 0 | 75 |
-| 3728 | 54 | 0 | 0 | 54 |
-| 3730 | 84 | 0 | 0 | 84 |
-| 3731 | 84 | 0 | 0 | 84 |
-| 3732 | 84 | 0 | 0 | 84 |
-| 3733 | 84 | 0 | 0 | 84 |
-| 3745 | 90 | 0 | 0 | 90 |
-| 3746 | 53 | 0 | 0 | 53 |
-| 3768 | 29 | 0 | 0 | 29 |
-| 3769 | 38 | 0 | 0 | 38 |
-| 3770 | 40 | 0 | 0 | 40 |
+| 3720 | 84 | 84 | 0 | 0 |
+| 3721 | 54 | 54 | 0 | 0 |
+| 3722 | 33 | 33 | 0 | 0 |
+| 3723 | 81 | 81 | 0 | 0 |
+| 3724 | 37 | 37 | 0 | 0 |
+| 3725 | 59 | 59 | 0 | 0 |
+| 3726 | 11 | 11 | 0 | 0 |
+| 3727 | 75 | 75 | 0 | 0 |
+| 3728 | 54 | 44 | 10 | 0 |
+| 3730 | 84 | 84 | 0 | 0 |
+| 3731 | 84 | 84 | 0 | 0 |
+| 3732 | 84 | 84 | 0 | 0 |
+| 3733 | 84 | 84 | 0 | 0 |
+| 3745 | 90 | 89 | 1 | 0 |
+| 3746 | 53 | 53 | 0 | 0 |
+| 3768 | 29 | 29 | 0 | 0 |
+| 3769 | 38 | 38 | 0 | 0 |
+| 3770 | 40 | 40 | 0 | 0 |
 | 3771 | 74 | 0 | 0 | 74 |
 | 3772 | 40 | 0 | 0 | 40 |
 | 3773 | 48 | 0 | 0 | 48 |
