@@ -121,7 +121,8 @@ of what is built was also read out of the original's executable.
 
 - **VR support (Japanese-localization fork initiative; in progress).** The Windows OpenXR
   prototype compiles and builds with opt-in headset tracking, gaze interaction rays,
-  basic Touch-controller bindings and a temporary stereo-camera UI bridge. Offline
+  Touch-controller bindings (including UI clicking and pointer toggling), a headset
+  reticle and a temporary stereo-camera UI bridge. Offline
   validation passes. Next: real-HMD validation, UI/controller interaction, world scale,
   stereo correctness, comfort and performance. Japanese translation additions remain
   temporarily paused. See `Docs/VR_FEASIBILITY_JA.md`.

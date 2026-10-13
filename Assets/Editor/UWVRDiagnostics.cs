@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.XR.Management;
 using UnityEngine;
@@ -6,6 +7,7 @@ using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features.Interactions;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 /// <summary>Batchmode XR diagnostic that does not rely on an active headset.</summary>
 public static class UWVRDiagnostics
@@ -64,6 +66,14 @@ public static class UWVRDiagnostics
                 "Quest trigger attack binding missing");
             fRequire(fHasBinding(lOControls.Player.ModernUse, "<XRController>{RightHand}/primaryButton"),
                 "Quest action button binding missing");
+            fRequire(fHasBinding(lOControls.Player.PadClick, "<XRController>{RightHand}/primaryButton"),
+                "Quest menu primary click binding missing");
+            fRequire(fHasBinding(lOControls.Player.PadClick, "<XRController>{RightHand}/triggerPressed"),
+                "Quest menu trigger click binding missing");
+            fRequire(fHasBinding(lOControls.Player.PadContext, "<XRController>{LeftHand}/gripPressed"),
+                "Quest menu context click binding missing");
+            fRequire(fHasBinding(lOControls.Player.PadPointer, "<XRController>{RightHand}/thumbstickClicked"),
+                "Quest pointer toggle binding missing");
         }
         finally
         {
@@ -74,6 +84,7 @@ public static class UWVRDiagnostics
 
         GameObject lOCameraObject = new GameObject("VR offline ray check", typeof(Camera));
         GameObject lOCanvasObject = new GameObject("VR offline canvas check", typeof(RectTransform), typeof(Canvas));
+        GameObject lOReticleHost = new GameObject("VR offline reticle check");
         try
         {
             Camera lOCamera = lOCameraObject.GetComponent<Camera>();
@@ -103,14 +114,29 @@ public static class UWVRDiagnostics
             fRequire(lOCanvas.planeDistance > lOCamera.nearClipPlane
                 && lOCanvas.planeDistance < lOCamera.farClipPlane,
                 "VR canvas distance outside the active camera clipping range");
+
+            UWVRPointerReticle lOReticle = lOReticleHost.AddComponent<UWVRPointerReticle>();
+            MethodInfo lOCreate = typeof(UWVRPointerReticle).GetMethod("CreateCanvas",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            fRequire(lOCreate != null, "VR cursor creator missing");
+            lOCreate.Invoke(lOReticle, null);
+
+            Canvas lOReticleCanvas = lOReticleHost.GetComponentInChildren<Canvas>(true);
+            fRequire(lOReticleCanvas != null && lOReticleCanvas.sortingOrder == 32000,
+                "VR cursor canvas not created at the UI foreground");
+            Image[] lOMarks = lOReticleHost.GetComponentsInChildren<Image>(true);
+            fRequire(lOMarks.Length == 3, "VR cursor geometry missing");
+            foreach (Image lOMark in lOMarks)
+                fRequire(!lOMark.raycastTarget, "VR cursor must not block input to menus");
         }
         finally
         {
+            UnityEngine.Object.DestroyImmediate(lOReticleHost);
             UnityEngine.Object.DestroyImmediate(lOCanvasObject);
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR loader, manual startup, Touch bindings, desktop ray compatibility, VR canvas projection.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR loader, manual startup, Touch bindings, desktop rays, VR canvas projection, reticle input pass-through.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 

@@ -18,6 +18,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private bool mbStartedSubsystems;
     private Camera mTrackedCamera;
     private Camera mMenuCamera;
+    private AudioListener mMenuListener;
     private Camera mCurrentVRCamera;
 
     public static bool IsRequested => msRequested;
@@ -37,6 +38,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
         DontDestroyOnLoad(lOHost);
         msInstance = lOHost.AddComponent<UWVRBootstrap>();
         lOHost.AddComponent<UWVRCanvasBridge>();
+        lOHost.AddComponent<UWVRPointerReticle>();
     }
 
     private IEnumerator Start()
@@ -113,9 +115,11 @@ public sealed class UWVRBootstrap : MonoBehaviour
         if (mMenuCamera == null)
         {
             GameObject lOMenu = new GameObject("UW VR Menu Camera", typeof(Camera),
-                typeof(AudioListener), typeof(UWVRHeadTracking));
+                typeof(UWVRHeadTracking));
             lOMenu.transform.SetParent(transform, false);
             mMenuCamera = lOMenu.GetComponent<Camera>();
+            mMenuListener = lOMenu.AddComponent<AudioListener>();
+            mMenuListener.enabled = false;
             mMenuCamera.clearFlags = CameraClearFlags.SolidColor;
             mMenuCamera.backgroundColor = Color.black;
             // Include UI layers: ScreenSpaceCamera canvas objects must not be
@@ -130,6 +134,19 @@ public sealed class UWVRBootstrap : MonoBehaviour
 
         if (!mMenuCamera.gameObject.activeSelf)
             mMenuCamera.gameObject.SetActive(true);
+        // Only one active AudioListener is allowed. The normal menu can
+        // already contain one; never add a second active audio sink.
+        bool lbOtherListener = false;
+        foreach (AudioListener lOListener in UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Exclude))
+        {
+            if (lOListener != mMenuListener && lOListener.enabled)
+            {
+                lbOtherListener = true;
+                break;
+            }
+        }
+        if (mMenuListener != null)
+            mMenuListener.enabled = !lbOtherListener;
         mCurrentVRCamera = mMenuCamera;
     }
 

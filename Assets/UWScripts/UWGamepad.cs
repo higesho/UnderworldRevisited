@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
+using UnityEngine.InputSystem.XR;
 
 /// <summary>
 /// THE GAMEPAD (per user, 2026-10-07; tested with an Xbox controller). Stage 1 plays in the world
@@ -160,20 +162,52 @@ public static class UWGamepad
     {
         Gamepad lOPad = Gamepad.current;
 
-        if (lOPad == null)
-            return false;
-
-        if (lOPad.buttonSouth.wasPressedThisFrame || lOPad.buttonEast.wasPressedThisFrame
+        if (lOPad != null && (lOPad.buttonSouth.wasPressedThisFrame || lOPad.buttonEast.wasPressedThisFrame
             || lOPad.buttonWest.wasPressedThisFrame || lOPad.buttonNorth.wasPressedThisFrame
             || lOPad.leftShoulder.wasPressedThisFrame || lOPad.rightShoulder.wasPressedThisFrame
             || lOPad.leftTrigger.wasPressedThisFrame || lOPad.rightTrigger.wasPressedThisFrame
             || lOPad.leftStickButton.wasPressedThisFrame || lOPad.rightStickButton.wasPressedThisFrame
             || lOPad.startButton.wasPressedThisFrame || lOPad.selectButton.wasPressedThisFrame
             || lOPad.dpad.up.wasPressedThisFrame || lOPad.dpad.down.wasPressedThisFrame
-            || lOPad.dpad.left.wasPressedThisFrame || lOPad.dpad.right.wasPressedThisFrame)
+            || lOPad.dpad.left.wasPressedThisFrame || lOPad.dpad.right.wasPressedThisFrame))
             return true;
 
-        return pbSticks && (fStickPushed(lOPad.leftStick) || fStickPushed(lOPad.rightStick));
+        if (lOPad != null && pbSticks && (fStickPushed(lOPad.leftStick) || fStickPushed(lOPad.rightStick)))
+            return true;
+
+        // Intro movies, paged text and menus use AnyPressed instead of the
+        // regular action map. OpenXR Touch controllers are XRController, not
+        // Gamepad, so those confirmations must recognise them separately.
+        if (UWVRBootstrap.IsHeadsetActive)
+            foreach (InputDevice lODevice in InputSystem.devices)
+            {
+                XRController lOXr = lODevice as XRController;
+                if (lOXr != null && fXrPressed(lOXr, pbSticks))
+                    return true;
+            }
+
+        return false;
+    }
+
+    private static readonly string[] msXrButtons =
+    {
+        "primaryButton", "secondaryButton", "triggerPressed", "gripPressed", "thumbstickClicked"
+    };
+
+    private static bool fXrPressed(XRController pOController, bool pbSticks)
+    {
+        foreach (string lsName in msXrButtons)
+        {
+            ButtonControl lOButton = pOController.TryGetChildControl<ButtonControl>(lsName);
+            if (lOButton != null && lOButton.wasPressedThisFrame)
+                return true;
+        }
+
+        if (!pbSticks)
+            return false;
+
+        Vector2Control lOStick = pOController.TryGetChildControl<Vector2Control>("thumbstick");
+        return lOStick != null && lOStick.ReadValue().sqrMagnitude >= 0.64f;
     }
 
     private static bool fStickPushed(UnityEngine.InputSystem.Controls.StickControl pOStick)

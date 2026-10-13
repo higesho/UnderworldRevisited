@@ -4,6 +4,17 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### VRメニュー操作の続き（10月14日）
+
+- 既存の `UWGamepadPointer` はメニューで実際のマウスを動かす方式だが、Quest Touchからのクリック入力が `PadClick` / `PadContext` に接続されていなかった。右Aボタンと右トリガーをクリック、左グリップを右クリック、右スティック押し込みをポインター切替に追加。
+- `UWGamepadPointer.Takes` により、メニュー操作中のボタン入力が同時に武器攻撃や世界への使用にならないよう、既存の排他機構を活用する。
+- WindowsのシステムカーソルはHMD内のOpenXR描画には映らないため、`UWVRPointerReticle` を追加。画面固定ではなくステレオカメラの Canvas 上にレティクルを描き、ポインター解放時は実際のマウス座標、ロック時は視線中央に配置する。いずれの表示も UI への Raycast を遮らない。
+- メニュー用一時カメラの AudioListener が既存の Listener と重複しないように修正。
+- `UWGamepad.AnyPressed` にXRコントローラーのボタンも追加。オープニング・長文のページ送りなど、専用の入力アクションを使っていない箇所にも対応する。
+- `UWVRDiagnostics.RunOfflineChecks` にTouchのメニュー入力バインド、VRカーソルの生成・最前面・クリック透過性を加えた。Unity 6000.6.0f1で**C#コンパイル成功、非HMD検査PASS**。
+- 最終検証ログ `L:\Games\UlutimaUW\unity-vr-ui-20261014-build.log`：`[UWVR-OFFLINE] PASS` と `[UWVR] Build result: Succeeded; errors: 0` を確認。
+- **注意**: この成果はあくまでUnityのコードと自動検査。Win32マウス操作とXR入力の実機上の連携、カーソル位置の見え方、ボタン反応は未検証。
+
 - `UWVRAim`: VR時はHMD正面から世界への視線Rayを出す。`Interaction` の調査・使用・拾う・魔法・投射物でRay計算を共有する。非VR時は以前と同じ画面座標Rayを使う。
 - `UWVRCanvasBridge`: 元の `ScreenSpaceOverlay` CanvasをVR時だけ `ScreenSpaceCamera` に移し、画面の前方3ワールド単位に投影する。メニュー・HUD・所持品等は既存の配置と並び順を維持する暫定表示。動的に作られるCanvasにも追従し、VR終了後は元の設定に戻す。
 - `UWVRBootstrap`: プレイヤーカメラのないメニューで一時的なVRカメラを生成する。プレイヤー出現時には切り替える。左右眼の解像度と描画方式をログに出力する。

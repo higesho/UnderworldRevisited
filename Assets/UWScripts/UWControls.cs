@@ -612,7 +612,11 @@ public class UWControls : System.IDisposable
         lMap.AddAction("PadSlotNext", InputActionType.Button).AddBinding("<Gamepad>/rightShoulder");
         lMap.AddAction("PadSlotUse", InputActionType.Button).AddBinding("<Gamepad>/dpad/up");
 
-        lMap.AddAction("PadPointer", InputActionType.Button).AddBinding("<Gamepad>/rightStickPress");
+        InputAction lPadPointer = lMap.AddAction("PadPointer", InputActionType.Button);
+        lPadPointer.AddBinding("<Gamepad>/rightStickPress");
+        // Click the right Touch thumbstick to unlock the pointer in the
+        // modern control scheme (same behavior as a gamepad's R3).
+        lPadPointer.AddBinding("<XRController>{RightHand}/thumbstickClicked");
         // RT clicks as well: holding A while the same thumb steers the stick does not work for a
         // drag (per user, 2026-10-07) - the index finger holds RT instead, as on a mouse, where it
         // is the left button too (RT's strike then follows the pointer, Interaction). RB clicked
@@ -621,11 +625,17 @@ public class UWControls : System.IDisposable
         InputAction lPadClick = lMap.AddAction("PadClick", InputActionType.Button);
         lPadClick.AddBinding("<Gamepad>/buttonSouth");
         lPadClick.AddBinding("<Gamepad>/rightTrigger");
+        // Right Touch A/trigger acts as a mouse click over menus, but retains
+        // world use/attack while the pointer is locked. Takes() prevents a
+        // single press from acting on UI and the world at the same time.
+        lPadClick.AddBinding("<XRController>{RightHand}/primaryButton");
+        lPadClick.AddBinding("<XRController>{RightHand}/triggerPressed");
         // LT is the right button as well, mirroring RT: X with the stick under the same thumb could
         // not drag (per user, 2026-10-07). LB, likewise for a while, is the action bar's again.
         InputAction lPadContext = lMap.AddAction("PadContext", InputActionType.Button);
         lPadContext.AddBinding("<Gamepad>/buttonWest");
         lPadContext.AddBinding("<Gamepad>/leftTrigger");
+        lPadContext.AddBinding("<XRController>{LeftHand}/gripPressed");
 
         for (int liSlot = 1; liSlot <= ModernSlotCount; liSlot++)
             lMap.AddAction("ModernSlot" + liSlot, InputActionType.Button).AddBinding("<Keyboard>/" + (liSlot % 10));
