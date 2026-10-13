@@ -8,4 +8,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/UW.unity
     guid: 3fdd6eb7436b3df4db42b288d90ca518
-  m_configObjects: {}
+  m_configObjects:
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 81e3974471fb8a04e94460f2c8374555, type: 2}
+    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 2c4fb4dbadd4e9645a7dd67f129265b8, type: 2}

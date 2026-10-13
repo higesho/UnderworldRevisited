@@ -1,6 +1,21 @@
 # VR化の検討（日本語化フォーク独自の計画）
 
-状態: 調査段階。VR機能は未実装、HMD実機試験も未実施。
+状態: Windows向けVR試作ビルドまで作成済み。Unity 6000.6.0f1でC#コンパイル成功、Windows開発ビルド成功（エラー0）。**HMDへの左右眼描画、追跡精度、操作の実機検証は未実施**。
+
+### 現在の試験ビルド
+
+- ローカル: `Build-vr-prototype/UR.exe`。配布用Releaseとは別の開発ビルドで、原作ゲームデータは含まない。
+- XR Plug-in Management 4.7.0 / OpenXR 1.17.1を解決・導入済み。Windows Standalone向けOpenXR Loaderを有効化。Oculus Touchプロファイルを有効化。
+- 起動時のVR初期化は自動ではなく、`UR.exe -vr` と指定した場合にだけ試みる。通常の`UR.exe`はこれまでどおりのデスクトップモード。
+- HMDが認識できた場合はプレイヤーカメラに頭部追跡の試作を取り付ける。ただし、メニューやHUDはまだVR用に移植されておらず、HMDで通常プレイできる段階ではない。
+- Unityのコマンドラインビルドでは `[UWVR] Build result: Succeeded; errors: 0` を確認。HMDへの立体描画が成功したことを意味しない。
+
+### 実機テストの方法（開発中）
+
+1. WindowsのOpenXRランタイムを使用するVR接続（Quest + Virtual Desktopなど）を準備する。
+2. `Build-vr-prototype/LaunchVR.bat`、または `UR.exe -vr` で起動する。ゲーム本体の正規データは従来と同様にユーザー自身で指定する。
+3. `VR_Test.log` に `[UWVR] OpenXR subsystems started` が出たか、HMDに左右眼の描画があるか、頭部回転に追随するかを確認する。
+4. 画面固定のメニュー・UI、VRコントローラー、酔い対策は未対応。検証中は既存のパッド・キーボード操作を想定する。
 
 ## 2026-10-13 初期実装の追加
 
@@ -9,27 +24,28 @@
 - 当初の「Initial Asset Database Refreshで停止」という判断は、待ち時間を十分に取っておらず早計だった。
 - 22:34に開始した再検証では `Logs/upm.log` にOpenXR 1.17.1（27.3 MB）の取得が記録され、約65秒かかっている。Unity本体のログが更新されなくても、Package ManagerのCPU使用・キャッシュ展開が継続した。
 - `com.unity.xr.openxr` の展開後も、既存のUniversal Render Pipelineなど数千ファイルからなるパッケージが順次展開されていた。**パッケージ処理中のCPU使用・ファイル更新を見ずにUnityを停止扱いしない。**
-- 上記は「進行を確認した」という事実であって、Unity全体のコンパイル成功を意味しない。
+- パッケージ解決は最終的に `project:resolve-packages --> 200 (1233495 ms)`（約20分33秒）で完了した。Unityのコンパイル・Windows試作ビルドもその後成功した。
 
 - 起動引数 `-vr` を指定した場合だけ、XR Plug-in ManagementからOpenXRのロード・起動を試みる。通常起動はOpenXRを初期化しない。
 - ユーザーのプレイヤーカメラに `UWVRHeadTracking` を取り付け、HMDの頭部回転・移動差分を反映する仕組みを追加。初回の頭部位置を基準として既存の視点高さを保つ暫定方式。
 - `Underworld > VR > Configure Windows OpenXR` （バッチ実行: `-executeMethod UWVRSetup.ConfigureWindowsOpenXR`）でWindowsのOpenXR設定アセットを生成・登録する機能を追加。設定はXR自動起動をOFFにし、デスクトップ通常起動への影響を抑える。
-- 以上は**コード追加段階**。Unityでのコンパイル、実際のOpenXR起動、立体視とHMD追跡の正しさは検証待ち。
+- `Underworld > VR > Build Windows Prototype` （バッチ実行: `-executeMethod UWVRBuild.BuildWindowsPrototype`）を追加。公開用ZIPには触れず、開発用の `Build-vr-prototype/UR.exe` を作成する。2026-10-13に**エラー0でビルド成功**。
+- UnityのコンパイルとOpenXR設定・Windowsビルドは検証済み。**実際のOpenXR実行、立体視、頭部追跡は実機検証待ち。**
 
 ## 最初の実装（2026-10-13）
 
 ## OpenXRパッケージ導入段階
 
 - Unity Editorメニュー `Underworld > VR > Report Configuration` を追加。コマンドラインでは `-executeMethod UWVRDiagnostics.ReportConfiguration` でXR管理とOpenXRアセンブリの読込状態をログに記録できる。
-- 2026-10-13時点の自動Unity検証では、既存の検証プロセスが残っており後続プロセスが終了コード1となった。残存プロセスを停止して再起動したが、`Application.AssetDatabase Initial Refresh Start` の地点から進まず、OpenXRの解決は未確認。
+- 最初の自動検証はパッケージ解決処理に長時間を要したが、後続の継続観測により約20分33秒後の正常完了とOpenXRアセンブリの読み込み成功を確認した。
 
 - Unity 6000.6用XR Plug-in Management 4.7.0とOpenXR Plugin 1.17.1を`Packages/manifest.json`に追加。
-- パッケージを追加しただけではPC向けOpenXRプロバイダーは有効にならない。UnityのProject Settings > XR Plug-in ManagementでStandalone側のOpenXRを有効化し、対象HMDのInteraction ProfileとProject Validationを確認する。
-- この段階では未検証の設定アセットを手書きで追加しない。XR初期化・ステレオ描画と通常起動の両立確認が次の工程。
+- Windows Standalone向けOpenXRプロバイダーはUnityのXR Management API経由で有効化済み。対象HMDのProject Validationと左右眼描画確認が次の工程。
+- 設定アセットは手書きではなく公式のUnity Editor APIで生成した。
 
 - `-vr` オプションだけで動作する `UWVRBootstrap` を追加。XRを設定していない環境では既存の通常画面を変更しない。
 - HMDがXRランタイムによって有効と判断された場合、従来の `UWPlayerLook` が追跡回転を上書きしないよう抑制する。
-- **OpenXRパッケージの導入、XR Plug-in Managementの有効化、左右眼描画、HMD実機検証はまだ未完了。** ここではVRの開始条件と入力の競合防止だけを準備した。
+- **OpenXRパッケージ導入とWindowsローダー有効化は済み。左右眼描画とHMD実機検証はまだ未完了。**
 
 ## 現在の優先順位
 
@@ -41,7 +57,7 @@
 ## ソースコード調査による見立て
 
 - 本作はUnityで3Dワールドを描画しており、VR描画の基礎がある。
-- `Packages/manifest.json` にOpenXR / XR Plug-in Managementは現時点で含まれない。導入と設定が必要。
+- `Packages/manifest.json` にOpenXR / XR Plug-in Managementを追加し、Windows向けの設定アセットも生成済み。
 - `UWPlayerLook.cs` はプレイヤーの向きとカメラの上下視点をマウス・パッド入力から制御する。HMD追跡による回転と混線させない変更が必要。
 - `Interaction.cs` は多数の箇所で `Camera.main.ScreenPointToRay` を使用する。VRでは照準と操作のRayをHMD中央／コントローラーから取得する仕組みを分離する必要がある。
 - `UWScreenUi.cs` は `ScreenSpaceOverlay` の画面を作る。VRのメニュー・字幕・会話・HUDはワールド空間UI、またはVR用の別UIとして表示する必要がある。
