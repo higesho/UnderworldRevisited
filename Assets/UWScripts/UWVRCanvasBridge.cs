@@ -27,9 +27,6 @@ public sealed class UWVRCanvasBridge : MonoBehaviour
     private float mfNextRefreshTime;
     private int miLastCanvasCount;
 
-    // A little farther than arm's length, outside the near clip plane but
-    // readable without the excessively close flat HUD of desktop mode.
-    private const float CanvasDistance = 3.0f;
     private const float RefreshInterval = 0.3f;
 
     private void LateUpdate()
@@ -113,8 +110,24 @@ public sealed class UWVRCanvasBridge : MonoBehaviour
 
         pOCanvas.renderMode = RenderMode.ScreenSpaceCamera;
         pOCanvas.worldCamera = pOCamera;
-        pOCanvas.planeDistance = Mathf.Clamp(CanvasDistance,
-            pOCamera.nearClipPlane + 0.1f, pOCamera.farClipPlane - 0.1f);
+        pOCanvas.planeDistance = CalculatePlaneDistance(pOCamera, UWVRBootstrap.UiDistanceMeters);
+    }
+
+    /// <summary>
+    /// A game unit is not necessarily one metre. Camera and stereo eye
+    /// offsets both inherit XR tracking scale, so head-locked UI must be
+    /// placed proportionally farther from a larger camera rig. This also
+    /// applies to inventory panels built at runtime.
+    /// </summary>
+    public static float CalculatePlaneDistance(Camera pOCamera, float pfMeters)
+    {
+        if (pOCamera == null)
+            return 0f;
+
+        float lfScale = Mathf.Max(0.001f, pOCamera.transform.lossyScale.x);
+        float lfNear = pOCamera.nearClipPlane + 0.15f;
+        float lfFar = Mathf.Max(lfNear, pOCamera.farClipPlane - 0.15f);
+        return Mathf.Clamp(pfMeters * lfScale, lfNear, lfFar);
     }
 
     private void RestoreAll()

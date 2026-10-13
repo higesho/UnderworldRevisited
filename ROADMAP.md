@@ -123,8 +123,12 @@ of what is built was also read out of the original's executable.
   prototype compiles and builds with opt-in headset tracking, gaze interaction rays,
   Touch-controller bindings (including UI clicking and pointer toggling), a headset
   reticle and a temporary stereo-camera UI bridge. Offline
-  validation passes. Next: real-HMD validation, UI/controller interaction, world scale,
-  stereo correctness, comfort and performance. Japanese translation additions remain
+  validation passed for the earlier test build. Head-relative movement, adjustable
+  tracking scale and physically spaced menu/inventory canvases have since been added;
+  the updated C# player and editor assemblies compile, but the latest Windows build is
+  blocked by Unity Editor licensing (exit 198). Next: restore Unity licensing, rebuild,
+  then real-HMD validation, UI/controller interaction, stereo correctness and comfort.
+  Japanese translation additions remain
   temporarily paused. See `Docs/VR_FEASIBILITY_JA.md`.
 
 - Move more rules from the Unity side into the engine-free layer, so the game logic can be

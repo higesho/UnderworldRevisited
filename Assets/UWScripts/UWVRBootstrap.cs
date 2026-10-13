@@ -13,6 +13,8 @@ using UnityEngine.XR.Management;
 public sealed class UWVRBootstrap : MonoBehaviour
 {
     private static bool msRequested;
+    private static float msWorldUnitsPerMeter = UWVRWorldSpace.DefaultUnitsPerMeter;
+    private static float msUiDistanceMeters = UWVRWorldSpace.DefaultUiDistanceMeters;
     private static UWVRBootstrap msInstance;
     private bool mbReported;
     private bool mbStartedSubsystems;
@@ -22,17 +24,35 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private Camera mCurrentVRCamera;
 
     public static bool IsRequested => msRequested;
+    public static float WorldUnitsPerMeter => msWorldUnitsPerMeter;
+    public static float UiDistanceMeters => msUiDistanceMeters;
+    public static bool HeadRelativeMovement { get; private set; } = true;
     public static bool IsHeadsetActive => msRequested && XRSettings.isDeviceActive;
     public static Camera CurrentVRCamera => msInstance != null ? msInstance.mCurrentVRCamera : null;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Initialize()
     {
-        msRequested = Array.Exists(Environment.GetCommandLineArgs(),
+        string[] lOArgs = Environment.GetCommandLineArgs();
+        msRequested = Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr", StringComparison.OrdinalIgnoreCase));
+
+        msWorldUnitsPerMeter = UWVRWorldSpace.DefaultUnitsPerMeter;
+        msUiDistanceMeters = UWVRWorldSpace.DefaultUiDistanceMeters;
+        HeadRelativeMovement = true;
 
         if (!msRequested || msInstance != null)
             return;
+
+        msWorldUnitsPerMeter = UWVRWorldSpace.ParseUnitsPerMeter(lOArgs);
+        msUiDistanceMeters = UWVRWorldSpace.ParseUiDistanceMeters(lOArgs);
+        HeadRelativeMovement = !Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-body-relative", StringComparison.OrdinalIgnoreCase));
+
+        Debug.Log("[UWVR] Spatial calibration: " + msWorldUnitsPerMeter
+            + " game units per metre; walking relative to "
+            + (HeadRelativeMovement ? "head" : "body") + "; UI distance "
+            + msUiDistanceMeters + " metres.");
 
         GameObject lOHost = new GameObject("UW VR Bootstrap");
         DontDestroyOnLoad(lOHost);
@@ -114,8 +134,10 @@ public sealed class UWVRBootstrap : MonoBehaviour
         // Supply a stereo camera so it can be displayed before the world loads.
         if (mMenuCamera == null)
         {
-            GameObject lOMenu = new GameObject("UW VR Menu Camera", typeof(Camera),
-                typeof(UWVRHeadTracking));
+            // The tracking component must be added *after* parenting the menu
+            // camera. Otherwise its OnEnable creates a rig at the scene root,
+            // and the later SetParent silently detaches the camera from it.
+            GameObject lOMenu = new GameObject("UW VR Menu Camera", typeof(Camera));
             lOMenu.transform.SetParent(transform, false);
             mMenuCamera = lOMenu.GetComponent<Camera>();
             mMenuListener = lOMenu.AddComponent<AudioListener>();
@@ -129,6 +151,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
             mMenuCamera.nearClipPlane = 0.05f;
             mMenuCamera.farClipPlane = 20f;
             mMenuCamera.stereoTargetEye = StereoTargetEyeMask.Both;
+            lOMenu.AddComponent<UWVRHeadTracking>();
             Debug.Log("[UWVR] Created temporary stereo camera for the main menu.");
         }
 

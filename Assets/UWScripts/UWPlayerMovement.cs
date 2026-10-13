@@ -2236,7 +2236,23 @@ public class UWPlayerMovement : MonoBehaviour
         if (UWGamepadPointer.StickScrolls && UWGamepad.IsFromGamepad(mInput.Move))
             return Vector2.zero;
 
-        return mInput.Move.ReadValue<Vector2>();
+        Vector2 lOInput = mInput.Move.ReadValue<Vector2>();
+
+        // In VR the left stick normally follows the direction in which the
+        // headset faces, not the body yaw from the original motion core. Both
+        // modern controller movement and the original motion simulation use
+        // this common input function. The classic control scheme is unchanged.
+        if (UWVRBootstrap.IsHeadsetActive && UWVRBootstrap.HeadRelativeMovement
+            && mScheme != null && mScheme.Current == UWControlScheme.SchemeEnum.Modern
+            && UWGamepad.IsFromGamepad(mInput.Move))
+        {
+            Camera lOCamera = UWVRBootstrap.CurrentVRCamera;
+            if (lOCamera != null)
+                lOInput = UWVRWorldSpace.HeadRelativeStick(lOInput, transform.rotation,
+                    lOCamera.transform.forward);
+        }
+
+        return lOInput;
     }
 
     /// <summary>The gamepad's Y jumps (per user, 2026-10-07 - B did while nothing was open to close).</summary>

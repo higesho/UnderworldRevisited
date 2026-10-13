@@ -47,6 +47,16 @@ public static class UWVRBuild
         File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchDesktop.bat"),
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -logFile \"%~dp0Desktop_Test.log\"\r\n");
 
+        // The reference game measures a tile in 64 game units, not metres.
+        // Offer an intentionally EXPLICIT alternate scale instead of silently
+        // picking one; only an HMD test can determine a comfortable value.
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_Scale16.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-units-per-meter=16 -logFile \"%~dp0VR_Scale16_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BodyRelative.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-body-relative -logFile \"%~dp0VR_BodyRelative_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_UIFar.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-ui-distance=3.5 -logFile \"%~dp0VR_UIFar_Test.log\"\r\n");
+
         string lSGuide = Path.Combine(lSProjectRoot, "Docs", "VR_TEST_JA.txt");
         if (File.Exists(lSGuide))
             File.Copy(lSGuide, Path.Combine(lSBuildDirectory, "README_VR_TEST_JA.txt"), true);
