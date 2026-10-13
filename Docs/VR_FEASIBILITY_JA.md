@@ -6,6 +6,9 @@
 
 ## OpenXRパッケージ導入段階
 
+- Unity Editorメニュー `Underworld > VR > Report Configuration` を追加。コマンドラインでは `-executeMethod UWVRDiagnostics.ReportConfiguration` でXR管理とOpenXRアセンブリの読込状態をログに記録できる。
+- 2026-10-13時点の自動Unity検証では、既存の検証プロセスが残っており後続プロセスが終了コード1となった。残存プロセスを停止して再起動したが、`Application.AssetDatabase Initial Refresh Start` の地点から進まず、OpenXRの解決は未確認。
+
 - Unity 6000.6用XR Plug-in Management 4.7.0とOpenXR Plugin 1.17.1を`Packages/manifest.json`に追加。
 - パッケージを追加しただけではPC向けOpenXRプロバイダーは有効にならない。UnityのProject Settings > XR Plug-in ManagementでStandalone側のOpenXRを有効化し、対象HMDのInteraction ProfileとProject Validationを確認する。
 - この段階では未検証の設定アセットを手書きで追加しない。XR初期化・ステレオ描画と通常起動の両立確認が次の工程。
