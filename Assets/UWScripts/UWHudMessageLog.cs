@@ -36,6 +36,8 @@ public sealed class UWHudMessageLog
     // once Japanese is drawn through uGUI instead of through the original bitmap font.
     // Keep original colours for English and for game messages with explicit colour codes.
     private static readonly Color32 mOJapaneseLogTextColour = new Color32(255, 244, 222, 255);
+    private static readonly Color32 mOJapaneseLogSuccessColour = new Color32(212, 255, 177, 255);
+    private static readonly Color32 mOJapaneseLogWarningColour = new Color32(255, 190, 178, 255);
     private Text mMessageLogText;
 
     /// <summary>The log in the original font. The text next to it (mMessageLogText)
@@ -341,7 +343,8 @@ public sealed class UWHudMessageLog
                     lOColour = lyPalette[liCode];
             }
 
-            lOLineColours[liLine] = DisplayColourForLine(lsLine, lOColour, lONormal);
+            lOLineColours[liLine] = DisplayColourForLine(lsLine, lOColour, lONormal,
+                lyPalette[6], lyPalette[4]);
         }
 
         // The modern font gets, per line, the colour that was in effect at the line start; the
@@ -351,13 +354,25 @@ public sealed class UWHudMessageLog
 
     /// <summary>Keep the original palette colours unless the ordinary message ink
     /// would make translated Japanese text unreadable against the brown log.</summary>
-    public static Color32 DisplayColourForLine(string text, Color32 original, Color32 normal)
+    public static Color32 DisplayColourForLine(string text, Color32 original, Color32 normal,
+        Color32 originalGreen, Color32 originalRed)
     {
-        if (original.r == normal.r && original.g == normal.g && original.b == normal.b &&
-            UWUiFonts.JapaneseFontFor(text) != null)
+        if (UWUiFonts.JapaneseFontFor(text) == null)
+            return original;
+
+        if (SameRgb(original, originalGreen))
+            return mOJapaneseLogSuccessColour;
+        if (SameRgb(original, originalRed))
+            return mOJapaneseLogWarningColour;
+        if (SameRgb(original, normal))
             return mOJapaneseLogTextColour;
 
         return original;
+    }
+
+    private static bool SameRgb(Color32 lhs, Color32 rhs)
+    {
+        return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b;
     }
 
     /// <summary>

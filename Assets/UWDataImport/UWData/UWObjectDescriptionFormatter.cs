@@ -15,9 +15,10 @@ namespace UWDataImport.UWData
 	{
 		/// <summary>Builds from a raw description the finished "You see ..." message, as it
 		/// appears in the original when looking at an item.</summary>
-		public static string FormatLookMessage(string psRawDescription, bool pbPlural = false)
-		{
-			return "You see " + FormatItemName(psRawDescription, pbPlural) + ".";
+        public static string FormatLookMessage(string psRawDescription, bool pbPlural = false)
+        {
+            string name = FormatItemName(psRawDescription, pbPlural);
+            return ContainsJapanese(name) ? name + "が見える。" : "You see " + name + ".";
 		}
 
 		/// <summary>Only the resolution of "&amp;" and "_" without the "You see" sentence frame -
@@ -59,8 +60,16 @@ namespace UWDataImport.UWData
 			if (liSeparator < 0)
 				return psText;
 
-			string lsArticle = psText.Substring(0, liSeparator);
-			string lsRest = psText.Substring(liSeparator + 1);
+            string lsArticle = psText.Substring(0, liSeparator);
+            string lsRest = psText.Substring(liSeparator + 1);
+
+            // Japanese item names have no a/an/the article. The underlying raw
+            // description still keeps its original article marker for the item's
+            // condition, stack and singular/plural handling.
+            if (ContainsJapanese(lsRest) &&
+                (lsArticle == "a" || lsArticle == "an" ||
+                 lsArticle == "the" || lsArticle == "some"))
+                return lsRest;
 
 			if (!string.Equals(lsArticle, "a", System.StringComparison.OrdinalIgnoreCase)
 				&& !string.Equals(lsArticle, "an", System.StringComparison.OrdinalIgnoreCase))
@@ -94,16 +103,30 @@ namespace UWDataImport.UWData
 		/// e.g. "a_pole" -&gt; "pole". For messages that bring their own article,
 		/// such as "The pole cannot be used on that." (see UWItemDrag). Descriptions without
 		/// "_" (e.g. "leather leggings") stay unchanged.</summary>
-		public static string FormatBareItemName(string psRawDescription, bool pbPlural = false)
-		{
-			string lsName = FormatItemName(psRawDescription, pbPlural);
+        public static string FormatBareItemName(string psRawDescription, bool pbPlural = false)
+        {
+            string lsName = FormatItemName(psRawDescription, pbPlural);
+            if (ContainsJapanese(lsName))
+                return lsName;
 			int liSpaceIndex = psRawDescription == null ? -1 : psRawDescription.IndexOf('_');
 
 			if (liSpaceIndex < 0)
 				return lsName;
 
 			int liCut = lsName.IndexOf(' ');
-			return liCut < 0 ? lsName : lsName.Substring(liCut + 1);
-		}
+            return liCut < 0 ? lsName : lsName.Substring(liCut + 1);
+        }
+
+        /// <summary>Whether a name contains Japanese writing (not just Latin rune names).</summary>
+        public static bool ContainsJapanese(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            foreach (char c in text)
+                if ((c >= '\u3040' && c <= '\u30ff') ||
+                    (c >= '\u3400' && c <= '\u9fff') ||
+                    (c >= '\uff01' && c <= '\uffef'))
+                    return true;
+            return false;
+        }
 	}
 }

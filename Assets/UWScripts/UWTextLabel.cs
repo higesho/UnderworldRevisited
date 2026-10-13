@@ -170,7 +170,10 @@ public class UWTextLabel : MonoBehaviour
 
         mOText.fontSize = Mathf.Max(1, Mathf.Min(Mathf.Min(Mathf.RoundToInt(liPitch * ModernSizePerPitch),
             Mathf.FloorToInt(liPitch / ModernInkPerSize)), liWidthLimit));
-        mOText.fontStyle = peStyle;
+        // Bold gothic for Japanese text: the normal face is difficult to see
+        // over the pixel-art parchment at the classic UI's very small size.
+        // English and any explicit non-Japanese style keep their old appearance.
+        mOText.fontStyle = mbUseJapaneseFont ? FontStyle.Bold : peStyle;
         mOText.alignment = pbCentred ? TextAnchor.UpperCenter : TextAnchor.UpperLeft;
         mOText.lineSpacing = fGetLineSpacing(mOText, liPitch);
         mOText.text = fBuildRichText(pOLines, pOColours);

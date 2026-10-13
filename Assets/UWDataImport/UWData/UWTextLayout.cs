@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 
 namespace UWDataImport.UWData
 {
@@ -56,12 +57,19 @@ namespace UWDataImport.UWData
 		}
 
 		/// <summary>Wraps text at word boundaries to a maximum width.</summary>
-		public static List<string> WrapText(UWFont pOFont, string psText, int piMaxWidth)
-		{
-			List<string> lOLines = new List<string>();
+        public static List<string> WrapText(UWFont pOFont, string psText, int piMaxWidth)
+        {
+            List<string> lOLines = new List<string>();
 
-			if (pOFont == null || !pOFont.IsLoaded || string.IsNullOrEmpty(psText))
-				return lOLines;
+            if (pOFont == null || !pOFont.IsLoaded || string.IsNullOrEmpty(psText))
+                return lOLines;
+
+            // The original DOS bitmap font cannot measure Japanese characters;
+            // each missing glyph otherwise has zero width and long translations
+            // never wrap. Its 6px line height is a conservative CJK-cell estimate
+            // for the Unity font that will actually draw the translated text.
+            if (UWObjectDescriptionFormatter.ContainsJapanese(psText))
+                return fWrapJapaneseText(pOFont, psText, piMaxWidth);
 
 			string[] lsWords = psText.Split(' ');
 			string lsCurrent = string.Empty;
@@ -94,7 +102,54 @@ namespace UWDataImport.UWData
 			if (lsCurrent.Length > 0)
 				lOLines.Add(lsCurrent);
 
-			return lOLines;
-		}
+            return lOLines;
+        }
+
+        private static List<string> fWrapJapaneseText(UWFont font, string text, int maxWidth)
+        {
+            var result = new List<string>();
+            var line = new StringBuilder();
+            int width = 0;
+            maxWidth = System.Math.Max(1, maxWidth);
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                char character = text[i];
+                if (character == '\r')
+                    continue;
+                if (character == '\n')
+                {
+                    result.Add(line.ToString());
+                    line.Clear();
+                    width = 0;
+                    continue;
+                }
+                if (UWFont.IsColourCode(text, i))
+                {
+                    line.Append(character).Append(text[++i]);
+                    continue;
+                }
+
+                // Latin glyphs retain original widths; full-width glyphs take
+                // approximately one bitmap-font line height.
+                bool fullWidth = character >= 0x3000;
+                int advance = fullWidth ? font.Height : font.MeasureText(character.ToString(), 0, CharacterSpacing);
+                if (advance <= 0)
+                    advance = fullWidth ? font.Height : System.Math.Max(1, font.Height / 2);
+
+                if (width > 0 && width + advance > maxWidth)
+                {
+                    result.Add(line.ToString());
+                    line.Clear();
+                    width = 0;
+                }
+                line.Append(character);
+                width += advance;
+            }
+
+            if (line.Length > 0)
+                result.Add(line.ToString());
+            return result;
+        }
 	}
 }

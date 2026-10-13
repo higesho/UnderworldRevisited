@@ -108,6 +108,8 @@ public static class UWJapaneseFontDiagnostics
             Font japanese = UWUiFonts.JapaneseFontFor("性別を選択：");
             if (rendered == null || !rendered.enabled || image.enabled || japanese == null || rendered.font != japanese)
                 throw new InvalidOperationException("JP_CLASSIC_FAIL: Japanese labels use an invisible bitmap texture");
+            if (rendered.fontStyle != FontStyle.Bold)
+                throw new InvalidOperationException("JP_CLASSIC_FAIL: Japanese labels did not use bold gothic");
             if (new TextGenerator().GetPreferredWidth("性別を選択：",
                     rendered.GetGenerationSettings(new Vector2(140, 100))) <= 0)
                 throw new InvalidOperationException("JP_CLASSIC_FAIL: Japanese label has no visible width");
@@ -117,7 +119,15 @@ public static class UWJapaneseFontDiagnostics
             UWScreenUi.SetText(image, font, "Male", colour, 67, true);
             if (!image.enabled || rendered.enabled)
                 throw new InvalidOperationException("JP_CLASSIC_FAIL: English text did not retain original bitmap font");
+            if (rendered.fontStyle != FontStyle.Normal)
+                throw new InvalidOperationException("JP_CLASSIC_FAIL: English label style was changed");
             Debug.Log("JP_CLASSIC_ENGLISH_OK: Untranslated labels remain in original font");
+
+            var lines = UWTextLayout.WrapText(font,
+                "これは長い日本語の文章であり、迷宮の壁と罠の説明が表示領域を超えないよう折り返す必要がある。", 65);
+            if (lines.Count < 3 || lines.Exists(line => line.Length > 12))
+                throw new InvalidOperationException("JP_CLASSIC_FAIL: Japanese line wrapping did not fit the panel");
+            Debug.Log("JP_CLASSIC_WRAP_OK: Japanese example wrapped into " + lines.Count + " lines");
         }
         finally
         {
@@ -131,14 +141,21 @@ public static class UWJapaneseFontDiagnostics
     {
         Color32 normal = new Color32(60, 40, 32, 255);
         Color32 red = new Color32(220, 40, 35, 255);
-        Color32 japanese = UWHudMessageLog.DisplayColourForLine("何も見えない。", normal, normal);
+        Color32 green = new Color32(70, 125, 60, 255);
+        Color32 japanese = UWHudMessageLog.DisplayColourForLine("何も見えない。", normal, normal, green, red);
 
         if (japanese.r < 230 || japanese.g < 200 || japanese.b < 175)
             throw new InvalidOperationException("JP_HUD_FAIL: Japanese log text is too dark");
-        if (!UWHudMessageLog.DisplayColourForLine("Nothing is visible.", normal, normal).Equals(normal))
+        if (!UWHudMessageLog.DisplayColourForLine("Nothing is visible.", normal, normal, green, red).Equals(normal))
             throw new InvalidOperationException("JP_HUD_FAIL: Original English ink changed");
-        if (!UWHudMessageLog.DisplayColourForLine("失敗した。", red, normal).Equals(red))
-            throw new InvalidOperationException("JP_HUD_FAIL: A warning's special colour changed");
+        Color32 warning = UWHudMessageLog.DisplayColourForLine("失敗した。", red, normal, green, red);
+        Color32 success = UWHudMessageLog.DisplayColourForLine("セーブデータ一覧", green, normal, green, red);
+        if (warning.r < 240 || warning.g < 150 || warning.g > warning.r)
+            throw new InvalidOperationException("JP_HUD_FAIL: Japanese warnings are not bright red");
+        if (success.r < 180 || success.g < 230 || success.g <= success.r)
+            throw new InvalidOperationException("JP_HUD_FAIL: Japanese success text is not light green");
+        if (!UWHudMessageLog.DisplayColourForLine("Saved game.", green, normal, green, red).Equals(green))
+            throw new InvalidOperationException("JP_HUD_FAIL: English success ink changed");
 
         Debug.Log("JP_HUD_COLOURS_OK: Japanese uses light ink; English and special colours preserved");
     }

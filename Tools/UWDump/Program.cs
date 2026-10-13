@@ -184,6 +184,17 @@ namespace UnderworldRevisited.Tools
                     Console.Error.WriteLine("Newline count differs at " + key);
                     errors++;
                 }
+                // Dialogue strings substitute names, genders and grammar with @XXnn
+                // markers. The scripts and message scroll also use backslash codes.
+                // Missing or reordered placeholders can silently corrupt a scene.
+                string beforeMarkers = Signature(before);
+                string afterMarkers = Signature(after);
+                if (!string.Equals(beforeMarkers, afterMarkers, StringComparison.Ordinal))
+                {
+                    Console.Error.WriteLine("Formatting tokens differ at " + key +
+                        ": [" + beforeMarkers + "] vs [" + afterMarkers + "]");
+                    errors++;
+                }
                 foreach (char code in before)
                 {
                     if (code < ' ' && code != '\n' && code != '\r' && !after.Contains(code.ToString()))
@@ -241,6 +252,17 @@ namespace UnderworldRevisited.Tools
             foreach (char c in value)
                 if (c == wanted) count++;
             return count;
+        }
+
+        private static string Signature(string value)
+        {
+            var matches = System.Text.RegularExpressions.Regex.Matches(value,
+                @"@[A-Za-z]{2}\d+|\\[A-Za-z0-9]|%\d*[$]?[dfs]");
+            var tokens = new List<string>();
+            foreach (System.Text.RegularExpressions.Match match in matches)
+                tokens.Add(match.Value);
+            tokens.Sort(StringComparer.Ordinal);
+            return string.Join(",", tokens);
         }
 
         private static void fPrintInfo(DataImport pOData, string psDataPath)

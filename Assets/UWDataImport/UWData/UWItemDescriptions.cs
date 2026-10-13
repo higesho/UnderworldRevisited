@@ -122,26 +122,34 @@ namespace UWDataImport.UWData
 			// A curse comes BEFORE the name (inserted further up), an ordinary
 			// enchantment with "of" after it: "a cursed dagger" versus "a dagger of Very Great
 			// Damage". Both only if the Lore check yields the full name.
-			if (liLore == UWLoreCheck.ResultNamed && !lOEnchantment.IsCursed
-				&& !string.IsNullOrEmpty(lOEnchantment.Name))
-				lsName += " of " + lOEnchantment.Name;
+            if (liLore == UWLoreCheck.ResultNamed && !lOEnchantment.IsCursed
+                && !string.IsNullOrEmpty(lOEnchantment.Name))
+                lsName += UWObjectDescriptionFormatter.ContainsJapanese(lsName)
+                    ? "・" + lOEnchantment.Name : " of " + lOEnchantment.Name;
 
 			// The original ends with "with N full charges" - without "remaining", and for a
 			// single charge in the singular: "with 1 full charge" (both per user,
 			// 2026-09-05). The charges stay hidden as long as the spell does.
-			if (liLore == UWLoreCheck.ResultNamed && lOEnchantment.Charges >= 0)
-				lsName += lOEnchantment.Charges == 0
-					? " with no full charges"
-					: lOEnchantment.Charges == 1
-						? " with 1 full charge"
-						: " with " + lOEnchantment.Charges + " full charges";
+            if (liLore == UWLoreCheck.ResultNamed && lOEnchantment.Charges >= 0)
+            {
+                if (UWObjectDescriptionFormatter.ContainsJapanese(lsName))
+                    lsName += lOEnchantment.Charges == 0
+                        ? "（充填なし）" : "（残り" + lOEnchantment.Charges + "回）";
+                else
+                    lsName += lOEnchantment.Charges == 0
+                        ? " with no full charges"
+                        : lOEnchantment.Charges == 1
+                            ? " with 1 full charge"
+                            : " with " + lOEnchantment.Charges + " full charges";
+            }
 
 			// WHO OWNS IT is included: "a sword belonging to a knight". The field is
 			// the same one theft depends on (see Interaction.ReportTheft) - whoever takes it
 			// upsets those named, and afterwards the addition is no longer shown.
 			lsName += DescribeOwner(pOItem, pOData);
 
-			return "You see " + lsName + ".";
+            return UWObjectDescriptionFormatter.ContainsJapanese(lsName)
+                ? lsName + "が見える。" : "You see " + lsName + ".";
 		}
 
 		/// <summary>" belonging to a green goblin", or empty for an item nobody owns.</summary>
@@ -161,7 +169,10 @@ namespace UWDataImport.UWData
 			if (liRace <= 0 || liRace > LastOwnerValue)
 				return string.Empty;
 
-			return " belonging to" + fGetGeneralMessage(pOData, FirstOwnerNameMessage + liRace);
+            string owner = fGetGeneralMessage(pOData, FirstOwnerNameMessage + liRace);
+            return UWObjectDescriptionFormatter.ContainsJapanese(owner)
+                ? "（" + owner.Trim() + "の所有物）"
+                : " belonging to" + owner;
 		}
 
 		/// <summary>
@@ -173,12 +184,13 @@ namespace UWDataImport.UWData
 		{
 			string lsLook = UWObjectDescriptionFormatter.FormatLookMessage(psRaw);
 
-			if (pOItem != null && lsLook.EndsWith("."))
-			{
+            if (pOItem != null && (lsLook.EndsWith(".") || lsLook.EndsWith("。")))
+            {
 				string lsOwner = DescribeOwner(pOItem, pOData);
 
 				if (!string.IsNullOrEmpty(lsOwner))
-					lsLook = lsLook.Substring(0, lsLook.Length - 1) + lsOwner + ".";
+                    lsLook = lsLook.Substring(0, lsLook.Length - 1) + lsOwner +
+                        (UWObjectDescriptionFormatter.ContainsJapanese(lsLook) ? "。" : ".");
 			}
 
 			return lsLook;
@@ -205,8 +217,9 @@ namespace UWDataImport.UWData
 					string lsVoidName = pOData.Strings.Blocks[UWConversations.PartnerNameStringBlock]
 						.Strings[UWConversations.GetPartnerNameIndex(pONpc.NPCwhoami)].Trim().Replace('_', ' ');
 
-					if (!string.IsNullOrEmpty(lsVoidName))
-						return "You see " + lsVoidName + ".";
+                    if (!string.IsNullOrEmpty(lsVoidName))
+                        return UWObjectDescriptionFormatter.ContainsJapanese(lsVoidName)
+                            ? lsVoidName + "が見える。" : "You see " + lsVoidName + ".";
 				}
 				catch
 				{
@@ -257,7 +270,17 @@ namespace UWDataImport.UWData
 				}
 			}
 
-			// A lowercase "name" is not a name, only the kind (reference).
+            // With localized creature/attitude strings, use Japanese word order.
+            if (UWObjectDescriptionFormatter.ContainsJapanese(lsMood) &&
+                UWObjectDescriptionFormatter.ContainsJapanese(lsRace))
+            {
+                string creature = lsMood + lsRace;
+                return !string.IsNullOrEmpty(lsName) && !char.IsLower(lsName[0])
+                    ? creature + "、" + lsName + "が見える。"
+                    : creature + "が見える。";
+            }
+
+            // A lowercase "name" is not a name, only the kind (reference).
 			if (string.IsNullOrEmpty(lsName) || char.IsLower(lsName[0]))
 				return "You see " + lsArticle + " " + lsMood + " " + lsRace + ".";
 

@@ -4,8 +4,10 @@ Branch: `japanese-localization` (based on the upstream `main`).
 
 ## Current implementation
 
-The translated in-game messages are in `Localization/ja.tsv` (210 entries:
-159 general messages, 49 character creation labels, 2 conversation messages).
+The translated in-game messages are in `Localization/ja.tsv` (1,500 entries:
+including 404 object names, 213 spell and enchantment strings, 251 scenery
+descriptions, 69 book/note entries, 115 inscriptions/signs and 82 dialogue
+entries from 12 conversation blocks).
 Set `UW_JA_TRANSLATIONS` to that file's full path to enable them,
 or place `Localization/ja.tsv` next to the executable for automatic discovery.
 When running from the Unity Editor the project root's `Localization/ja.tsv` is
@@ -20,15 +22,16 @@ Translation coverage is still only a small sample, not a full localization.
   `Localization/ja.tsv` beside `UR.exe`.
 - The translations were loaded successfully from the GOG installation
   by the engine-free `Tools/UWDump` tool, with and without the environment variable.
-- `uwdump validate-tsv` checked 210 rows against the original strings: zero
-  invalid keys, duplicate keys, newline differences, or control-code warnings.
+- `uwdump validate-tsv` checked 1,500 rows against the original strings: zero
+  invalid keys, duplicate keys, newline differences, control-code or dialogue
+  placeholder mismatches.
 - The Editor smoke test (`UWJapaneseFontDiagnostics.VerifyJapaneseFont`) selected
   Noto Sans JP, found every tested Japanese glyph, generated 68 uGUI vertices,
   and verified Japanese/Latin per-label font switching. The test exited normally.
 - `UWJapaneseFontDiagnostics.VerifyJapaneseClassicLabels` verified that the
   character-creation UI displays CJK with Noto Sans JP while untranslated
   Latin text still uses the original bitmap font in classic mode.
-- The original `STRINGS.PAK` remains the source for 10,896 untranslated entries,
+- The original `STRINGS.PAK` remains the source for 9,606 untranslated entries,
   checked byte-for-byte against the decoded originals by `validate-tsv`.
 - The Windows player was launched with the GOG data and its character-creation
   screen visibly showed translated labels and options after the font fix.
@@ -42,8 +45,9 @@ Translation coverage is still only a small sample, not a full localization.
 - Character creation is already showing Japanese correctly; do not change that screen
   when working on later HUD text adjustments.
 - The classic in-game message log uses the original dark-brown palette colour. For
-  ordinary Japanese lines only, `UWHudMessageLog` uses light cream text for contrast;
-  English and explicitly coloured game messages keep their existing colours.
+  ordinary Japanese lines, `UWHudMessageLog` uses light cream text for contrast;
+  Japanese text with green/red game colour codes uses brighter pastel green/red.
+  English messages retain their existing palette colours.
 - The options save list labels unused slots `（未使用）` for display only. The original
   ASCII placeholder, editable save names and on-disk `DESC` data remain untouched.
 - The left-side options buttons contain English words *painted into the original
@@ -51,6 +55,13 @@ Translation coverage is still only a small sample, not a full localization.
   separate image/overlay localization. They remain in English in this preview.
 - The Unity editor verified the Japanese/English colour selection, but the updated
   game message contrast still needs an in-game screenshot check.
+- Japanese classic labels use Noto Sans JP with a **bold gothic style** in uGUI
+  (English labels keep their normal bitmap font). The editor smoke test confirms
+  this style as well as automatic wrapping of long Japanese text into CJK cells.
+- Raw object-name articles and plurals are preserved in the translation files,
+  but the object formatter removes the English articles when the name is Japanese.
+  Japanese creature descriptions, enchantment suffixes, quantities and owners
+  use localized word order in the updated game code.
 
 When Unity Package Manager resolution is very slow on a non-system drive,
 the same project sources can be copied to a temporary directory on a faster local
