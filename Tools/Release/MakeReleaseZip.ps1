@@ -74,6 +74,14 @@ New-Item -ItemType Directory -Path $Stage | Out-Null
 Get-ChildItem $BuildDir -Force | Where-Object { $_.Name -notlike "*_BackUpThisFolder_ButDontShipItWithYourGame" -and -not (-not $IsLinux -and $_.Name -eq "Linux") } |
     ForEach-Object { Copy-Item $_.FullName -Destination $Stage -Recurse -Force }
 
+# The fork's own UTF-8 translations are safe to ship; the original game's STRINGS.PAK is not.
+$JapaneseTranslation = Join-Path $ProjectRoot 'Localization\ja.tsv'
+if (Test-Path $JapaneseTranslation) {
+    $TranslationDestination = Join-Path $Stage 'Localization'
+    New-Item -ItemType Directory -Path $TranslationDestination -Force | Out-Null
+    Copy-Item $JapaneseTranslation -Destination (Join-Path $TranslationDestination 'ja.tsv') -Force
+}
+
 # The licence texts and the descriptions.
 foreach ($File in @("LICENSE", "THIRD_PARTY_NOTICES.md", "README.md")) {
     $Source = Join-Path $ProjectRoot $File

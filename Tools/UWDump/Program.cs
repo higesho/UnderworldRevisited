@@ -57,6 +57,9 @@ namespace UnderworldRevisited.Tools
                 case "strings":
                     return fPrintStrings(lOData, psArgs);
 
+                case "export-tsv":
+                    return ExportTsv(lOData, psArgs);
+
                 case "find":
                     return fFindString(lOData, psArgs);
 
@@ -81,6 +84,7 @@ namespace UnderworldRevisited.Tools
             Console.WriteLine();
             Console.WriteLine("  uwdump info    <path>                     what was found and loaded");
             Console.WriteLine("  uwdump strings <path> <block> [from] [n]  strings of a block");
+            Console.WriteLine("  uwdump export-tsv <path> <output.tsv>       export all string IDs and texts");
             Console.WriteLine("  uwdump find    <path> <text>              search all string blocks");
             Console.WriteLine("  uwdump level   <path> <1-9> [x y radius]  tile map and what stands in it");
             Console.WriteLine("  uwdump object  <path> <id>                properties of an object type");
@@ -88,6 +92,30 @@ namespace UnderworldRevisited.Tools
             Console.WriteLine();
             Console.WriteLine("<path> is the DATA folder of an installation, or the GOG installation");
             Console.WriteLine("folder or game.gog itself - the image is then extracted into a cache once.");
+        }
+
+        private static int ExportTsv(DataImport data, string[] args)
+        {
+            if (args.Length < 3) return 1;
+            var ids = new List<int>(data.Strings.Blocks.Keys);
+            ids.Sort();
+            int total = 0;
+            using (var writer = new StreamWriter(args[2], false, new System.Text.UTF8Encoding(false)))
+            {
+                writer.WriteLine("# block\tindex\toriginal (private reference; do not redistribute)");
+                foreach (int id in ids)
+                {
+                    var entries = data.Strings.Blocks[id].Strings;
+                    for (int index = 1; index < entries.Count; index++)
+                    {
+                        string value = (entries[index] ?? "").Replace("\r", "").Replace("\n", "\\n").Replace("\t", " ");
+                        writer.WriteLine(id + "\t" + index + "\t" + value);
+                        total++;
+                    }
+                }
+            }
+            Console.WriteLine("Exported " + total + " source strings to " + args[2]);
+            return 0;
         }
 
         private static void fPrintInfo(DataImport pOData, string psDataPath)

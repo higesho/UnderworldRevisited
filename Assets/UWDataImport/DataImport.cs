@@ -536,6 +536,19 @@ namespace UWDataImport
 		private void fLoadStrings(string psPath)
 		{
 			Strings = new UWStrings(File.ReadAllBytes(psPath));
+			string translationPath = Environment.GetEnvironmentVariable("UW_JA_TRANSLATIONS");
+			if (string.IsNullOrEmpty(translationPath))
+			{
+				// A standalone release can ship its own translation next to the executable.
+				string localTranslation = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Localization", "ja.tsv");
+				if (!File.Exists(localTranslation))
+				{
+					// When running in the Unity Editor the current directory is the project root.
+					localTranslation = Path.Combine(Directory.GetCurrentDirectory(), "Localization", "ja.tsv");
+				}
+				if (File.Exists(localTranslation)) translationPath = localTranslation;
+			}
+			UWStringTranslations.Apply(Strings, translationPath);
 		}
 
 		private void fLoadLevels(string psLevelFullPath)

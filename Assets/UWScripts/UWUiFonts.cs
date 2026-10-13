@@ -64,6 +64,40 @@ public static class UWUiFonts
 
     private static readonly HashSet<Font> msOwnFonts = new HashSet<Font>();
 
+    // OS fonts are used only when Japanese text is present. No proprietary OS font is bundled.
+    private static Font msJapaneseFont;
+    private static bool mbJapaneseFontChecked;
+
+    private static Font fJapaneseFont(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return null;
+        bool japanese = false;
+        foreach (char c in text)
+        {
+            if ((c >= '\u3040' && c <= '\u30ff') || (c >= '\u3400' && c <= '\u9fff') ||
+                (c >= '\uff01' && c <= '\uffef')) { japanese = true; break; }
+        }
+        if (!japanese) return null;
+        if (!mbJapaneseFontChecked)
+        {
+            mbJapaneseFontChecked = true;
+            string[] installed = Font.GetOSInstalledFontNames();
+            string[] candidates = { "Noto Sans CJK JP", "Noto Sans JP", "Yu Gothic", "Meiryo", "MS Gothic" };
+            foreach (string name in candidates)
+            {
+                foreach (string available in installed)
+                {
+                    if (!string.Equals(name, available, System.StringComparison.OrdinalIgnoreCase)) continue;
+                    msJapaneseFont = Font.CreateDynamicFontFromOSFont(available, 16);
+                    if (msJapaneseFont != null) msOwnFonts.Add(msJapaneseFont);
+                    break;
+                }
+                if (msJapaneseFont != null) break;
+            }
+        }
+        return msJapaneseFont;
+    }
+
     private static UWGameUI msUi;
 
     private static UWFont msGlyphs;
@@ -118,8 +152,8 @@ public static class UWUiFonts
                 lOEntry.Modern = pOText.font;
 
             bool lbOriginal = Face == FaceEnum.Original && fEnsureGlyphs();
-            Font lOWanted = lbOriginal && fCovers(pOText.text, pOText.supportRichText)
-                ? fOriginalFont(pOText.fontSize, lOEntry.Centred) : lOEntry.Modern;
+            Font lOWanted = fJapaneseFont(pOText.text) ?? (lbOriginal && fCovers(pOText.text, pOText.supportRichText)
+                ? fOriginalFont(pOText.fontSize, lOEntry.Centred) : lOEntry.Modern);
 
             if (lOWanted != null && pOText.font != lOWanted)
                 pOText.font = lOWanted;
@@ -161,8 +195,8 @@ public static class UWUiFonts
             if (lOText.font != null && !msOwnFonts.Contains(lOText.font))
                 lOEntry.Modern = lOText.font;
 
-            Font lOWanted = lbOriginal && fCovers(lOText.text, lOText.supportRichText)
-                ? fOriginalFont(lOText.fontSize, lOEntry.Centred) : lOEntry.Modern;
+            Font lOWanted = fJapaneseFont(lOText.text) ?? (lbOriginal && fCovers(lOText.text, lOText.supportRichText)
+                ? fOriginalFont(lOText.fontSize, lOEntry.Centred) : lOEntry.Modern);
 
             if (lOWanted != null && lOText.font != lOWanted)
                 lOText.font = lOWanted;
