@@ -253,10 +253,21 @@ public static class UWJapaneseFontDiagnostics
             if (UWJapaneseInterface.Text(mantra.Value) == mantra.Value)
                 throw new InvalidOperationException("JP_MENU_FAIL: untranslated mantra note");
 
+        foreach (UWKeyBindings.Entry binding in UWKeyBindings.Entries)
+            if (UWJapaneseInterface.Text(binding.Label) == binding.Label)
+                throw new InvalidOperationException("JP_MENU_FAIL: untranslated key binding " + binding.Label);
+        foreach (UWKeyBindings.Entry binding in UWKeyBindings.PadEntries)
+            if (UWJapaneseInterface.Text(binding.Label) == binding.Label)
+                throw new InvalidOperationException("JP_MENU_FAIL: untranslated pad binding " + binding.Label);
+
         if (UWJapaneseInterface.Text("Strength") != "筋力" ||
             UWJapaneseInterface.Text("Colour strength") != "補正の強さ" ||
             UWJapaneseInterface.Text("Circle 4  -  12 mana") != "第4環 － 消費魔力12" ||
             UWJapaneseInterface.Text("Page 3 of 28") != "28ページ中 3ページ目" ||
+            UWJapaneseInterface.Text("Pages 3 and 4 of 28") != "全28ページ、3・4ページ目" ||
+            !UWJapaneseInterface.Text("Pages 3 and 4 of 28      Arrow keys or the wheel turn the pages, Esc or a click on the page closes").Contains("Esc") ||
+            !UWJapaneseInterface.Text("This button is also used for \"Look\".").Contains("調べる") ||
+            !UWJapaneseInterface.Text("The crosshair aims: E, Q and the left button act on what it is on.").Contains("Qキー") ||
             UWJapaneseInterface.Text("Homebrew custom text") != "Homebrew custom text")
             throw new InvalidOperationException("JP_MENU_FAIL: dynamic values or English fallback changed");
 
@@ -265,7 +276,7 @@ public static class UWJapaneseFontDiagnostics
             if (style.CalcHeight(new GUIContent(text), 90f) <= 0)
                 throw new InvalidOperationException("JP_MENU_FAIL: label cannot be measured " + text);
 
-        Debug.Log("JP_MENU_HELP_OK: translated navigation, spell help, mantra help, dynamic formatting and font geometry");
+        Debug.Log("JP_MENU_HELP_OK: translated navigation, spell and mantra help, all binding labels, dynamic messages and font geometry");
     }
 
     [MenuItem("UW/Diagnostics/Verify Japanese Interface")]
@@ -275,6 +286,51 @@ public static class UWJapaneseFontDiagnostics
         VerifyJapaneseHudColours();
         VerifyJapaneseOptionsButtons();
         VerifyJapaneseSetupAndHelp();
+        AuditJapaneseControlsHelp();
         Debug.Log("JP_INTERFACE_ALL_OK: font, colours, classic options artwork, setup and help passed");
+    }
+
+    [MenuItem("UW/Diagnostics/Audit Japanese Controls Help")]
+    public static void AuditJapaneseControlsHelp()
+    {
+        if (!UWJapaneseInterface.IsAvailable)
+            throw new InvalidOperationException("JP_HELP_AUDIT_FAIL: no installed Japanese font");
+        int total = 0, untranslated = 0;
+        var simulatedPad = UnityEngine.InputSystem.Gamepad.current == null
+            ? UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Gamepad>() : null;
+        try
+        {
+            foreach (bool modern in new[] { true, false })
+            {
+                foreach (UWHelpControls.Section section in UWHelpControls.Build(modern))
+                {
+                    string[] captions = { section.Title, section.Intro };
+                    foreach (string caption in captions)
+                    {
+                        if (string.IsNullOrEmpty(caption)) continue;
+                        total++;
+                        if (UWJapaneseInterface.Text(caption) != caption) continue;
+                        untranslated++;
+                        Debug.Log("JP_HELP_UNTRANSLATED: " + caption);
+                    }
+                    foreach (UWHelpControls.Row row in section.Rows)
+                    {
+                        total++;
+                        if (UWJapaneseInterface.Text(row.Text) != row.Text) continue;
+                        untranslated++;
+                        Debug.Log("JP_HELP_UNTRANSLATED: " + row.Text);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            if (simulatedPad != null)
+                UnityEngine.InputSystem.InputSystem.RemoveDevice(simulatedPad);
+        }
+        Debug.Log("JP_HELP_AUDIT total=" + total + " untranslated=" + untranslated);
+        if (untranslated != 0)
+            throw new InvalidOperationException("JP_HELP_AUDIT_FAIL: " + untranslated +
+                " actual controls-help lines remain untranslated");
     }
 }

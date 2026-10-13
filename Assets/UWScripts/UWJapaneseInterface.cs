@@ -319,6 +319,81 @@ public static class UWJapaneseInterface
         { "The map; held: this help.", "地図を開きます。長押しでこのヘルプを開きます。" },
         { "The stick moves the pointer instead, or turns again.", "スティックによる自由ポインターと視点操作を切り替えます。" },
         { "   <i>(in the hollow)</i>", "   <i>（棚に配置済み）</i>" },
+        { "Walk forward", "前進" },
+        { "Walk backward", "後退" },
+        { "Left (modern: strafe)", "左へ（現代式：横移動）" },
+        { "Right (modern: strafe)", "右へ（現代式：横移動）" },
+        { "Turn left (classic)", "左を向く（原作式）" },
+        { "Turn right (classic)", "右を向く（原作式）" },
+        { "Strafe left (classic)", "左へ横移動（原作式）" },
+        { "Strafe right (classic)", "右へ横移動（原作式）" },
+        { "Turn left", "左を向く" },
+        { "Turn right", "右を向く" },
+        { "Strafe left", "左へ横移動" },
+        { "Strafe right", "右へ横移動" },
+        { "Jump", "ジャンプ" },
+        { "Jump (second key)", "ジャンプ（予備キー）" },
+        { "Sink while flying", "飛行中に下降" },
+        { "Rise while flying", "飛行中に上昇" },
+        { "Look down (classic)", "下を向く（原作式）" },
+        { "Look straight (classic)", "正面を向く（原作式）" },
+        { "Look up (classic)", "上を向く（原作式）" },
+        { "Look down", "下を向く" },
+        { "Look straight", "正面を向く" },
+        { "Look up", "上を向く" },
+        { "Character panel (modern)", "キャラクター画面（現代式）" },
+        { "Bags (modern)", "荷物（現代式）" },
+        { "Look (modern)", "調べる（現代式）" },
+        { "Runes and spells (modern)", "ルーンと呪文（現代式）" },
+        { "Switch control scheme (with Shift)", "操作方式の切替（Shift併用）" },
+        { "Walk, drag, attack", "歩く・ドラッグ・攻撃" },
+        { "Look and use", "調べる・使う" },
+        { "Open the map", "地図を開く" },
+        { "Switch the font", "フォントを切り替える" },
+        { "Open the help (not with Alt)", "ヘルプを開く（Alt併用は除く）" },
+        { "Options", "設定" },
+        { "Talk mode", "会話モード" },
+        { "Get mode", "拾うモード" },
+        { "Look mode", "調べるモード" },
+        { "Fight (draw the weapon)", "戦闘（武器を構える）" },
+        { "Use mode", "使うモード" },
+        { "Turn the panel", "操作パネルを切り替える" },
+        { "Cast the runes on the shelf", "棚のルーンで呪文を唱える" },
+        { "Track (look for creatures nearby)", "追跡（近くの生物を探す）" },
+        { "Make camp", "野営する" },
+        { "Use (held: use directly)", "使う（長押しで直接使う）" },
+        { "Look", "調べる" },
+        { "Close what is open", "開いている画面を閉じる" },
+        { "Character panel (held: every bag)", "キャラクター画面（長押しですべての袋）" },
+        { "Draw the weapon and strike", "武器を構えて攻撃" },
+        { "Draw or put away the weapon", "武器を構える・しまう" },
+        { "Cast the runes (held: rune panel)", "呪文詠唱（長押しでルーン画面）" },
+        { "Action bar: previous slot", "行動バー：前の枠" },
+        { "Action bar: next slot", "行動バー：次の枠" },
+        { "Action bar: use the slot", "行動バー：選択中の枠を使う" },
+        { "Open the map (tapped)", "地図を開く（短押し）" },
+        { "Menu", "メニュー" },
+        { "Help (held)", "ヘルプ（長押し）" },
+        { "Pointer on the stick, on or off", "スティックのポインター切替" },
+        { "Pointer: click (held: drag)", "ポインター：クリック（長押しでドラッグ）" },
+        { "Pointer: click, second button", "ポインター：クリック（予備ボタン）" },
+        { "Pointer: right button", "ポインター：右ボタン" },
+        { "Pointer: right button, second button", "ポインター：右ボタン（予備）" },
+        { "no pad", "ゲームパッドなし" },
+        { "Next level", "次のレベル" },
+        { "Next level at", "次のレベルに必要な経験値" },
+        { "Load", "荷物の重量" },
+        { "Protection", "防御力" },
+        { "Resistance", "耐性" },
+        { "Light", "明かり" },
+        { "Curse", "呪い" },
+        { "Maze navigation", "迷宮の案内" },
+        { "Dragon skin boots", "竜皮のブーツ" },
+        { "none, this is the highest", "これ以上のレベルはありません" },
+        { "shows the way in Tybal's maze", "タイボールの迷宮で進む道を示します" },
+        { "no harm from lava", "溶岩の被害を受けません" },
+        { " 4x", "4倍" },
+        { "One more every 3000 experience and every level.", "経験値3000ごととレベルアップ時に1増えます。" },
     };
 
     // IMGUI in Unity 6 uses TextCore rather than uGUI's legacy font renderer.
@@ -339,6 +414,18 @@ public static class UWJapaneseInterface
     {
         if (!IsAvailable || original == null) return original;
         if (Translations.TryGetValue(original, out string japanese)) return japanese;
+        const string manualFooter = "      Arrow keys or the wheel turn the pages, Esc or a click on the page closes";
+        if (original.EndsWith(manualFooter, StringComparison.Ordinal))
+        {
+            string pages = original.Substring(0, original.Length - manualFooter.Length);
+            return Text(pages) + "　　矢印キー／ホイール：ページ移動。Escまたはページをクリック：閉じる。";
+        }
+        if (original.StartsWith("Pages ", StringComparison.Ordinal))
+        {
+            string[] parts = original.Split(' ');
+            if (parts.Length == 6 && parts[0] == "Pages" && parts[2] == "and" && parts[4] == "of")
+                return "全" + parts[5] + "ページ、" + parts[1] + "・" + parts[3] + "ページ目";
+        }
         if (original.StartsWith("Circle ", StringComparison.Ordinal) &&
             original.EndsWith(" mana", StringComparison.Ordinal))
         {
@@ -362,6 +449,55 @@ public static class UWJapaneseInterface
             return "検出：  " + original.Substring(8);
         if (original.StartsWith("MT-32 ROMs: ", StringComparison.Ordinal))
             return "MT-32 ROM： " + original.Substring(12);
+        const string conflictKeyPrefix = "This key is also used for \"";
+        const string conflictButtonPrefix = "This button is also used for \"";
+        if (original.EndsWith("\".", StringComparison.Ordinal) &&
+            (original.StartsWith(conflictKeyPrefix, StringComparison.Ordinal) ||
+             original.StartsWith(conflictButtonPrefix, StringComparison.Ordinal)))
+        {
+            string prefix = original.StartsWith(conflictKeyPrefix, StringComparison.Ordinal)
+                ? conflictKeyPrefix : conflictButtonPrefix;
+            string other = original.Substring(prefix.Length, original.Length - prefix.Length - 2);
+            return (prefix == conflictKeyPrefix ? "このキーは「" : "このボタンは「") +
+                Text(other) + "」にも割り当てられています。";
+        }
+        const string aimedPrefix = "The crosshair aims: E, ";
+        const string aimedSuffix = " and the left button act on what it is on.";
+        if (original.StartsWith(aimedPrefix, StringComparison.Ordinal) &&
+            original.EndsWith(aimedSuffix, StringComparison.Ordinal))
+        {
+            string key = original.Substring(aimedPrefix.Length,
+                original.Length - aimedPrefix.Length - aimedSuffix.Length);
+            return "照準を合わせた対象には、Eキー、" + key + "キー、左ボタンで操作できます。";
+        }
+        const string freePrefix = "The windows take the clicks; E and ";
+        const string freeSuffix = " act on what is under the pointer, in the world as in the bags, the character panel and the action bar (holding E does nothing over a window).";
+        if (original.StartsWith(freePrefix, StringComparison.Ordinal) &&
+            original.EndsWith(freeSuffix, StringComparison.Ordinal))
+        {
+            string key = original.Substring(freePrefix.Length,
+                original.Length - freePrefix.Length - freeSuffix.Length);
+            return "画面内のクリックは各ウィンドウが受け取ります。Eキーと" + key +
+                "キーはポインターの下にある世界の物や荷物、装備画面、行動バーを操作します。ウィンドウ上でのE長押しは無効です。";
+        }
+        const string campPrefix = "The bedroll and the boots beside the paperdoll's feet - or ";
+        if (original.StartsWith(campPrefix, StringComparison.Ordinal) &&
+            original.EndsWith(".", StringComparison.Ordinal))
+        {
+            string keys = original.Substring(campPrefix.Length, original.Length - campPrefix.Length - 1);
+            return "装備画面の足元にある寝袋と靴、または" +
+                keys.Replace(" and ", "と") + "キーで野営・追跡ができます。";
+        }
+        const string escapePrefix = "Closes what is open - a waiting spell, the bags, the panels - then the game menu (";
+        const string escapeSuffix = " as well).";
+        if (original.StartsWith(escapePrefix, StringComparison.Ordinal) &&
+            original.EndsWith(escapeSuffix, StringComparison.Ordinal))
+        {
+            string key = original.Substring(escapePrefix.Length,
+                original.Length - escapePrefix.Length - escapeSuffix.Length);
+            return "待機中の呪文、荷物や各種画面を順に閉じ、最後にゲームメニューを開きます。" +
+                key + "キーでも開けます。";
+        }
         return original;
     }
 

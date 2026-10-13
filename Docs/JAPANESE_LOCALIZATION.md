@@ -103,6 +103,18 @@ and a damaged inscription are also deliberately retained to protect formatting.
   forty help spell notes, mantra notes and IMGUI layout. All passed headlessly
   after the font fallback change. The real menu/help screen's appearance is
   still awaiting a visual in-game test.
+- Follow-up work extends the separate modern-UI dictionary to 382 entries,
+  including every binding label for keyboard/mouse and gamepad, conflict
+  notifications, controller deadzone status, dynamic help keys and manual
+  page navigation. The editor's AuditJapaneseControlsHelp creates both modern
+  and classic controls guides with a temporary simulated gamepad. Its 117
+  section headings, notes and action rows now have **zero** untranslated
+  items; VerifyJapaneseInterface fails if this coverage regresses.
+- The already-running player's older `Build-ja-hud` window could be captured
+  without changing its state, but an isolated, hidden instance of the
+  translated `Build-ja-6874-menus` renders black when captured through
+  PrintWindow. Therefore no visual acceptance claim is made for the new
+  menus: a normally visible player window must still be checked later.
 - The Unity editor verified the Japanese/English colour selection, but the updated
   game message contrast still needs an in-game screenshot check.
 - Japanese classic labels use Noto Sans JP with a **bold gothic style** in uGUI

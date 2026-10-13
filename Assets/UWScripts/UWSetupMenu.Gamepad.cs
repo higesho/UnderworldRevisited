@@ -186,7 +186,8 @@ public partial class UWSetupMenu
         if (UWJapaneseInterface.Button(new Rect(pfLeft + pfInner - 200f, pfTop, 26f, 26f), ">", mOButton))
             lfValue = pfBefore + Step;
 
-        string lsNow = pfNow < 0f ? "no pad" : "now " + Mathf.RoundToInt(pfNow * 100f) + " %";
+        string lsNow = pfNow < 0f ? UWJapaneseInterface.Text("no pad") :
+            (UWJapaneseInterface.IsAvailable ? "現在 " : "now ") + Mathf.RoundToInt(pfNow * 100f) + " %";
 
         UWJapaneseInterface.Label(new Rect(pfLeft + pfInner - 165f, pfTop, 165f, 26f),
             Mathf.RoundToInt(lfValue * 100f) + " %  (" + lsNow + ")", mOListLabel);
