@@ -4,16 +4,20 @@ Branch: `japanese-localization` (based on the upstream `main`).
 
 ## Current implementation
 
-The translated in-game messages are in `Localization/ja.tsv` (5,786 entries:
-including 404 object names, 213 spell and enchantment strings, 251 scenery
-descriptions, 69 book/note entries, 115 inscriptions/signs and 4,368 dialogue
-entries from 80 conversation blocks).
+The translated in-game messages are in `Localization/ja.tsv` (6,874 entries:
+including 404 object names, 213 spell and enchantment strings, 264 scenery
+descriptions, 69 book/note entries, 115 inscriptions/signs and 4,908 dialogue
+entries from 97 conversation blocks, plus Japanese status fragments, ordinal
+labels, cutscene narration and internal diagnostics).
 Set `UW_JA_TRANSLATIONS` to that file's full path to enable them,
 or place `Localization/ja.tsv` next to the executable for automatic discovery.
 When running from the Unity Editor the project root's `Localization/ja.tsv` is
 loaded automatically as well. A post-build hook copies it into Windows and Linux
 players, so no environment variable is needed for a normal fork build.
-Translation coverage is incomplete; remaining strings fall back to English.
+All 7,091 nonempty source strings are accounted for: 6,874 translated and 217
+intentionally preserved in English or a fictional language. This is full review
+coverage of the game's string archive, **not** a claim that every pixel of the
+game UI is Japanese. Text embedded in original image assets still needs work.
 
 ## Build verification (2026-10-13)
 
@@ -22,7 +26,7 @@ Translation coverage is incomplete; remaining strings fall back to English.
   `Localization/ja.tsv` beside `UR.exe`.
 - The translations were loaded successfully from the GOG installation
   by the engine-free `Tools/UWDump` tool, with and without the environment variable.
-- `uwdump validate-tsv` checked 5,786 rows against the original strings: zero
+- `uwdump validate-tsv` checked 6,874 rows against the original strings: zero
   invalid keys, duplicate keys, newline differences, control-code or dialogue
   placeholder mismatches.
 - The Editor smoke test (`UWJapaneseFontDiagnostics.VerifyJapaneseFont`) selected
@@ -31,31 +35,34 @@ Translation coverage is incomplete; remaining strings fall back to English.
 - `UWJapaneseFontDiagnostics.VerifyJapaneseClassicLabels` verified that the
   character-creation UI displays CJK with Noto Sans JP while untranslated
   Latin text still uses the original bitmap font in classic mode.
-- The original `STRINGS.PAK` remains the source for 5,320 untranslated entries,
-  checked byte-for-byte against the decoded originals by `validate-tsv`.
+- The original `STRINGS.PAK` still supplies 217 deliberately unchanged nonempty
+  strings and 3,893 empty entries; 122 string-block header records are also
+  unchanged. The override validator compares each source entry and control code.
 - The Windows player was launched with the GOG data and its character-creation
   screen visibly showed translated labels and options after the font fix.
   Visual evidence stays outside Git at `L:\Games\UlutimaUW\LocalizationPrivate\ja-fontfix-char-screen.png`.
   Text contrast against the original book background still needs improvement.
-- Full UI layout, longer text wrapping, remaining classic HUD paths and gameplay
-  are not yet fully tested. The preview is not a complete translation.
+- Full UI layout, long text wrapping, remaining classic HUD paths, embedded
+  English-language sprite text and gameplay are not yet fully tested. Subsequent
+  preview builds use the previously verified executable with updated `ja.tsv`
+  rather than recompiling the player each time.
 
 The incremental translation counts (with empty source rows tracked separately) are
 recorded in `Docs/TRANSLATION_PROGRESS.md`. The original source has 7,091
-nonempty entries; 5,786 are translated, 121 intentionally retain the original
-fictional language / parsing terms, and 1,184 still require translation.
-All entries in 80 dialogue blocks (3585-3612, 3648-3651, 3672-3674,
-3696-3699, 3720-3728, 3730-3733, 3745-3746, 3768-3778 and 3792-3806)
-are now reviewed, with zero outstanding entries. Entries in 3728 use
-original command/keyword text; the mine code in 3745 and the
-Folanae password entry in 3771, and the vault password in 3796 are
-likewise preserved.
+nonempty entries; 6,874 are translated, 217 intentionally retain source
+tokens, and **zero** remain unreviewed. All 97 dialogue blocks
+(3585-3612, 3648-3651, 3672-3674, 3696-3699, 3720-3728,
+3730-3733, 3745-3746, 3768-3778, 3792-3806, 3815-3816,
+3846-3847, 3852, 3856, 3860-3862, 3864-3866, 3872, 3875,
+3879, 3881 and 3898) are now fully reviewed.
 
 The intentional exceptions are enumerated in `Localization/ja-preserve.tsv`,
 and the coverage script checks them against original nonempty block/index IDs.
-These are **not** machine-translated or disguised as Japanese: lizard-speech words,
-spoken passwords, mine codes, proper names and conversation lookup keywords must remain
-stable to preserve the game's language puzzle and script behaviour.
+These are **not** machine-translated or disguised as Japanese: lizard-speech
+words, spoken passwords, shrine mantras, rune incantations, mine codes and
+conversation lookup keywords must remain stable to preserve language puzzles
+and script behaviour. Developer-report column headers, bare structural tokens
+and a damaged inscription are also deliberately retained to protect formatting.
 
 ## Gameplay HUD follow-up
 
