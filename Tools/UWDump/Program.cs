@@ -60,6 +60,9 @@ namespace UnderworldRevisited.Tools
                 case "export-tsv":
                     return ExportTsv(lOData, psArgs);
 
+                case "validate-tsv":
+                    return ValidateTsv(lsDataPath, psArgs);
+
                 case "find":
                     return fFindString(lOData, psArgs);
 
@@ -85,6 +88,7 @@ namespace UnderworldRevisited.Tools
             Console.WriteLine("  uwdump info    <path>                     what was found and loaded");
             Console.WriteLine("  uwdump strings <path> <block> [from] [n]  strings of a block");
             Console.WriteLine("  uwdump export-tsv <path> <output.tsv>       export all string IDs and texts");
+            Console.WriteLine("  uwdump validate-tsv <path> <ja.tsv>         validate Japanese overrides against original text");
             Console.WriteLine("  uwdump find    <path> <text>              search all string blocks");
             Console.WriteLine("  uwdump level   <path> <1-9> [x y radius]  tile map and what stands in it");
             Console.WriteLine("  uwdump object  <path> <id>                properties of an object type");
@@ -116,6 +120,127 @@ namespace UnderworldRevisited.Tools
             }
             Console.WriteLine("Exported " + total + " source strings to " + args[2]);
             return 0;
+        }
+
+        private static int ValidateTsv(string dataPath, string[] args)
+        {
+            if (args.Length < 3 || !File.Exists(args[2]))
+            {
+                Console.Error.WriteLine("Provide an existing UTF-8 translation TSV.");
+                return 1;
+            }
+
+            byte[] raw = File.ReadAllBytes(Path.Combine(dataPath, "STRINGS.PAK"));
+            var original = new UWStrings(raw);
+            var translated = new UWStrings(raw);
+            int errors = 0, warnings = 0, rows = 0;
+            var seen = new HashSet<string>();
+            var perBlock = new SortedDictionary<int, int>();
+            string[] lines;
+            try
+            {
+                lines = File.ReadAllLines(args[2], new System.Text.UTF8Encoding(false, true));
+            }
+            catch (System.Text.DecoderFallbackException e)
+            {
+                Console.Error.WriteLine("Invalid UTF-8: " + e.Message);
+                return 5;
+            }
+
+            for (int lineNumber = 1; lineNumber <= lines.Length; lineNumber++)
+            {
+                string line = lines[lineNumber - 1].TrimStart('\uFEFF');
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#", StringComparison.Ordinal))
+                    continue;
+
+                string[] fields = line.Split(new[] { '\t' }, 3);
+                if (fields.Length != 3 || !int.TryParse(fields[0], out int block) ||
+                    !int.TryParse(fields[1], out int index) || index <= 0 ||
+                    !original.Blocks.TryGetValue(block, out UWStringBlock stringBlock) ||
+                    index >= stringBlock.Strings.Count || string.IsNullOrEmpty(fields[2]))
+                {
+                    Console.Error.WriteLine("Invalid translation row " + lineNumber);
+                    errors++;
+                    continue;
+                }
+
+                string key = block + ":" + index;
+                if (!seen.Add(key))
+                {
+                    Console.Error.WriteLine("Duplicate key " + key + " at line " + lineNumber);
+                    errors++;
+                    continue;
+                }
+
+                string before = stringBlock.Strings[index] ?? string.Empty;
+                string after = fields[2].Replace("\\n", "\n");
+                if (string.IsNullOrEmpty(before))
+                {
+                    Console.Error.WriteLine("Source is empty at " + key);
+                    errors++;
+                }
+                if (CountChar(before, '\n') != CountChar(after, '\n'))
+                {
+                    Console.Error.WriteLine("Newline count differs at " + key);
+                    errors++;
+                }
+                foreach (char code in before)
+                {
+                    if (code < ' ' && code != '\n' && code != '\r' && !after.Contains(code.ToString()))
+                    {
+                        Console.Error.WriteLine("Warning: control character missing at " + key);
+                        warnings++;
+                        break;
+                    }
+                }
+
+                rows++;
+                if (!perBlock.ContainsKey(block)) perBlock[block] = 0;
+                perBlock[block]++;
+            }
+
+            int applied = UWStringTranslations.Apply(translated, args[2]);
+            if (applied != rows)
+            {
+                Console.Error.WriteLine("Applied count differs from validated rows: " + applied + " != " + rows);
+                errors++;
+            }
+
+            // A partial localization must never blank or alter unlisted English text.
+            int preserved = 0;
+            foreach (KeyValuePair<int, UWStringBlock> entry in original.Blocks)
+            {
+                var originalLines = entry.Value.Strings;
+                var currentLines = translated.Blocks[entry.Key].Strings;
+                for (int index = 0; index < originalLines.Count; index++)
+                {
+                    if (seen.Contains(entry.Key + ":" + index))
+                        continue;
+                    if (!string.Equals(originalLines[index], currentLines[index], StringComparison.Ordinal))
+                    {
+                        Console.Error.WriteLine("Untranslated source changed: " + entry.Key + ":" + index);
+                        errors++;
+                    }
+                    else
+                    {
+                        preserved++;
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<int, int> entry in perBlock)
+                Console.WriteLine("Block " + entry.Key + ": " + entry.Value + " translated strings");
+            Console.WriteLine("Untranslated original strings preserved: " + preserved);
+            Console.WriteLine("Validation: " + rows + " rows, " + errors + " errors, " + warnings + " warnings");
+            return errors == 0 ? 0 : 4;
+        }
+
+        private static int CountChar(string value, char wanted)
+        {
+            int count = 0;
+            foreach (char c in value)
+                if (c == wanted) count++;
+            return count;
         }
 
         private static void fPrintInfo(DataImport pOData, string psDataPath)

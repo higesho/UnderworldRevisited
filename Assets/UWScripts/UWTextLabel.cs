@@ -62,7 +62,7 @@ public class UWTextLabel : MonoBehaviour
 
     /// <summary>Line pitch per font size: what Unity uses for a value of 1,
     /// measured once.</summary>
-    private static readonly Dictionary<int, float> mOLinePitch = new Dictionary<int, float>();
+    private static readonly Dictionary<(Font, int), float> mOLinePitch = new Dictionary<(Font, int), float>();
 
     /// <summary>Modern font instead of the original font, for all fields.</summary>
     public static bool UseModernFont
@@ -89,6 +89,7 @@ public class UWTextLabel : MonoBehaviour
     private Text mOText;
     private bool mbShown;
     private bool mbAppliedModern;
+    private bool mbUseJapaneseFont;
 
     /// <summary>The field for a RawImage - created the first time.</summary>
     public static UWTextLabel Get(RawImage pOImage)
@@ -152,10 +153,23 @@ public class UWTextLabel : MonoBehaviour
 
         fEnsureText();
 
+        // The classic text sizing rules were calibrated against Lexend Exa.
+        // Do not let the CJK fallback change their cached width measurement.
+        mOText.font = mOModernFont;
+        int liWidthLimit = fGetWidthLimitedSize(pOFont, mOText);
+
+        // These fields normally use the original bitmap font. It does not have
+        // Japanese glyphs: those textures are transparent even though the translated
+        // strings are present. Use the shared OS Japanese font for CJK strings only,
+        // even when the player has selected the original-looking interface.
+        Font lOJapaneseFont = UWUiFonts.JapaneseFontFor(string.Join("\n", pOLines));
+        mbUseJapaneseFont = lOJapaneseFont != null;
+        mOText.font = mbUseJapaneseFont ? lOJapaneseFont : mOModernFont;
+
         int liPitch = pOFont != null ? pOFont.Height + UWFontRenderer.LineSpacing : 6;
 
         mOText.fontSize = Mathf.Max(1, Mathf.Min(Mathf.Min(Mathf.RoundToInt(liPitch * ModernSizePerPitch),
-            Mathf.FloorToInt(liPitch / ModernInkPerSize)), fGetWidthLimitedSize(pOFont, mOText)));
+            Mathf.FloorToInt(liPitch / ModernInkPerSize)), liWidthLimit));
         mOText.fontStyle = peStyle;
         mOText.alignment = pbCentred ? TextAnchor.UpperCenter : TextAnchor.UpperLeft;
         mOText.lineSpacing = fGetLineSpacing(mOText, liPitch);
@@ -341,7 +355,7 @@ public class UWTextLabel : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (mbShown && mbAppliedModern != UseModernFont)
+        if (mbShown && mbAppliedModern != (UseModernFont || mbUseJapaneseFont))
             fApply();
     }
 
@@ -350,7 +364,7 @@ public class UWTextLabel : MonoBehaviour
         if (mOImage == null)
             mOImage = GetComponent<RawImage>();
 
-        bool lbModern = UseModernFont;
+        bool lbModern = UseModernFont || mbUseJapaneseFont;
 
         mbAppliedModern = lbModern;
 
@@ -400,8 +414,9 @@ public class UWTextLabel : MonoBehaviour
     private static float fGetLineSpacing(Text pOText, int piPitch)
     {
         float lfNatural;
+        var key = (pOText.font, pOText.fontSize);
 
-        if (!mOLinePitch.TryGetValue(pOText.fontSize, out lfNatural))
+        if (!mOLinePitch.TryGetValue(key, out lfNatural))
         {
             string lsText = pOText.text;
             float lfSpacing = pOText.lineSpacing;
@@ -420,7 +435,7 @@ public class UWTextLabel : MonoBehaviour
             if (lfNatural <= 0f)
                 lfNatural = pOText.fontSize;
 
-            mOLinePitch[pOText.fontSize] = lfNatural;
+            mOLinePitch[key] = lfNatural;
         }
 
         return piPitch / lfNatural;

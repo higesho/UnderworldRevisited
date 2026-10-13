@@ -68,6 +68,10 @@ public static class UWUiFonts
     private static Font msJapaneseFont;
     private static bool mbJapaneseFontChecked;
 
+    /// <summary>The font shared by the modern HUD and the game's bitmap-font UI.
+    /// Returns null for Latin-only text so it keeps its existing appearance.</summary>
+    public static Font JapaneseFontFor(string text) => fJapaneseFont(text);
+
     private static Font fJapaneseFont(string text)
     {
         if (string.IsNullOrEmpty(text)) return null;

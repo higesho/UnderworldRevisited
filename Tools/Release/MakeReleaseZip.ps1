@@ -91,6 +91,11 @@ foreach ($File in @("LICENSE", "THIRD_PARTY_NOTICES.md", "README.md")) {
     Copy-Item $Source -Destination $Stage
 }
 
+$JapaneseReadme = Join-Path $ProjectRoot 'README_JA.md'
+if (Test-Path $JapaneseReadme) {
+    Copy-Item $JapaneseReadme -Destination (Join-Path $Stage 'README_JA.md')
+}
+
 Copy-Item (Join-Path $PSScriptRoot "README.txt") -Destination $Stage
 
 # The full controls README.md and README.txt point to, under the same path as in the project.
