@@ -4,10 +4,10 @@ Branch: `japanese-localization` (based on the upstream `main`).
 
 ## Current implementation
 
-The translated in-game messages are in `Localization/ja.tsv` (2,354 entries:
+The translated in-game messages are in `Localization/ja.tsv` (3,050 entries:
 including 404 object names, 213 spell and enchantment strings, 251 scenery
-descriptions, 69 book/note entries, 115 inscriptions/signs and 936 dialogue
-entries from 12 conversation blocks).
+descriptions, 69 book/note entries, 115 inscriptions/signs and 1,632 dialogue
+entries from 24 conversation blocks).
 Set `UW_JA_TRANSLATIONS` to that file's full path to enable them,
 or place `Localization/ja.tsv` next to the executable for automatic discovery.
 When running from the Unity Editor the project root's `Localization/ja.tsv` is
@@ -22,7 +22,7 @@ Translation coverage is still only a small sample, not a full localization.
   `Localization/ja.tsv` beside `UR.exe`.
 - The translations were loaded successfully from the GOG installation
   by the engine-free `Tools/UWDump` tool, with and without the environment variable.
-- `uwdump validate-tsv` checked 2,354 rows against the original strings: zero
+- `uwdump validate-tsv` checked 3,050 rows against the original strings: zero
   invalid keys, duplicate keys, newline differences, control-code or dialogue
   placeholder mismatches.
 - The Editor smoke test (`UWJapaneseFontDiagnostics.VerifyJapaneseFont`) selected
@@ -31,7 +31,7 @@ Translation coverage is still only a small sample, not a full localization.
 - `UWJapaneseFontDiagnostics.VerifyJapaneseClassicLabels` verified that the
   character-creation UI displays CJK with Noto Sans JP while untranslated
   Latin text still uses the original bitmap font in classic mode.
-- The original `STRINGS.PAK` remains the source for 8,752 untranslated entries,
+- The original `STRINGS.PAK` remains the source for 8,056 untranslated entries,
   checked byte-for-byte against the decoded originals by `validate-tsv`.
 - The Windows player was launched with the GOG data and its character-creation
   screen visibly showed translated labels and options after the font fix.
@@ -41,8 +41,17 @@ Translation coverage is still only a small sample, not a full localization.
   are not yet fully tested. The preview is not a complete translation.
 
 The incremental translation counts (with empty source rows tracked separately) are
-recorded in `Docs/TRANSLATION_PROGRESS.md`. Nonempty source text remaining:
-4,737 strings. Dialogue blocks 3585-3596 are fully covered.
+recorded in `Docs/TRANSLATION_PROGRESS.md`. The original source has 7,091
+nonempty entries; 3,050 are translated, 74 intentionally retain the original
+fictional language / parsing terms, and 3,967 still require translation.
+All entries in dialogue blocks 3585-3608 are now reviewed, with zero outstanding
+entries. Blocks 3599, 3602, 3605 and 3608 contain deliberately preserved tokens.
+
+The intentional exceptions are enumerated in `Localization/ja-preserve.tsv`,
+and the coverage script checks them against original nonempty block/index IDs.
+These are **not** machine-translated or disguised as Japanese: lizard-speech words,
+spoken passwords, proper names and conversation lookup keywords must remain
+stable to preserve the game's language puzzle and script behaviour.
 
 ## Gameplay HUD follow-up
 
