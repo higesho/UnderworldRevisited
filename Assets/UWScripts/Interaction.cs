@@ -4354,7 +4354,8 @@ public class Interaction : MonoBehaviour
             mInventory.RemoveWorldObject(pOTarget);
         }
         else
-            mOActiveStrings.Add("Your pack and bags are full.");
+            mOActiveStrings.Add(mOUWDataImporter != null && mOUWDataImporter.HasJapaneseTranslations
+                ? "背負い袋も鞄もいっぱいだ。" : "Your pack and bags are full.");
     }
 
     /// <summary>
@@ -4571,14 +4572,9 @@ public class Interaction : MonoBehaviour
     {
         string lsName = UWItemDescriptions.GetBareName(pOItem.ID, mOUWDataImporter);
 
-        return ReadPrefix + (string.IsNullOrEmpty(lsName) ? UnnamedItem : lsName) + ReadSuffix;
+        return UWObjectDescriptionFormatter.FormatReadMessage(lsName,
+            mOUWDataImporter.HasJapaneseTranslations);
     }
-
-    private const string ReadPrefix = "You read the ";
-
-    private const string ReadSuffix = "...";
-
-    private const string UnnamedItem = "UNNAMED";
 
     /// <summary>
     /// Reads a book or scroll. Returns false if the object is neither or

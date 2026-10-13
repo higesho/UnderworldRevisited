@@ -197,6 +197,33 @@ $env:UW_JA_TRANSLATIONS = 'C:\Translations\underworld-ja.tsv'
 
 ## Outstanding work
 
+### 2026-10-13: code-composed English/Japanese messages and name entry
+
+An in-game screenshot showed `You read the 巻物...` directly before a correctly
+translated scroll. The text was **not** an untranslated STRINGS.PAK entry:
+`Interaction.fReadHeader` had an English-only prefix and suffix in code.
+`UWObjectDescriptionFormatter.FormatReadMessage` now uses Japanese sentence
+order (`巻物にはこう書かれていた……`) whenever the Japanese overrides are active;
+without those overrides the original `You read the scroll...` remains unchanged.
+
+Other code-composed strings were also checked. Named talismans use Japanese
+look-message word order, conversation `identify_inv` strips the Japanese
+`が見える。` sentence suffix, full bags have a Japanese message, and the health/
+mana flasks show `current／maximum` instead of a mixed-language `out of`.
+Equipment wear and destruction messages have Japanese wording when localized.
+
+During character creation, the classic bitmap font cannot measure the width
+of the translated `名前：` prompt (it reports zero). The typed name now starts
+no farther left than the reserved input column, preventing overlap. Untranslated
+English prompts keep the original width-based positioning.
+
+The engine-free self-check explicitly verifies Japanese read messages and the
+unchanged English fallback. The older game-rule checks contain assertions for
+the English original strings, so a full original-game self-check is run with
+the optional Japanese override disabled; the new Japanese composition tests run
+in both modes. A fresh Windows player build includes these changes. A manual
+in-game screenshot is still required to confirm the final visual positioning.
+
 ### 2026-10-13: real-game Japanese options label visibility regression
 
 The previous `Build-ja-6874-visualfix` player starts successfully and supports
@@ -221,8 +248,8 @@ real gameplay image `LocalizationPrivate/options-fixed-after-name.png`
 Screenshots are private test artifacts, not bundled. This is a visual
 acceptance test of the specific label-leak regression, not yet a complete
 visual review of every open options submenu or of all translated dialogue.
-Another gameplay test also showed residual English `out of` in some
-health/mana status strings; that formatting remains to be localized.
+Another gameplay test had shown residual English `out of` in some
+health/mana status strings; the code-composed text fix above addresses it.
 
 
 The modern HUD tries an installed OS Japanese font (Noto Sans CJK JP,

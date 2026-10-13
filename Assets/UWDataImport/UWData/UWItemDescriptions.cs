@@ -81,7 +81,8 @@ namespace UWDataImport.UWData
 			string lsTalisman = liLore == UWLoreCheck.ResultNamed ? UWTalismans.GetName(pOItem.ID, pOData.Strings) : null;
 
 			if (!string.IsNullOrEmpty(lsTalisman))
-				return "You see " + lsTalisman + ".";
+				return UWObjectDescriptionFormatter.ContainsJapanese(lsTalisman)
+					? lsTalisman + "が見える。" : "You see " + lsTalisman + ".";
 
 			int liCount = GetStackCount(pOItem);
 

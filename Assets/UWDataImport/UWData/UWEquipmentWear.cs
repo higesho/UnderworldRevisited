@@ -121,8 +121,13 @@ namespace UWDataImport.UWData
 
 			string lsName = UWItemDescriptions.GetBareName(pOItem.ID, pOData);
 
-			psMessage = "Your " + lsName + (lsName.EndsWith("s") ? " were" : " was")
-				+ (lbDestroyed ? " destroyed." : " damaged.");
+			// The original assembles this sentence in code instead of STRINGS.PAK.
+			// Do not attach English grammar to translated equipment names.
+			if (pOData.HasJapaneseTranslations)
+				psMessage = lsName + (lbDestroyed ? "が壊れた。" : "が傷んだ。");
+			else
+				psMessage = "Your " + lsName + (lsName.EndsWith("s") ? " were" : " was")
+					+ (lbDestroyed ? " destroyed." : " damaged.");
 
 			return lbDestroyed ? Outcome.Destroyed : Outcome.Damaged;
 		}

@@ -160,8 +160,10 @@ namespace UWDataImport.UWData
 
 			if (lsText.StartsWith(lsYouSee, StringComparison.Ordinal))
 				lsText = lsText.Substring(lsYouSee.Length);
+			else if (lsText.EndsWith("が見える。", StringComparison.Ordinal))
+				return lsText.Substring(0, lsText.Length - "が見える。".Length);
 
-			return lsText.TrimEnd('.');
+			return lsText.TrimEnd('.', '。');
 		}
 
 		/// <summary>An item on the player's own side of the trade area: 1 + Lore against 15, rolled

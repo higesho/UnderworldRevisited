@@ -561,12 +561,16 @@ public class UWCharacterCreationScreen : MonoBehaviour
                 UWScreenUi.SetTexture(mONameBox, fGetImage(NameBoxImage, false));
                 UWScreenUi.SetText(mONamePrompt, mOFont, mOGeneration.QuestionText, mOTextColour, ValueWidth + 10, false);
 
-                // THE TYPED NAME STARTS WHERE THE PROMPT ENDS (2026-10-06, per user: "der Text ist
-                // zu nah am Doppelpunkt"): the prompt string of the game is "Name: " with its own
-                // trailing space, so the input goes right after the measured prompt - as if both
-                // were one line, which is how the original draws them - instead of the fixed 41.
+                // The classic bitmap font has no Japanese glyphs: MeasureText("名前：")
+                // reports zero width even though UWTextLabel draws it with an OS font.
+                // Reserve the original input column for a Japanese prompt, keeping a
+                // clear gap between "名前：" and the typed name/cursor.
+                int liNameLeft = NamePromptLeft + mOFont.MeasureText(
+                    mOGeneration.QuestionText, 0, UWFontRenderer.CharacterSpacing);
+                if (UWObjectDescriptionFormatter.ContainsJapanese(mOGeneration.QuestionText))
+                    liNameLeft = Mathf.Max(NameInputLeft, liNameLeft);
                 UWScreenUi.Place(mONameInput,
-                    NamePromptLeft + mOFont.MeasureText(mOGeneration.QuestionText, 0, UWFontRenderer.CharacterSpacing), NameTextTop);
+                    liNameLeft, NameTextTop);
                 fDrawNameInput();
                 break;
 

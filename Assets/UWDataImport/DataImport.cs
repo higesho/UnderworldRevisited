@@ -29,6 +29,10 @@ namespace UWDataImport
 
 		public UWStrings Strings { get; private set; }
 
+		/// <summary>True when Japanese string overrides have been loaded, so text
+		/// assembled in code uses Japanese word order even for Latin item names.</summary>
+		public bool HasJapaneseTranslations { get; private set; }
+
 		public UWWeaponAnimations WeaponAnimations { get; private set; }
 
 		public UWWearables Wearables { get; private set; }
@@ -548,7 +552,7 @@ namespace UWDataImport
 				}
 				if (File.Exists(localTranslation)) translationPath = localTranslation;
 			}
-			UWStringTranslations.Apply(Strings, translationPath);
+			HasJapaneseTranslations = UWStringTranslations.Apply(Strings, translationPath) > 0;
 		}
 
 		private void fLoadLevels(string psLevelFullPath)

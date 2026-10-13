@@ -51,6 +51,7 @@ namespace UnderworldRevisited.Tools
             Stopwatch lOTotal = Stopwatch.StartNew();
 
             fCheckClickRules();
+            fCheckJapaneseComposedMessages();
             fCheckCritterBrain();
             fCheckRuleIndex();
 
@@ -2359,9 +2360,10 @@ namespace UnderworldRevisited.Tools
                 && lOObjectNames.Strings != null
                 && lOObjectNames.Strings.Count > UWObjectMechanics.SplashEffectObjectId)
             {
+                string splashName = lOObjectNames.Strings[UWObjectMechanics.SplashEffectObjectId];
                 fExpectBool("splash: entry 454 of string block 4 names it",
-                    lOObjectNames.Strings[UWObjectMechanics.SplashEffectObjectId]
-                        .IndexOf("splash", StringComparison.OrdinalIgnoreCase) >= 0, true);
+                    splashName.IndexOf("splash", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    splashName.Contains("水しぶき"), true);
             }
         }
 
@@ -2663,7 +2665,9 @@ namespace UnderworldRevisited.Tools
             fExpectBool("theft: the limit looks at the race bits only",
                 UWCritterRules.ClearsOwnerAfterTheft(0x3B), true);
 
-            string[] lsExpected = { "angered", "annoyed", "notes" };
+            string[] lsExpected = pOData.HasJapaneseTranslations
+                ? new[] { "怒った", "不快に思った", "気づいた" }
+                : new[] { "angered", "annoyed", "notes" };
 
             for (int liAttitude = 0; liAttitude < lsExpected.Length; liAttitude++)
             {
@@ -3164,7 +3168,8 @@ namespace UnderworldRevisited.Tools
                     if (leState != UWConversationVM.RunState.AwaitingChoice)
                         break;
 
-                    int liChoice = lOVm.PendingChoices.FindIndex(psChoice => psChoice.Contains("news"));
+                    int liChoice = lOVm.PendingChoices.FindIndex(psChoice =>
+                        psChoice.Contains("news") || psChoice.Contains("知らせ"));
 
                     lOVm.SupplyChoice((liChoice < 0 ? lOVm.PendingChoices.Count - 1 : liChoice) + 1);
                 }
@@ -3175,8 +3180,13 @@ namespace UnderworldRevisited.Tools
 
             fExpectBool("troll news: no conversation runs into the endless loop", lbFailed, false);
             fExpectInt("troll news: six different news first", new HashSet<string>(lOHeard.GetRange(0, 6)).Count, 6);
-            fExpectBool("troll news: then \"no new news\"", lOHeard[6].StartsWith("I have no new news"), true);
-            fExpectBool("troll news: and it starts over", lOHeard[7].Length > 0 && !lOHeard[7].StartsWith("I have no new news"), true);
+            bool lbNoNews = lOHeard[6].StartsWith("I have no new news") ||
+                lOHeard[6].StartsWith("新しい知らせは何も");
+            fExpectBool("troll news: then \"no new news\"", lbNoNews, true);
+            bool lbRestarted = lOHeard[7].Length > 0 &&
+                !lOHeard[7].StartsWith("I have no new news") &&
+                !lOHeard[7].StartsWith("新しい知らせは何も");
+            fExpectBool("troll news: and it starts over", lbRestarted, true);
         }
 
         /// <summary>UWConversationTextRules.ContainsWord after Contains_ovr093_ED4: the keyword as a
@@ -3667,10 +3677,15 @@ namespace UnderworldRevisited.Tools
             fExpectInt("wear: the dagger is damaged by 7",
                 (int)UWEquipmentWear.Wear(lODagger, 7, pOData, out string lsMessage), (int)UWEquipmentWear.Outcome.Damaged);
             fExpectInt("wear: 15 - 7 leaves 8", lODagger.Quality, 8);
-            fExpectBool("wear: Your dagger was damaged.", lsMessage == "Your dagger was damaged.", true);
+            string lsDagger = UWItemDescriptions.GetBareName(lODagger.ID, pOData);
+            string lsDamaged = pOData.HasJapaneseTranslations
+                ? lsDagger + "が傷んだ。" : "Your dagger was damaged.";
+            fExpectBool("wear: dagger was damaged", lsMessage == lsDamaged, true);
             fExpectInt("wear: 9 more destroy it",
                 (int)UWEquipmentWear.Wear(lODagger, 9, pOData, out lsMessage), (int)UWEquipmentWear.Outcome.Destroyed);
-            fExpectBool("wear: Your dagger was destroyed.", lsMessage == "Your dagger was destroyed.", true);
+            string lsDestroyed = pOData.HasJapaneseTranslations
+                ? lsDagger + "が壊れた。" : "Your dagger was destroyed.";
+            fExpectBool("wear: dagger was destroyed", lsMessage == lsDestroyed, true);
         }
 
         private static void fCheckMoonstone(DataImport pOData)
@@ -4543,9 +4558,11 @@ namespace UnderworldRevisited.Tools
             if (pOData != null && pOData.Strings != null)
             {
                 fExpectBool("regeneration: 0xBE is named Regeneration",
-                    fSpellNameIs(pOData, UWWornRegeneration.MajorClass, UWWornRegeneration.HealthMinorClass, "Regeneration"), true);
+                    fSpellNameIs(pOData, UWWornRegeneration.MajorClass, UWWornRegeneration.HealthMinorClass,
+                        pOData.HasJapaneseTranslations ? "再生" : "Regeneration"), true);
                 fExpectBool("regeneration: 0xBF is named Mana Regeneration",
-                    fSpellNameIs(pOData, UWWornRegeneration.MajorClass, UWWornRegeneration.ManaMinorClass, "Mana Regeneration"), true);
+                    fSpellNameIs(pOData, UWWornRegeneration.MajorClass, UWWornRegeneration.ManaMinorClass,
+                        pOData.HasJapaneseTranslations ? "魔力再生" : "Mana Regeneration"), true);
             }
 
             // The status pass: a ring in either ring slot sets the bit, a helmet of another

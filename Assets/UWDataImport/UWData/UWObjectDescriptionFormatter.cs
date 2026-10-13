@@ -15,11 +15,23 @@ namespace UWDataImport.UWData
 	{
 		/// <summary>Builds from a raw description the finished "You see ..." message, as it
 		/// appears in the original when looking at an item.</summary>
-        public static string FormatLookMessage(string psRawDescription, bool pbPlural = false)
+		public static string FormatLookMessage(string psRawDescription, bool pbPlural = false)
         {
             string name = FormatItemName(psRawDescription, pbPlural);
             return ContainsJapanese(name) ? name + "が見える。" : "You see " + name + ".";
 		}
+
+        /// <summary>The line shown immediately before a book or scroll's text.
+        /// Keep the original English wording when no translation is installed, but
+        /// never join an English sentence prefix onto a translated Japanese item name.</summary>
+        public static string FormatReadMessage(string psItemName, bool pbJapanese = false)
+        {
+            if (pbJapanese || ContainsJapanese(psItemName))
+                return (string.IsNullOrEmpty(psItemName) ? "名前のない品" : psItemName)
+                    + "にはこう書かれていた……";
+
+            return "You read the " + (string.IsNullOrEmpty(psItemName) ? "UNNAMED" : psItemName) + "...";
+        }
 
 		/// <summary>Only the resolution of "&amp;" and "_" without the "You see" sentence frame -
 		/// for places that need the plain item name.</summary>

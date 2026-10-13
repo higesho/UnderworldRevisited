@@ -552,8 +552,8 @@ public sealed class UWHudRunes
 
     private const int ManaMessage = 91;
 
-    /// <summary>Between number and maximum there is simply mOUi word. No string entry
-    /// exists for it - the reference hard-codes it the same way.</summary>
+    /// <summary>Original English separator between current and maximum values.
+    /// Japanese messages use a slash, since "out of" is not in STRINGS.PAK.</summary>
     private const string OutOfText = " out of ";
 
     internal void fUpdateFlaskClicks()
@@ -657,9 +657,17 @@ public sealed class UWHudRunes
             if (string.IsNullOrEmpty(lsStart))
                 return;
 
-            mOUi.mOInteraction.AddMessage(string.Format("{0}{1}{2}{3}",
-                lsStart.TrimEnd('\r', '\n'),
-                Mathf.RoundToInt(pfCurrent), OutOfText, Mathf.RoundToInt(pfMaximum)));
+            string lsPrefix = lsStart.TrimEnd('\r', '\n');
+            if (mOUi.mOUWData.HasJapaneseTranslations)
+            {
+                mOUi.mOInteraction.AddMessage(lsPrefix.TrimEnd(' ') +
+                    Mathf.RoundToInt(pfCurrent) + "／" + Mathf.RoundToInt(pfMaximum));
+            }
+            else
+            {
+                mOUi.mOInteraction.AddMessage(string.Format("{0}{1}{2}{3}",
+                    lsPrefix, Mathf.RoundToInt(pfCurrent), OutOfText, Mathf.RoundToInt(pfMaximum)));
+            }
         }
         catch
         {
