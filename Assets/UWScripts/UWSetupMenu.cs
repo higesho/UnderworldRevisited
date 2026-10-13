@@ -344,7 +344,7 @@ public partial class UWSetupMenu : MonoBehaviour
         float lfInner = lODialog.width - 40f;
         float lfTop = lODialog.y + 16f;
 
-        GUI.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Colours", mOLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Colours", mOLabel);
         lfTop += 28f;
 
         lfTop += fDrawHint(lfLeft, lfTop, lfInner,
@@ -355,14 +355,14 @@ public partial class UWSetupMenu : MonoBehaviour
 
         for (int liAt = 0; liAt < lsModes.Length; liAt++)
         {
-            if (GUI.Button(new Rect(lfLeft + (liAt * 160f), lfTop, 155f, 28f), lsModes[liAt],
+            if (UWJapaneseInterface.Button(new Rect(lfLeft + (liAt * 160f), lfTop, 155f, 28f), lsModes[liAt],
                 liAt == liMode ? mOCurrentItem : mOButton))
                 fSetColours(liAt, UWColourVision.Strength, UWColourVision.Brightness, UWColourVision.Contrast);
         }
 
         lfTop += 40f;
 
-        float lfStrength = fColourSlider(lfLeft, lfTop, lfInner, "Strength", UWColourVision.Strength, 0f, 1f);
+        float lfStrength = fColourSlider(lfLeft, lfTop, lfInner, "Colour strength", UWColourVision.Strength, 0f, 1f);
         lfTop += 34f;
 
         float lfBrightness = fColourSlider(lfLeft, lfTop, lfInner, "Brightness", UWColourVision.Brightness, 0.5f, 2f);
@@ -376,7 +376,7 @@ public partial class UWSetupMenu : MonoBehaviour
             || !Mathf.Approximately(lfContrast, UWColourVision.Contrast))
             fSetColours(liMode, lfStrength, lfBrightness, lfContrast);
 
-        bool lbMark = GUI.Toggle(new Rect(lfLeft, lfTop, lfInner, 26f), UWUserSettings.MarkPoison,
+        bool lbMark = UWJapaneseInterface.Toggle(new Rect(lfLeft, lfTop, lfInner, 26f), UWUserSettings.MarkPoison,
             "  Hatch the health flask while poisoned", mOToggle);
 
         if (lbMark != UWUserSettings.MarkPoison)
@@ -393,7 +393,7 @@ public partial class UWSetupMenu : MonoBehaviour
         // Bottom edge level with the Done button (per user, 2026-09-17).
         fDrawFlaskPreview(lfLeft, lODialog.yMax - 16f - 20f - (33f * 2f));
 
-        if (GUI.Button(new Rect(lODialog.xMax - 130f, lODialog.yMax - 46f, 110f, 30f), "Done", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lODialog.xMax - 130f, lODialog.yMax - 46f, 110f, 30f), "Done", mOButton))
             mbColoursDialogOpen = false;
     }
 
@@ -440,7 +440,7 @@ public partial class UWSetupMenu : MonoBehaviour
             float lfLeft = pfLeft + (liAt * 80f);
 
             GUI.DrawTexture(new Rect(lfLeft, pfTop, lOTexture.width * 2f, lOTexture.height * 2f), lOTexture);
-            GUI.Label(new Rect(lfLeft, pfTop + (lOTexture.height * 2f) + 2f, 76f, 22f), lsNames[liAt], mODimLabel);
+            UWJapaneseInterface.Label(new Rect(lfLeft, pfTop + (lOTexture.height * 2f) + 2f, 76f, 22f), lsNames[liAt], mODimLabel);
         }
     }
 
@@ -470,12 +470,12 @@ public partial class UWSetupMenu : MonoBehaviour
     private float fColourSlider(float pfLeft, float pfTop, float pfWidth, string psLabel,
         float pfValue, float pfMin, float pfMax)
     {
-        GUI.Label(new Rect(pfLeft, pfTop, 140f, 26f), psLabel, mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pfLeft, pfTop, 140f, 26f), psLabel, mOListLabel);
 
         float lfResult = GUI.HorizontalSlider(new Rect(pfLeft + 150f, pfTop + 8f, pfWidth - 230f, 20f),
             pfValue, pfMin, pfMax);
 
-        GUI.Label(new Rect(pfLeft + pfWidth - 70f, pfTop, 70f, 26f),
+        UWJapaneseInterface.Label(new Rect(pfLeft + pfWidth - 70f, pfTop, 70f, 26f),
             lfResult.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), mOListLabel);
 
         return lfResult;
@@ -538,10 +538,12 @@ public partial class UWSetupMenu : MonoBehaviour
     /// </summary>
     private float fDrawHint(float pfLeft, float pfTop, float pfWidth, string psText)
     {
-        GUIContent lOContent = new GUIContent(psText);
+        // Measure the translated text itself so Japanese help does not clip or
+        // overlap the controls that follow a variable-height description.
+        GUIContent lOContent = new GUIContent(UWJapaneseInterface.Text(psText));
         float lfHeight = mODimLabel.CalcHeight(lOContent, pfWidth);
 
-        GUI.Label(new Rect(pfLeft, pfTop, pfWidth, lfHeight), lOContent, mODimLabel);
+        UWJapaneseInterface.Label(new Rect(pfLeft, pfTop, pfWidth, lfHeight), lOContent, mODimLabel);
 
         return lfHeight;
     }
@@ -561,10 +563,10 @@ public partial class UWSetupMenu : MonoBehaviour
         // (UWSetupMenu.Gamepad.cs). Not switched while a key is awaited.
         GUI.enabled = mOListeningFor == null;
 
-        if (GUI.Button(new Rect(lfLeft, lfTop, 200f, 28f), "Keyboard and mouse", mbControlsGamepadTab ? mOListItem : mOCurrentItem))
+        if (UWJapaneseInterface.Button(new Rect(lfLeft, lfTop, 200f, 28f), "Keyboard and mouse", mbControlsGamepadTab ? mOListItem : mOCurrentItem))
             mbControlsGamepadTab = false;
 
-        if (GUI.Button(new Rect(lfLeft + 210f, lfTop, 140f, 28f), "Gamepad", mbControlsGamepadTab ? mOCurrentItem : mOListItem))
+        if (UWJapaneseInterface.Button(new Rect(lfLeft + 210f, lfTop, 140f, 28f), "Gamepad", mbControlsGamepadTab ? mOCurrentItem : mOListItem))
             mbControlsGamepadTab = true;
 
         GUI.enabled = true;
@@ -586,7 +588,7 @@ public partial class UWSetupMenu : MonoBehaviour
         float lfStep = UWDataImport.UWData.UWEasyMovement.RepeatStepSeconds;
         float lfBefore = UWUserSettings.EasyMovementInterval;
 
-        GUI.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Easy movement interval", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Easy movement interval", mOListLabel);
 
         // The slider snaps to the same ten milliseconds as the two arrows beside it, so a round
         // value can be hit at all (per user, 2026-09-21: dragging never landed on 250).
@@ -597,13 +599,13 @@ public partial class UWSetupMenu : MonoBehaviour
 
         lfInterval = Mathf.Round(lfInterval / lfStep) * lfStep;
 
-        if (GUI.Button(new Rect(lfLeft + lfInner - 160f, lfTop, 26f, 26f), "<", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lfLeft + lfInner - 160f, lfTop, 26f, 26f), "<", mOButton))
             lfInterval = lfBefore - lfStep;
 
-        if (GUI.Button(new Rect(lfLeft + lfInner - 130f, lfTop, 26f, 26f), ">", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lfLeft + lfInner - 130f, lfTop, 26f, 26f), ">", mOButton))
             lfInterval = lfBefore + lfStep;
 
-        GUI.Label(new Rect(lfLeft + lfInner - 95f, lfTop, 95f, 26f),
+        UWJapaneseInterface.Label(new Rect(lfLeft + lfInner - 95f, lfTop, 95f, 26f),
             Mathf.RoundToInt(lfInterval * 1000f) + " ms", mOListLabel);
 
         if (Mathf.RoundToInt(lfInterval * 1000f) != Mathf.RoundToInt(lfBefore * 1000f))
@@ -619,20 +621,20 @@ public partial class UWSetupMenu : MonoBehaviour
         float lfSpeedStep = UWUserSettings.MouseLookSpeedStep;
         float lfSpeedBefore = UWUserSettings.MouseLookSpeed;
 
-        GUI.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Mouse look speed (modern)", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Mouse look speed (modern)", mOListLabel);
 
         float lfSpeed = GUI.HorizontalSlider(new Rect(lfLeft + 230f, lfTop + 8f, lfInner - 400f, 20f),
             lfSpeedBefore, UWUserSettings.MinMouseLookSpeed, UWUserSettings.MaxMouseLookSpeed);
 
         lfSpeed = Mathf.Round(lfSpeed / lfSpeedStep) * lfSpeedStep;
 
-        if (GUI.Button(new Rect(lfLeft + lfInner - 160f, lfTop, 26f, 26f), "<", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lfLeft + lfInner - 160f, lfTop, 26f, 26f), "<", mOButton))
             lfSpeed = lfSpeedBefore - lfSpeedStep;
 
-        if (GUI.Button(new Rect(lfLeft + lfInner - 130f, lfTop, 26f, 26f), ">", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lfLeft + lfInner - 130f, lfTop, 26f, 26f), ">", mOButton))
             lfSpeed = lfSpeedBefore + lfSpeedStep;
 
-        GUI.Label(new Rect(lfLeft + lfInner - 95f, lfTop, 95f, 26f),
+        UWJapaneseInterface.Label(new Rect(lfLeft + lfInner - 95f, lfTop, 95f, 26f),
             Mathf.RoundToInt(lfSpeed * 100f) + " %", mOListLabel);
 
         if (Mathf.RoundToInt(lfSpeed * 100f) != Mathf.RoundToInt(lfSpeedBefore * 100f))
@@ -653,24 +655,24 @@ public partial class UWSetupMenu : MonoBehaviour
             UWKeyBindings.Entry lOEntry = UWKeyBindings.Entries[liAt];
             float lfRowTop = liAt * 28f;
 
-            GUI.Label(new Rect(6f, lfRowTop, lOContent.width - 180f, 26f), lOEntry.Label, mOListLabel);
+            UWJapaneseInterface.Label(new Rect(6f, lfRowTop, lOContent.width - 180f, 26f), lOEntry.Label, mOListLabel);
 
             string lsKey = mOListeningFor == lOEntry ? "Press a key or button..." : UWKeyBindings.GetKeyName(lOEntry);
 
-            if (GUI.Button(new Rect(lOContent.width - 170f, lfRowTop, 160f, 26f), lsKey, mOButton)
+            if (UWJapaneseInterface.Button(new Rect(lOContent.width - 170f, lfRowTop, 160f, 26f), lsKey, mOButton)
                 && mOListeningFor == null)
                 fListenFor(lOEntry);
         }
 
         GUI.EndScrollView();
 
-        GUI.Label(new Rect(lfLeft, lODialog.yMax - 82f, lfInner, 22f), msBindingNotice, mODimLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lODialog.yMax - 82f, lfInner, 22f), msBindingNotice, mODimLabel);
 
         float lfButtonTop = lODialog.yMax - 46f;
 
         GUI.enabled = UWKeyBindings.HasChanges;
 
-        if (GUI.Button(new Rect(lfLeft, lfButtonTop, 180f, 30f), "Back to default", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lfLeft, lfButtonTop, 180f, 30f), "Back to default", mOButton))
         {
             UWKeyBindings.ResetAll();
             msBindingNotice = string.Empty;
@@ -678,7 +680,7 @@ public partial class UWSetupMenu : MonoBehaviour
 
         GUI.enabled = true;
 
-        if (GUI.Button(new Rect(lODialog.xMax - 130f, lfButtonTop, 110f, 30f), "Done", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lODialog.xMax - 130f, lfButtonTop, 110f, 30f), "Done", mOButton))
         {
             mbControlsDialogOpen = false;
             mOListeningFor = null;
@@ -747,7 +749,7 @@ public partial class UWSetupMenu : MonoBehaviour
         {
             fFill(new Rect(0f, 0f, lfWidth, ReferenceHeight), BackgroundColour);
 
-            GUI.Label(new Rect(0f, 150f, lfWidth, 50f), "Underworld Revisited", mOTitle);
+            UWJapaneseInterface.Label(new Rect(0f, 150f, lfWidth, 50f), "Underworld Revisited", mOTitle);
         }
 
         fDrawBar(lfWidth);
@@ -899,7 +901,7 @@ public partial class UWSetupMenu : MonoBehaviour
         // The row helpers measure from a panel's left edge plus 8 and its width less 116.
         Rect lORows = new Rect(lfLeft - 8f, 0f, lfInner + 16f, 0f);
 
-        GUI.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Motion", mOLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Motion", mOLabel);
         lfTop += 28f;
 
         lfTop += fDrawHint(lfLeft, lfTop, lfInner,
@@ -921,7 +923,7 @@ public partial class UWSetupMenu : MonoBehaviour
         // wirken dagegen"): how long starting and stopping take in Smooth. Greyed under Original
         // (per user: a setting without effect is greyed), as the fps row is under Smooth.
         GUI.enabled = UWUserSettings.MotionSmooth;
-        GUI.Label(new Rect(lfLeft, lfTop, 100f, 26f), "Response", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 100f, 26f), "Response", mOListLabel);
 
         int[] liRamps = UWUserSettings.SmoothRampChoices;
         float lfRampWidth = (lORows.width - 116f) / liRamps.Length;
@@ -930,7 +932,7 @@ public partial class UWSetupMenu : MonoBehaviour
         {
             bool lbCurrent = UWUserSettings.SmoothRampTicks == liRamps[liAt];
 
-            if (GUI.Button(new Rect(lORows.x + 108f + (liAt * lfRampWidth), lfTop, lfRampWidth, 26f), UWUserSettings.SmoothRampLabels[liAt],
+            if (UWJapaneseInterface.Button(new Rect(lORows.x + 108f + (liAt * lfRampWidth), lfTop, lfRampWidth, 26f), UWUserSettings.SmoothRampLabels[liAt],
                 lbCurrent ? mOCurrentItem : mOListItem) && !lbCurrent)
             {
                 UWUserSettings.SmoothRampTicks = liRamps[liAt];
@@ -960,7 +962,7 @@ public partial class UWSetupMenu : MonoBehaviour
         GUI.enabled = true;
 
         GUI.enabled = !UWUserSettings.MotionSmooth;
-        GUI.Label(new Rect(lfLeft, lfTop, 100f, 26f), "Original fps", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 100f, 26f), "Original fps", mOListLabel);
 
         int[] liChoices = UWUserSettings.OriginalFrameChoices;
         float lfChoiceWidth = (lORows.width - 116f) / liChoices.Length;
@@ -970,7 +972,7 @@ public partial class UWSetupMenu : MonoBehaviour
             bool lbCurrent = UWUserSettings.OriginalFrameTicks == liChoices[liAt];
             string lsLabel = (256 / liChoices[liAt]).ToString();
 
-            if (GUI.Button(new Rect(lORows.x + 108f + (liAt * lfChoiceWidth), lfTop, lfChoiceWidth, 26f), lsLabel,
+            if (UWJapaneseInterface.Button(new Rect(lORows.x + 108f + (liAt * lfChoiceWidth), lfTop, lfChoiceWidth, 26f), lsLabel,
                 lbCurrent ? mOCurrentItem : mOListItem) && !lbCurrent)
             {
                 UWUserSettings.OriginalFrameTicks = liChoices[liAt];
@@ -1038,7 +1040,7 @@ public partial class UWSetupMenu : MonoBehaviour
         lfTop += fDrawHint(lfLeft, lfTop, lfInner,
             "The bobbing of the view and the weapon while walking: like the original, smoothed with your own strength, or off if it makes you uneasy.");
 
-        if (GUI.Button(new Rect(lODialog.xMax - 130f, lODialog.yMax - 46f, 110f, 30f), "Done", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lODialog.xMax - 130f, lODialog.yMax - 46f, 110f, 30f), "Done", mOButton))
             mbMotionDialogOpen = false;
             mbPaletteEffectsDialogOpen = false;
     }
@@ -1062,7 +1064,7 @@ public partial class UWSetupMenu : MonoBehaviour
         float lfInner = lODialog.width - 40f;
         float lfTop = lODialog.y + 16f;
 
-        GUI.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Display", mOLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Display", mOLabel);
         lfTop += 28f;
 
         lfTop += Mathf.Max(40f, fDrawHint(lfLeft, lfTop, lfInner, Application.isEditor
@@ -1073,7 +1075,7 @@ public partial class UWSetupMenu : MonoBehaviour
         UWDisplayMode.ModeEnum leMode = Application.isEditor ? UWDisplayMode.SavedMode : UWDisplayMode.CurrentMode;
         Vector2Int lOSize = Application.isEditor ? UWDisplayMode.SavedResolution : UWDisplayMode.CurrentResolution;
 
-        GUI.Label(new Rect(lfLeft, lfTop, 110f, 28f), "Mode", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 110f, 28f), "Mode", mOListLabel);
 
         string[] lsModes = { "Window", "Borderless fullscreen" };
         float lfModeWidth = (lfInner - 110f) / lsModes.Length;
@@ -1082,14 +1084,14 @@ public partial class UWSetupMenu : MonoBehaviour
         {
             Rect lOButton = new Rect(lfLeft + 110f + (liMode * lfModeWidth), lfTop, lfModeWidth, 28f);
 
-            if (GUI.Button(lOButton, lsModes[liMode], liMode == (int)leMode ? mOCurrentItem : mOListItem)
+            if (UWJapaneseInterface.Button(lOButton, lsModes[liMode], liMode == (int)leMode ? mOCurrentItem : mOListItem)
                 && liMode != (int)leMode)
                 UWDisplayMode.Apply((UWDisplayMode.ModeEnum)liMode, fSizeForMode((UWDisplayMode.ModeEnum)liMode, lOSize));
         }
 
         lfTop += 40f;
 
-        GUI.Label(new Rect(lfLeft, lfTop, 110f, 28f), "Resolution", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 110f, 28f), "Resolution", mOListLabel);
 
         List<Vector2Int> lOSizes = UWDisplayMode.GetResolutions(leMode);
         Vector2Int lODesktop = UWDisplayMode.Desktop;
@@ -1103,7 +1105,7 @@ public partial class UWSetupMenu : MonoBehaviour
             Vector2Int lOEntry = lOSizes[liAt];
             string lsText = lOEntry.x + " x " + lOEntry.y + (lOEntry == lODesktop ? "   (desktop)" : string.Empty);
 
-            if (GUI.Button(new Rect(0f, liAt * 28f, lOList.width - 20f, 28f), lsText,
+            if (UWJapaneseInterface.Button(new Rect(0f, liAt * 28f, lOList.width - 20f, 28f), lsText,
                     lOEntry == lOSize ? mOCurrentItem : mOListItem)
                 && lOEntry != lOSize)
                 UWDisplayMode.Apply(leMode, lOEntry);
@@ -1111,7 +1113,7 @@ public partial class UWSetupMenu : MonoBehaviour
 
         GUI.EndScrollView();
 
-        if (GUI.Button(new Rect(lODialog.xMax - 130f, lODialog.yMax - 46f, 110f, 30f), "Done", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lODialog.xMax - 130f, lODialog.yMax - 46f, 110f, 30f), "Done", mOButton))
             mbDisplayDialogOpen = false;
     }
 
@@ -1145,13 +1147,13 @@ public partial class UWSetupMenu : MonoBehaviour
         float lfInner = lODialog.width - 40f;
         float lfTop = lODialog.y + 16f;
 
-        GUI.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Sound", mOLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Sound", mOLabel);
         lfTop += 28f;
 
         lfTop += fDrawHint(lfLeft, lfTop, lfInner,
             "Sound comes from the emulated AdLib card, as in 1992; the music can also play its MT-32 version on General MIDI. The original only knew on and off, and the same two switches sit in the options panel in the game; the volumes are ours. The two switches belong to the save game, as in the original - a save loaded here brings the state it was saved with, the volumes stay.") + 8f;
 
-        bool lbMusic = GUI.Toggle(new Rect(lfLeft, lfTop, 220f, 26f), UWSoundOptions.MusicEnabled,
+        bool lbMusic = UWJapaneseInterface.Toggle(new Rect(lfLeft, lfTop, 220f, 26f), UWSoundOptions.MusicEnabled,
             "  Music", mOToggle);
 
         if (lbMusic != UWSoundOptions.MusicEnabled)
@@ -1163,7 +1165,7 @@ public partial class UWSetupMenu : MonoBehaviour
 
         lfTop += 38f;
 
-        bool lbSound = GUI.Toggle(new Rect(lfLeft, lfTop, 220f, 26f), UWSoundOptions.SoundEnabled,
+        bool lbSound = UWJapaneseInterface.Toggle(new Rect(lfLeft, lfTop, 220f, 26f), UWSoundOptions.SoundEnabled,
             "  Sound effects", mOToggle);
 
         if (lbSound != UWSoundOptions.SoundEnabled)
@@ -1183,7 +1185,7 @@ public partial class UWSetupMenu : MonoBehaviour
         bool[] lbAvailable = { true, UWAudioEngine.IsGeneralMidiAvailable, lORoms != null };
         float lfDeviceWidth = (lfInner - 230f) / lsDevices.Length;
 
-        GUI.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Music played by", mOLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Music played by", mOLabel);
 
         for (int liDevice = 0; liDevice < lsDevices.Length; liDevice++)
         {
@@ -1191,7 +1193,7 @@ public partial class UWSetupMenu : MonoBehaviour
 
             GUI.enabled = lbAvailable[liDevice];
 
-            if (GUI.Button(new Rect(lfLeft + 230f + (liDevice * lfDeviceWidth), lfTop, lfDeviceWidth - 4f, 26f), lsDevices[liDevice],
+            if (UWJapaneseInterface.Button(new Rect(lfLeft + 230f + (liDevice * lfDeviceWidth), lfTop, lfDeviceWidth - 4f, 26f), lsDevices[liDevice],
                 lbCurrent ? mOCurrentItem : mOListItem) && !lbCurrent)
             {
                 UWUserSettings.MusicDevice = liDevice;
@@ -1209,9 +1211,9 @@ public partial class UWSetupMenu : MonoBehaviour
         string lsFolder = UWAudioEngine.Mt32RomFolder;
         string lsRomState = lORoms != null ? "MT-32 ROMs: " + lORoms.Description : "MT-32: " + UWAudioEngine.Mt32Problem;
 
-        GUI.Label(new Rect(lfLeft, lfTop, lfInner - 150f, 26f), lsRomState, mOLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, lfInner - 150f, 26f), lsRomState, mOLabel);
 
-        if (GUI.Button(new Rect(lfLeft + lfInner - 140f, lfTop, 140f, 26f), "Open folder", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lfLeft + lfInner - 140f, lfTop, 140f, 26f), "Open folder", mOButton))
         {
             try
             {
@@ -1224,7 +1226,7 @@ public partial class UWSetupMenu : MonoBehaviour
             }
         }
 
-        if (GUI.Button(new Rect(lODialog.xMax - 130f, lODialog.yMax - 46f, 110f, 30f), "Done", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lODialog.xMax - 130f, lODialog.yMax - 46f, 110f, 30f), "Done", mOButton))
             mbSoundDialogOpen = false;
     }
 
@@ -1239,15 +1241,15 @@ public partial class UWSetupMenu : MonoBehaviour
 
         lfResult = Mathf.Round(lfResult / lfStep) * lfStep;
 
-        if (GUI.Button(new Rect(pfLeft + pfWidth - 160f, pfTop, 26f, 26f), "<", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(pfLeft + pfWidth - 160f, pfTop, 26f, 26f), "<", mOButton))
             lfResult = pfValue - lfStep;
 
-        if (GUI.Button(new Rect(pfLeft + pfWidth - 130f, pfTop, 26f, 26f), ">", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(pfLeft + pfWidth - 130f, pfTop, 26f, 26f), ">", mOButton))
             lfResult = pfValue + lfStep;
 
         lfResult = Mathf.Clamp01(lfResult);
 
-        GUI.Label(new Rect(pfLeft + pfWidth - 95f, pfTop, 95f, 26f),
+        UWJapaneseInterface.Label(new Rect(pfLeft + pfWidth - 95f, pfTop, 95f, 26f),
             Mathf.RoundToInt(lfResult * 100f) + " %", mOListLabel);
 
         return Mathf.RoundToInt(lfResult * 100f) == Mathf.RoundToInt(pfValue * 100f) ? pfValue : lfResult;
@@ -1258,7 +1260,7 @@ public partial class UWSetupMenu : MonoBehaviour
     /// </summary>
     private UWHeadBobRules.ModeEnum fMotionModeRow(Rect pOPanel, float pfTop, string psLabel, UWHeadBobRules.ModeEnum peMode)
     {
-        GUI.Label(new Rect(pOPanel.x + 8f, pfTop, 100f, 26f), psLabel, mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pOPanel.x + 8f, pfTop, 100f, 26f), psLabel, mOListLabel);
 
         string[] lsModes = { "Off", "Original", "Smooth" };
         float lfButtonWidth = (pOPanel.width - 116f) / lsModes.Length;
@@ -1268,7 +1270,7 @@ public partial class UWSetupMenu : MonoBehaviour
         {
             Rect lOButton = new Rect(pOPanel.x + 108f + (liMode * lfButtonWidth), pfTop, lfButtonWidth, 26f);
 
-            if (GUI.Button(lOButton, lsModes[liMode], liMode == (int)peMode ? mOCurrentItem : mOListItem))
+            if (UWJapaneseInterface.Button(lOButton, lsModes[liMode], liMode == (int)peMode ? mOCurrentItem : mOListItem))
                 leResult = (UWHeadBobRules.ModeEnum)liMode;
         }
 
@@ -1281,7 +1283,7 @@ public partial class UWSetupMenu : MonoBehaviour
     /// </summary>
     private float fMotionStrengthRow(Rect pOPanel, float pfTop, float pfStrength)
     {
-        GUI.Label(new Rect(pOPanel.x + 8f, pfTop, 100f, 26f), "  Strength", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pOPanel.x + 8f, pfTop, 100f, 26f), "  Strength", mOListLabel);
 
         float lfWanted = GUI.HorizontalSlider(new Rect(pOPanel.x + 108f, pfTop + 8f, pOPanel.width - 170f, 20f),
             pfStrength, UWUserSettings.MinHeadBobStrength, 1f);
@@ -1289,7 +1291,7 @@ public partial class UWSetupMenu : MonoBehaviour
         lfWanted = Mathf.Clamp(Mathf.Round(lfWanted / HeadBobStrengthStep) * HeadBobStrengthStep,
             UWUserSettings.MinHeadBobStrength, 1f);
 
-        GUI.Label(new Rect(pOPanel.x + pOPanel.width - 56f, pfTop, 56f, 26f),
+        UWJapaneseInterface.Label(new Rect(pOPanel.x + pOPanel.width - 56f, pfTop, 56f, 26f),
             Mathf.RoundToInt(lfWanted * 100f) + " %", mOListLabel);
 
         return Mathf.RoundToInt(lfWanted * 100f) != Mathf.RoundToInt(pfStrength * 100f) ? lfWanted : pfStrength;
@@ -1309,13 +1311,13 @@ public partial class UWSetupMenu : MonoBehaviour
 
         int liWanted = Mathf.Clamp(Mathf.RoundToInt(lfWanted), 1, liMax);
 
-        GUI.Label(new Rect(pOPanel.x + pOPanel.width - 56f, pfTop, 56f, 26f), liWanted + "x", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pOPanel.x + pOPanel.width - 56f, pfTop, 56f, 26f), liWanted + "x", mOListLabel);
 
         if (liWanted != liShown)
             UWWorldResolution.Factor = liWanted;
 
         if (pbMaxLocked)
-            GUI.Label(new Rect(pOPanel.x + 8f, pfTop + 30f, pOPanel.width - 16f, 26f),
+            UWJapaneseInterface.Label(new Rect(pOPanel.x + 8f, pfTop + 30f, pOPanel.width - 16f, 26f),
                 "  4x needs a window 1600 pixels tall", mOListLabel);
     }
 
@@ -1326,7 +1328,7 @@ public partial class UWSetupMenu : MonoBehaviour
     /// </summary>
     private void fViewAngleRow(Rect pOPanel, float pfTop)
     {
-        GUI.Label(new Rect(pOPanel.x + 8f, pfTop, 50f, 26f), "View", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pOPanel.x + 8f, pfTop, 50f, 26f), "View", mOListLabel);
 
         bool lbOriginal = UWViewAngle.IsOriginal;
         float lfShown = lbOriginal ? UWViewAngle.HorizontalOf(Camera.main) : UWViewAngle.Horizontal;
@@ -1334,14 +1336,14 @@ public partial class UWSetupMenu : MonoBehaviour
             Mathf.Clamp(lfShown, UWViewAngle.Min, UWViewAngle.Max), UWViewAngle.Min, UWViewAngle.Max);
         int liWanted = Mathf.RoundToInt(lfWanted);
 
-        GUI.Label(new Rect(pOPanel.x + pOPanel.width - 122f, pfTop, 66f, 26f), lbOriginal ? "Original" : liWanted + "°", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pOPanel.x + pOPanel.width - 122f, pfTop, 66f, 26f), lbOriginal ? "Original" : liWanted + "°", mOListLabel);
 
         if (liWanted != Mathf.RoundToInt(Mathf.Clamp(lfShown, UWViewAngle.Min, UWViewAngle.Max)))
             UWViewAngle.Horizontal = liWanted;
 
         GUI.enabled = !lbOriginal;
 
-        if (GUI.Button(new Rect(pOPanel.x + pOPanel.width - 56f, pfTop, 48f, 26f), "Orig.", mOListItem))
+        if (UWJapaneseInterface.Button(new Rect(pOPanel.x + pOPanel.width - 56f, pfTop, 48f, 26f), "Orig.", mOListItem))
             UWViewAngle.Horizontal = 0f;
 
         GUI.enabled = true;
@@ -1391,7 +1393,7 @@ public partial class UWSetupMenu : MonoBehaviour
         {
             Rect lOItem = new Rect(lOPanel.x, lOPanel.y + 4f + (liAt * 30f), lOPanel.width, 30f);
 
-            if (GUI.Button(lOItem, lsItems[liAt], liAt == liCurrent ? mOCurrentItem : mOListItem))
+            if (UWJapaneseInterface.Button(lOItem, lsItems[liAt], liAt == liCurrent ? mOCurrentItem : mOListItem))
             {
                 fChooseLevel((UWGraphicsDetail.LevelEnum)liAt);
 
@@ -1399,7 +1401,7 @@ public partial class UWSetupMenu : MonoBehaviour
             }
         }
 
-        if (GUI.Button(new Rect(lOPanel.x, lOPanel.y + 4f + (lsItems.Length * 30f), lOPanel.width, 30f),
+        if (UWJapaneseInterface.Button(new Rect(lOPanel.x, lOPanel.y + 4f + (lsItems.Length * 30f), lOPanel.width, 30f),
             "Palette effects...", mOListItem))
         {
             fOpenPaletteEffectsDialog();
@@ -1417,7 +1419,7 @@ public partial class UWSetupMenu : MonoBehaviour
 
         // The classic screen is always at 4:3 since 2026-10-10 (per user); the place is the classic
         // frame's widescreen now (UWClassicWide).
-        bool lbWide = GUI.Toggle(new Rect(lOPanel.x + 8f, lfAspectTop + 6f, lOPanel.width - 16f, 26f),
+        bool lbWide = UWJapaneseInterface.Toggle(new Rect(lOPanel.x + 8f, lfAspectTop + 6f, lOPanel.width - 16f, 26f),
             UWUserSettings.ClassicWidescreen, "  Classic screen widescreen", mOToggle);
 
         if (lbWide != UWUserSettings.ClassicWidescreen)
@@ -1432,7 +1434,7 @@ public partial class UWSetupMenu : MonoBehaviour
 
         float lfResolutionTop = lfAspectTop + 6f + ViewAngleRowHeight + WorldResolutionRowHeight;
 
-        bool lbOriginalResolution = GUI.Toggle(
+        bool lbOriginalResolution = UWJapaneseInterface.Toggle(
             new Rect(lOPanel.x + 8f, lfResolutionTop, lOPanel.width - 16f, 26f),
             UWWorldResolution.Enabled, "  World at the original's resolution", mOToggle);
 
@@ -1449,15 +1451,15 @@ public partial class UWSetupMenu : MonoBehaviour
     /// second one.</summary>
     private bool fTwoWayRow(Rect pOPanel, float pfTop, string psLabel, bool pbSecond, string psFirst, string psSecond)
     {
-        GUI.Label(new Rect(pOPanel.x + 8f, pfTop, 100f, 26f), psLabel, mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pOPanel.x + 8f, pfTop, 100f, 26f), psLabel, mOListLabel);
 
         float lfButtonWidth = (pOPanel.width - 116f) / 2f;
         bool lbResult = pbSecond;
 
-        if (GUI.Button(new Rect(pOPanel.x + 108f, pfTop, lfButtonWidth, 26f), psFirst, !pbSecond ? mOCurrentItem : mOListItem))
+        if (UWJapaneseInterface.Button(new Rect(pOPanel.x + 108f, pfTop, lfButtonWidth, 26f), psFirst, !pbSecond ? mOCurrentItem : mOListItem))
             lbResult = false;
 
-        if (GUI.Button(new Rect(pOPanel.x + 108f + lfButtonWidth, pfTop, lfButtonWidth, 26f), psSecond, pbSecond ? mOCurrentItem : mOListItem))
+        if (UWJapaneseInterface.Button(new Rect(pOPanel.x + 108f + lfButtonWidth, pfTop, lfButtonWidth, 26f), psSecond, pbSecond ? mOCurrentItem : mOListItem))
             lbResult = true;
 
         return lbResult;
@@ -1483,7 +1485,7 @@ public partial class UWSetupMenu : MonoBehaviour
         // since 2026-10-06) a new folder would mean a new game.
         GUI.enabled = UWMainMenu.AcceptsMenuBar;
 
-        if (GUI.Button(new Rect(lOPanel.x, lOPanel.y + 4f, lOPanel.width, 30f), "Game folder...", mOListItem))
+        if (UWJapaneseInterface.Button(new Rect(lOPanel.x, lOPanel.y + 4f, lOPanel.width, 30f), "Game folder...", mOListItem))
             fOpenFolderDialog();
 
         GUI.enabled = true;
@@ -1497,7 +1499,7 @@ public partial class UWSetupMenu : MonoBehaviour
         // THE WHOLE OPENING AT STARTUP: the two company logos, the animated title and the
         // intro. Off it goes straight to the main menu, which is what one wants while testing
         // (per user, 2026-09-22). It takes effect at the next start.
-        bool lbOpening = GUI.Toggle(new Rect(lOPanel.x + 8f, lOPanel.y + 72f, lOPanel.width - 16f, 26f),
+        bool lbOpening = UWJapaneseInterface.Toggle(new Rect(lOPanel.x + 8f, lOPanel.y + 72f, lOPanel.width - 16f, 26f),
             UWUserSettings.ShowOpeningSequence, "  Logos and intro at startup", mOToggle);
 
         if (lbOpening != UWUserSettings.ShowOpeningSequence)
@@ -1508,7 +1510,7 @@ public partial class UWSetupMenu : MonoBehaviour
 
         // KEEP RUNNING WITHOUT THE FOCUS (per user, 2026-09-28: for idle tests beside the
         // original, but everyone should decide for themselves). Takes effect at once.
-        bool lbBackground = GUI.Toggle(new Rect(lOPanel.x + 8f, lOPanel.y + 102f, lOPanel.width - 16f, 26f),
+        bool lbBackground = UWJapaneseInterface.Toggle(new Rect(lOPanel.x + 8f, lOPanel.y + 102f, lOPanel.width - 16f, 26f),
             UWUserSettings.RunInBackground, "  Keep running in the background", mOToggle);
 
         if (lbBackground != UWUserSettings.RunInBackground)
@@ -1520,7 +1522,7 @@ public partial class UWSetupMenu : MonoBehaviour
         // DEAL THE ATTRIBUTE POINTS AT CHARACTER CREATION ONESELF (per user, 2026-10-01: for
         // those who do not like their values to depend on luck; off by default). Takes effect at
         // the next character creation.
-        bool lbManual = GUI.Toggle(new Rect(lOPanel.x + 8f, lOPanel.y + 132f, lOPanel.width - 16f, 26f),
+        bool lbManual = UWJapaneseInterface.Toggle(new Rect(lOPanel.x + 8f, lOPanel.y + 132f, lOPanel.width - 16f, 26f),
             UWUserSettings.ManualAttributes, "  Choose attributes at creation", mOToggle);
 
         if (lbManual != UWUserSettings.ManualAttributes)
@@ -1529,7 +1531,7 @@ public partial class UWSetupMenu : MonoBehaviour
             UWUserSettings.Save();
         }
 
-        if (GUI.Button(new Rect(lOPanel.x, lOPanel.y + 162f, lOPanel.width, 30f), "Quit", mOListItem))
+        if (UWJapaneseInterface.Button(new Rect(lOPanel.x, lOPanel.y + 162f, lOPanel.width, 30f), "Quit", mOListItem))
             fQuit();
 
         // A click anywhere else closes the menu.
@@ -1554,7 +1556,7 @@ public partial class UWSetupMenu : MonoBehaviour
         {
             bool lbCurrent = liScheme == liAt;
 
-            if (GUI.Button(new Rect(pORow.x + (liAt * lfWidth), pORow.y, lfWidth - 4f, pORow.height), lsSchemes[liAt],
+            if (UWJapaneseInterface.Button(new Rect(pORow.x + (liAt * lfWidth), pORow.y, lfWidth - 4f, pORow.height), lsSchemes[liAt],
                 lbCurrent ? mOCurrentItem : mOListItem) && !lbCurrent)
             {
                 if (lOScheme != null)
@@ -1579,7 +1581,7 @@ public partial class UWSetupMenu : MonoBehaviour
         float lfInner = lODialog.width - 40f;
         float lfTop = lODialog.y + 16f;
 
-        GUI.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Game folder", mOLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, lfInner, 26f), "Game folder", mOLabel);
         lfTop += 28f;
 
         lfTop += Mathf.Max(22f, fDrawHint(lfLeft, lfTop, lfInner,
@@ -1587,14 +1589,14 @@ public partial class UWSetupMenu : MonoBehaviour
 
         foreach (string lsFound in mOBrowser.Found)
         {
-            if (GUI.Button(new Rect(lfLeft, lfTop, lfInner, 26f), "Found:  " + lsFound, mOListItem))
+            if (UWJapaneseInterface.Button(new Rect(lfLeft, lfTop, lfInner, 26f), "Found:  " + lsFound, mOListItem))
                 fBrowse(lsFound);
 
             lfTop += 28f;
         }
 
         // A button per drive, so another drive is one click away (per user, 2026-09-17).
-        GUI.Label(new Rect(lfLeft, lfTop, 60f, 26f), "Drives:", mODimLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 60f, 26f), "Drives:", mODimLabel);
 
         float lfDriveLeft = lfLeft + 64f;
 
@@ -1608,7 +1610,7 @@ public partial class UWSetupMenu : MonoBehaviour
             if (lfDriveLeft + lfButtonWidth > lfLeft + lfInner)
                 break;
 
-            if (GUI.Button(new Rect(lfDriveLeft, lfTop, lfButtonWidth, 26f), lsLabel, mOButton))
+            if (UWJapaneseInterface.Button(new Rect(lfDriveLeft, lfTop, lfButtonWidth, 26f), lsLabel, mOButton))
                 fBrowse(lsDrive);
 
             lfDriveLeft += lfButtonWidth + 6f;
@@ -1617,7 +1619,7 @@ public partial class UWSetupMenu : MonoBehaviour
         lfTop += 32f;
 
         // The path: typed or pasted, Enter goes there.
-        if (GUI.Button(new Rect(lfLeft, lfTop, 50f, 26f), "Up", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lfLeft, lfTop, 50f, 26f), "Up", mOButton))
         {
             mOBrowser.Up();
             fAfterBrowse();
@@ -1650,7 +1652,7 @@ public partial class UWSetupMenu : MonoBehaviour
         {
             string lsEntry = mOBrowser.Entries[liAt];
 
-            if (GUI.Button(new Rect(0f, liAt * 24f, lOContent.width, 24f), mOBrowser.GetDisplayName(lsEntry), mOListItem))
+            if (UWJapaneseInterface.Button(new Rect(0f, liAt * 24f, lOContent.width, 24f), mOBrowser.GetDisplayName(lsEntry), mOListItem))
                 lsGoTo = lsEntry;
         }
 
@@ -1662,21 +1664,21 @@ public partial class UWSetupMenu : MonoBehaviour
         GUIStyle lOStatusStyle = new GUIStyle(mODimLabel);
         lOStatusStyle.normal.textColor = mOBrowser.StatusIsError ? new Color(0.9f, 0.4f, 0.35f) : (mOBrowser.CanUseCurrent ? AccentColour : DimTextColour);
 
-        GUI.Label(new Rect(lfLeft, lODialog.yMax - 82f, lfInner, 22f),
+        UWJapaneseInterface.Label(new Rect(lfLeft, lODialog.yMax - 82f, lfInner, 22f),
             mbApplyPending ? "Preparing the game data..." : mOBrowser.Status, lOStatusStyle);
 
         float lfButtonTop = lODialog.yMax - 46f;
 
         GUI.enabled = mOBrowser.CanUseCurrent && !mbApplyPending;
 
-        if (GUI.Button(new Rect(lODialog.xMax - 200f, lfButtonTop, 180f, 30f), "Use this folder", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lODialog.xMax - 200f, lfButtonTop, 180f, 30f), "Use this folder", mOButton))
             mbApplyPending = true;
 
         GUI.enabled = true;
 
         string lsCancel = mbFirstRun ? "Quit" : "Cancel";
 
-        if (GUI.Button(new Rect(lODialog.xMax - 320f, lfButtonTop, 110f, 30f), lsCancel, mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lODialog.xMax - 320f, lfButtonTop, 110f, 30f), lsCancel, mOButton))
         {
             if (mbFirstRun)
                 fQuit();
@@ -1690,7 +1692,7 @@ public partial class UWSetupMenu : MonoBehaviour
         if (pbOpen)
             fFill(pORect, HoverColour);
 
-        return GUI.Button(pORect, psText, mOBarItem);
+        return UWJapaneseInterface.Button(pORect, psText, mOBarItem);
     }
 
     private void fFill(Rect pORect, Color pOColour)
@@ -1720,7 +1722,7 @@ public partial class UWSetupMenu : MonoBehaviour
         if (mOLabel != null)
             return;
 
-        mOFont = UWInterfaceFont.Font;
+        mOFont = UWJapaneseInterface.FontOr(UWInterfaceFont.Font);
 
         mOLabel = new GUIStyle { font = mOFont, fontSize = 20, alignment = TextAnchor.MiddleLeft };
         mOLabel.normal.textColor = TextColour;
@@ -1731,7 +1733,7 @@ public partial class UWSetupMenu : MonoBehaviour
         mOTitle = new GUIStyle(mOLabel) { fontSize = 40, alignment = TextAnchor.MiddleCenter };
         mOTitle.normal.textColor = AccentColour;
 
-        mOBarItem = new GUIStyle(mOLabel) { fontSize = 16, alignment = TextAnchor.MiddleCenter };
+        mOBarItem = new GUIStyle(mOLabel) { fontSize = 16, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
         mOBarItem.hover.background = fTexture(HoverColour);
         mOBarItem.hover.textColor = TextColour;
 

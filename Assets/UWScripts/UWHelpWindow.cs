@@ -517,7 +517,7 @@ public class UWHelpWindow : MonoBehaviour
 
             for (int liTab = liRowStart; liTab < Mathf.Min(liRowStart + TabsPerRow, msTabNames.Length); liTab++)
             {
-                if (GUILayout.Button(msTabNames[liTab], (int)meTab == liTab ? mOCurrentTab : mOTab,
+                if (UWJapaneseInterface.LayoutButton(msTabNames[liTab], (int)meTab == liTab ? mOCurrentTab : mOTab,
                     GUILayout.Height(28f), GUILayout.Width(1f), GUILayout.ExpandWidth(true)))
                 {
                     meTab = (TabEnum)liTab;
@@ -538,7 +538,7 @@ public class UWHelpWindow : MonoBehaviour
 
     private void fDrawNotes()
     {
-        GUILayout.Label("Your own notes, kept with the save game.", mODimText);
+        UWJapaneseInterface.LayoutLabel("Your own notes, kept with the save game.", mODimText);
         GUILayout.Space(6f);
 
         // Tab closes the help while typing too - the game's keys are silent then. Taken BEFORE
@@ -573,8 +573,8 @@ public class UWHelpWindow : MonoBehaviour
     {
         DataImport lOData = fData();
 
-        GUILayout.Label("Spells", mOHeading);
-        GUILayout.Label("Put the runes on the shelf from the rune bag, then click the shelf to cast. "
+        UWJapaneseInterface.LayoutLabel("Spells", mOHeading);
+        UWJapaneseInterface.LayoutLabel("Put the runes on the shelf from the rune bag, then click the shelf to cast. "
             + "A spell costs three mana per circle, and your level halved (rounded up) must reach its circle. "
             + "Click a spell here to lay its runes into the hollow; grey runes are not in your bag yet.",
             mODimText);
@@ -583,7 +583,7 @@ public class UWHelpWindow : MonoBehaviour
 
         GUILayout.Space(16f);
 
-        if (GUILayout.Button(mbShowMoreSpells ? "Hide the spells the manual does not name"
+        if (UWJapaneseInterface.LayoutButton(mbShowMoreSpells ? "Hide the spells the manual does not name"
                 : "Show the spells the manual does not name", mOFoldout))
             mbShowMoreSpells = !mbShowMoreSpells;
 
@@ -622,7 +622,7 @@ public class UWHelpWindow : MonoBehaviour
                 liCircle = lOSpell.Level;
 
                 GUILayout.Space(10f);
-                GUILayout.Label(string.Format("Circle {0}  -  {1} mana", liCircle, lOSpell.ManaCost), mOSubHeading);
+                UWJapaneseInterface.LayoutLabel(string.Format("Circle {0}  -  {1} mana", liCircle, lOSpell.ManaCost), mOSubHeading);
             }
 
             string lsName = pOData != null ? UWRunicMagic.GetName(lOSpell, pOData.Strings) : string.Empty;
@@ -650,10 +650,10 @@ public class UWHelpWindow : MonoBehaviour
             }
 
             GUILayout.Space(8f);
-            GUILayout.Label(string.Format("<b>{0}</b>   <color=#{1}>{2}</color>{3}",
+            UWJapaneseInterface.LayoutLabel(string.Format("<b>{0}</b>   <color=#{1}>{2}</color>{3}",
                 string.IsNullOrEmpty(lsName) ? "?" : lsName, AccentHex,
                 UWRunicMagic.DescribeRunes(lOSpell.RuneSequence),
-                lbOnShelf ? "   <i>(in the hollow)</i>" : string.Empty), mOText);
+                lbOnShelf ? UWJapaneseInterface.Text("   <i>(in the hollow)</i>") : string.Empty), mOText);
 
             GUILayout.EndHorizontal();
 
@@ -668,7 +668,7 @@ public class UWHelpWindow : MonoBehaviour
             }
 
             if (lbNamed)
-                GUILayout.Label(lsNote, mODimText);
+                UWJapaneseInterface.LayoutLabel(lsNote, mODimText);
 
             // Room between the spells, so each stands apart (per user, 2026-09-26).
             GUILayout.Space(EntrySpacing);
@@ -760,22 +760,22 @@ public class UWHelpWindow : MonoBehaviour
     {
         DataImport lOData = fData();
 
-        GUILayout.Label("Mantras", mOHeading);
-        GUILayout.Label("Talk to an ankh shrine and type a mantra. It raises your skills only when you "
+        UWJapaneseInterface.LayoutLabel("Mantras", mOHeading);
+        UWJapaneseInterface.LayoutLabel("Talk to an ankh shrine and type a mantra. It raises your skills only when you "
             + "have earned a skill point.", mODimText);
 
         GUILayout.Space(10f);
 
         foreach (KeyValuePair<int, string> lOMantra in UWHelpContent.ManualMantras)
         {
-            GUILayout.Label("<b>" + UWShrineRules.GetMantra(lOMantra.Key, lOData) + "</b>", mOText);
-            GUILayout.Label(lOMantra.Value + " (" + fGroupSkills(lOMantra.Key, lOData) + ")", mODimText);
+            UWJapaneseInterface.LayoutLabel("<b>" + UWShrineRules.GetMantra(lOMantra.Key, lOData) + "</b>", mOText);
+            UWJapaneseInterface.LayoutLabel(lOMantra.Value + " (" + fGroupSkills(lOMantra.Key, lOData) + ")", mODimText);
             GUILayout.Space(EntrySpacing);
         }
 
         GUILayout.Space(16f);
 
-        if (GUILayout.Button(mbShowMoreMantras ? "Hide the mantras the manual does not name"
+        if (UWJapaneseInterface.LayoutButton(mbShowMoreMantras ? "Hide the mantras the manual does not name"
                 : "Show the mantras the manual does not name", mOFoldout))
             mbShowMoreMantras = !mbShowMoreMantras;
 
@@ -783,21 +783,21 @@ public class UWHelpWindow : MonoBehaviour
             return;
 
         GUILayout.Space(10f);
-        GUILayout.Label("One skill each, raised greatly", mOSubHeading);
+        UWJapaneseInterface.LayoutLabel("One skill each, raised greatly", mOSubHeading);
 
         for (int liMantra = 0; liMantra < UWShrineRules.FirstSpecialMantra; liMantra++)
-            GUILayout.Label(string.Format("<b>{0}</b>   <color=#{1}>{2}</color>",
+            UWJapaneseInterface.LayoutLabel(string.Format("<b>{0}</b>   <color=#{1}>{2}</color>",
                 UWShrineRules.GetMantra(liMantra, lOData), AccentHex, UWShrineRules.GetSkillName(liMantra, lOData)),
                 mOText);
 
         GUILayout.Space(10f);
-        GUILayout.Label("Quests", mOSubHeading);
+        UWJapaneseInterface.LayoutLabel("Quests", mOSubHeading);
 
-        GUILayout.Label("<b>" + UWShrineRules.GetMantra(UWShrineRules.CupOfWonderMantra, lOData) + "</b>", mOText);
-        GUILayout.Label(UWHelpContent.CupOfWonderNote, mODimText);
+        UWJapaneseInterface.LayoutLabel("<b>" + UWShrineRules.GetMantra(UWShrineRules.CupOfWonderMantra, lOData) + "</b>", mOText);
+        UWJapaneseInterface.LayoutLabel(UWHelpContent.CupOfWonderNote, mODimText);
         GUILayout.Space(EntrySpacing);
-        GUILayout.Label("<b>" + UWShrineRules.GetMantra(UWShrineRules.KeyOfTruthMantra, lOData) + "</b>", mOText);
-        GUILayout.Label(UWHelpContent.KeyOfTruthNote, mODimText);
+        UWJapaneseInterface.LayoutLabel("<b>" + UWShrineRules.GetMantra(UWShrineRules.KeyOfTruthMantra, lOData) + "</b>", mOText);
+        UWJapaneseInterface.LayoutLabel(UWHelpContent.KeyOfTruthNote, mODimText);
     }
 
     /// <summary>The controls of the scheme in force (UWHelpControls): per section a heading, a dim
@@ -807,15 +807,15 @@ public class UWHelpWindow : MonoBehaviour
         UWControlScheme lOScheme = UWScene.ControlScheme;
         bool lbModern = lOScheme != null && lOScheme.Current == UWControlScheme.SchemeEnum.Modern;
 
-        GUILayout.Label(lbModern ? "Modern controls" : "Classic controls", mOHeading);
+        UWJapaneseInterface.LayoutLabel(lbModern ? "Modern controls" : "Classic controls", mOHeading);
 
         foreach (UWHelpControls.Section lOSection in UWHelpControls.Build(lbModern))
         {
             GUILayout.Space(10f);
-            GUILayout.Label(lOSection.Title, mOSubHeading);
+            UWJapaneseInterface.LayoutLabel(lOSection.Title, mOSubHeading);
 
             if (!string.IsNullOrEmpty(lOSection.Intro))
-                GUILayout.Label(lOSection.Intro, mODimText);
+                UWJapaneseInterface.LayoutLabel(lOSection.Intro, mODimText);
 
             foreach (UWHelpControls.Row lORow in lOSection.Rows)
             {
@@ -833,19 +833,19 @@ public class UWHelpWindow : MonoBehaviour
                     GUILayout.BeginHorizontal();
 
                     foreach (Texture2D lOGlyph in lORow.Glyphs)
-                        GUILayout.Label(lOGlyph, GUIStyle.none, GUILayout.Width(ControlsGlyphSize), GUILayout.Height(ControlsGlyphSize));
+                        UWJapaneseInterface.LayoutLabel(lOGlyph, GUIStyle.none, GUILayout.Width(ControlsGlyphSize), GUILayout.Height(ControlsGlyphSize));
 
                     GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal();
                     GUILayout.FlexibleSpace();
                     GUILayout.EndVertical();
 
-                    GUILayout.Label(lORow.Text, mOTextMiddle, GUILayout.MinHeight(ControlsGlyphSize));
+                    UWJapaneseInterface.LayoutLabel(lORow.Text, mOTextMiddle, GUILayout.MinHeight(ControlsGlyphSize));
                 }
                 else
                 {
-                    GUILayout.Label("<color=#" + AccentHex + "><b>" + lORow.Keys + "</b></color>", mOText, GUILayout.Width(ControlsKeyWidth));
-                    GUILayout.Label(lORow.Text, mOText);
+                    UWJapaneseInterface.LayoutLabel("<color=#" + AccentHex + "><b>" + lORow.Keys + "</b></color>", mOText, GUILayout.Width(ControlsKeyWidth));
+                    UWJapaneseInterface.LayoutLabel(lORow.Text, mOText);
                 }
 
                 GUILayout.EndHorizontal();
@@ -897,24 +897,24 @@ public class UWHelpWindow : MonoBehaviour
 
         if (lOCharacter == null || lOData == null)
         {
-            GUILayout.Label("Stats", mOHeading);
-            GUILayout.Label("No character is loaded.", mODimText);
+            UWJapaneseInterface.LayoutLabel("Stats", mOHeading);
+            UWJapaneseInterface.LayoutLabel("No character is loaded.", mODimText);
 
             return;
         }
 
         UWPlayerData lOPlayer = lOData.InitialPlayer;
 
-        GUILayout.Label(lOPlayer != null && !string.IsNullOrEmpty(lOPlayer.Name) ? lOPlayer.Name : "Avatar", mOHeading);
-        GUILayout.Label(string.Format("Level {0} {1}", lOCharacter.Level, fClassName(lOData, lOPlayer)), mOText);
+        UWJapaneseInterface.LayoutLabel(lOPlayer != null && !string.IsNullOrEmpty(lOPlayer.Name) ? lOPlayer.Name : "Avatar", mOHeading);
+        UWJapaneseInterface.LayoutLabel(string.Format("Level {0} {1}", lOCharacter.Level, fClassName(lOData, lOPlayer)), mOText);
 
         string lsCondition = UWStatusReport.GetConditionLine(lOData, lOCharacter.Hunger, lOCharacter.Fatigue);
 
         if (!string.IsNullOrEmpty(lsCondition))
-            GUILayout.Label(lsCondition.Trim(), mODimText);
+            UWJapaneseInterface.LayoutLabel(lsCondition.Trim(), mODimText);
 
         GUILayout.Space(10f);
-        GUILayout.Label("Attributes", mOSubHeading);
+        UWJapaneseInterface.LayoutLabel("Attributes", mOSubHeading);
 
         fStatRow("Strength", lOCharacter.Strength.ToString());
         fStatRow("Dexterity", lOCharacter.Dexterity.ToString());
@@ -936,7 +936,7 @@ public class UWHelpWindow : MonoBehaviour
         }
 
         GUILayout.Space(10f);
-        GUILayout.Label("Skills", mOSubHeading);
+        UWJapaneseInterface.LayoutLabel("Skills", mOSubHeading);
 
         // Attack and Defense first, then the eighteen skills - the order of the panel's list
         // (UWHudPanel.fGetSkillEntry).
@@ -956,27 +956,27 @@ public class UWHelpWindow : MonoBehaviour
 
         GUILayout.Space(16f);
 
-        if (GUILayout.Button(mbShowHiddenStats ? "Hide the hidden values" : "Show the hidden values", mOFoldout))
+        if (UWJapaneseInterface.LayoutButton(mbShowHiddenStats ? "Hide the hidden values" : "Show the hidden values", mOFoldout))
             mbShowHiddenStats = !mbShowHiddenStats;
 
         if (!mbShowHiddenStats)
             return;
 
         GUILayout.Space(10f);
-        GUILayout.Label("The game keeps these, but shows them only as words or not at all.", mODimText);
+        UWJapaneseInterface.LayoutLabel("The game keeps these, but shows them only as words or not at all.", mODimText);
         GUILayout.Space(4f);
 
         fStatRow("Food", lOCharacter.Hunger + " / " + UWCharacter.FullHunger);
-        GUILayout.Label("255 is full; the status line changes every 30.", mODimText);
+        UWJapaneseInterface.LayoutLabel("255 is full; the status line changes every 30.", mODimText);
         fStatRow("Fatigue", lOCharacter.Fatigue + " / 255");
-        GUILayout.Label("0 is rested; the status line changes every 23.", mODimText);
+        UWJapaneseInterface.LayoutLabel("0 is rested; the status line changes every 23.", mODimText);
         fStatRow("Poison", lOCharacter.Poison + " / 15");
         fStatRow("Hallucination", lOCharacter.Hallucination + " / " + UWCharacter.MaxHallucination
             + fHallucinationEffectText());
-        GUILayout.Label("A mushroom adds one, the potion sets three; one wears off every 21 seconds.",
+        UWJapaneseInterface.LayoutLabel("A mushroom adds one, the potion sets three; one wears off every 21 seconds.",
             mODimText);
         fStatRow("Unspent skill points", lOCharacter.SkillPoints.ToString());
-        GUILayout.Label("A mantra at a shrine spends them. One more every 3000 experience and every level.",
+        UWJapaneseInterface.LayoutLabel("A mantra at a shrine spends them. One more every 3000 experience and every level.",
             mODimText);
 
         fStatRow("Exact experience", fTenths(lOCharacter.Experience));
@@ -1008,11 +1008,11 @@ public class UWHelpWindow : MonoBehaviour
     private void fDrawWornMagic(DataImport pOData, UWInventory pOInventory)
     {
         GUILayout.Space(10f);
-        GUILayout.Label("Worn magic", mOSubHeading);
+        UWJapaneseInterface.LayoutLabel("Worn magic", mOSubHeading);
 
         if (pOInventory == null)
         {
-            GUILayout.Label("No inventory.", mODimText);
+            UWJapaneseInterface.LayoutLabel("No inventory.", mODimText);
             return;
         }
 
@@ -1047,14 +1047,14 @@ public class UWHelpWindow : MonoBehaviour
 
         if (!lbAny)
         {
-            GUILayout.Label("Nothing worn is enchanted.", mODimText);
+            UWJapaneseInterface.LayoutLabel("Nothing worn is enchanted.", mODimText);
             return;
         }
 
         UWArmourProtection.Compute(pOInventory, pOData, null, mOWornStatus);
 
         GUILayout.Space(6f);
-        GUILayout.Label("Together, without cast spells:", mODimText);
+        UWJapaneseInterface.LayoutLabel("Together, without cast spells:", mODimText);
 
         int[] liProtection = mOWornStatus.Protection;
 
@@ -1183,9 +1183,9 @@ public class UWHelpWindow : MonoBehaviour
     private void fStatRow(string psLabel, string psValue)
     {
         GUILayout.BeginHorizontal();
-        GUILayout.Label(psLabel, mOLabel);
+        UWJapaneseInterface.LayoutLabel(psLabel, mOLabel);
         GUILayout.FlexibleSpace();
-        GUILayout.Label("<color=#" + AccentHex + ">" + psValue + "</color>", mOValue);
+        UWJapaneseInterface.LayoutLabel("<color=#" + AccentHex + ">" + psValue + "</color>", mOValue);
         GUILayout.EndHorizontal();
     }
 
@@ -1267,21 +1267,21 @@ public class UWHelpWindow : MonoBehaviour
 
         if (lOUi == null || lOLoader == null)
         {
-            GUILayout.Label("Map", mOHeading);
-            GUILayout.Label("No level is loaded.", mODimText);
+            UWJapaneseInterface.LayoutLabel("Map", mOHeading);
+            UWJapaneseInterface.LayoutLabel("No level is loaded.", mODimText);
 
             return;
         }
 
         if (!lOUi.IsCarryingMap)
         {
-            GUILayout.Label("Map", mOHeading);
-            GUILayout.Label("You carry no map. Pick it up again to see it here.", mODimText);
+            UWJapaneseInterface.LayoutLabel("Map", mOHeading);
+            UWJapaneseInterface.LayoutLabel("You carry no map. Pick it up again to see it here.", mODimText);
 
             return;
         }
 
-        GUILayout.Label(string.Format("Level {0}. The wheel zooms; notes are written on the map itself.",
+        UWJapaneseInterface.LayoutLabel(string.Format("Level {0}. The wheel zooms; notes are written on the map itself.",
             lOLoader.CurrentLevelIndex + 1), mODimText);
         GUILayout.Space(6f);
 
@@ -1387,8 +1387,8 @@ public class UWHelpWindow : MonoBehaviour
     {
         if (!UWManual.EnsureOpen())
         {
-            GUILayout.Label("Manual", mOHeading);
-            GUILayout.Label(UWManual.Problem ?? "The manual cannot be shown.", mODimText);
+            UWJapaneseInterface.LayoutLabel("Manual", mOHeading);
+            UWJapaneseInterface.LayoutLabel(UWManual.Problem ?? "The manual cannot be shown.", mODimText);
 
             return;
         }
@@ -1399,18 +1399,18 @@ public class UWHelpWindow : MonoBehaviour
 
         GUILayout.BeginHorizontal();
 
-        if (GUILayout.Button("<", mOFoldout, GUILayout.Width(44f), GUILayout.Height(28f)))
+        if (UWJapaneseInterface.LayoutButton("<", mOFoldout, GUILayout.Width(44f), GUILayout.Height(28f)))
             fTurn(-1);
 
-        GUILayout.Label(string.Format("Page {0} of {1}", msPage + 1, liCount), mOCentred, GUILayout.Height(28f),
+        UWJapaneseInterface.LayoutLabel(string.Format("Page {0} of {1}", msPage + 1, liCount), mOCentred, GUILayout.Height(28f),
             GUILayout.ExpandWidth(true));
 
-        if (GUILayout.Button(">", mOFoldout, GUILayout.Width(44f), GUILayout.Height(28f)))
+        if (UWJapaneseInterface.LayoutButton(">", mOFoldout, GUILayout.Width(44f), GUILayout.Height(28f)))
             fTurn(1);
 
         GUILayout.EndHorizontal();
 
-        GUILayout.Label("Click the page to read it large.", mODimText);
+        UWJapaneseInterface.LayoutLabel("Click the page to read it large.", mODimText);
         GUILayout.Space(6f);
 
         Rect lOSpace = GUILayoutUtility.GetRect(16f, 16f, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
@@ -1544,18 +1544,18 @@ public class UWHelpWindow : MonoBehaviour
         float lfArrowWidth = lfArrowZone / lfScale;
         float lfArrowTop = (ReferenceHeight / 2f) - 40f;
 
-        if (msPage > 0 && GUI.Button(new Rect(lfMargin / lfScale, lfArrowTop, lfArrowWidth, 80f), "<", mOArrow))
+        if (msPage > 0 && UWJapaneseInterface.Button(new Rect(lfMargin / lfScale, lfArrowTop, lfArrowWidth, 80f), "<", mOArrow))
             fTurn(-liStep);
 
         if (fLastShown(liLeft, liRight) < liCount - 1
-            && GUI.Button(new Rect(lfUnitsWide - (lfMargin / lfScale) - lfArrowWidth, lfArrowTop, lfArrowWidth, 80f), ">", mOArrow))
+            && UWJapaneseInterface.Button(new Rect(lfUnitsWide - (lfMargin / lfScale) - lfArrowWidth, lfArrowTop, lfArrowWidth, 80f), ">", mOArrow))
             fTurn(liStep);
 
         string lsPages = liRight >= 0 && liLeft >= 0
             ? string.Format("Pages {0} and {1} of {2}", liLeft + 1, liRight + 1, liCount)
             : string.Format("Page {0} of {1}", Mathf.Max(liLeft, liRight) + 1, liCount);
 
-        GUI.Label(new Rect(0f, ReferenceHeight - (lfBar / lfScale) - (lfMargin / lfScale), lfUnitsWide, lfBar / lfScale),
+        UWJapaneseInterface.Label(new Rect(0f, ReferenceHeight - (lfBar / lfScale) - (lfMargin / lfScale), lfUnitsWide, lfBar / lfScale),
             lsPages + "      Arrow keys or the wheel turn the pages, Esc or a click on the page closes", mOCentred);
 
         // The keys and the wheel - the game hears none of them while reading.
@@ -1638,7 +1638,7 @@ public class UWHelpWindow : MonoBehaviour
         if (mOText != null)
             return;
 
-        mOFont = UWInterfaceFont.Font;
+        mOFont = UWJapaneseInterface.FontOr(UWInterfaceFont.Font);
 
         mOText = new GUIStyle { font = mOFont, fontSize = 15, wordWrap = true, richText = true };
         mOText.normal.textColor = TextColour;
@@ -1652,7 +1652,7 @@ public class UWHelpWindow : MonoBehaviour
         mOSubHeading = new GUIStyle(mOText) { fontSize = 16, fontStyle = FontStyle.Bold, margin = new RectOffset(0, 0, 6, 2) };
         mOSubHeading.normal.textColor = AccentColour;
 
-        mOTab = new GUIStyle(mOText) { fontSize = 14, alignment = TextAnchor.MiddleCenter, wordWrap = false };
+        mOTab = new GUIStyle(mOText) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = false };
         mOTab.normal.background = fTexture(TabColour);
         mOTab.hover.background = fTexture(HoverColour);
         mOTab.hover.textColor = TextColour;

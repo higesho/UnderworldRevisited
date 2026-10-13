@@ -28,13 +28,13 @@ public partial class UWSetupMenu
         string[] lsStyles = { "Xbox", "PlayStation", "Nintendo" };
         float lfStyleWidth = (pfInner - 230f) / lsStyles.Length;
 
-        GUI.Label(new Rect(pfLeft, lfTop, 220f, 26f), "Button names", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pfLeft, lfTop, 220f, 26f), "Button names", mOListLabel);
 
         for (int liStyle = 0; liStyle < lsStyles.Length; liStyle++)
         {
             bool lbCurrent = (int)UWGamepad.ButtonStyle == liStyle;
 
-            if (GUI.Button(new Rect(pfLeft + 230f + (liStyle * lfStyleWidth), lfTop, lfStyleWidth, 26f), lsStyles[liStyle],
+            if (UWJapaneseInterface.Button(new Rect(pfLeft + 230f + (liStyle * lfStyleWidth), lfTop, lfStyleWidth, 26f), lsStyles[liStyle],
                 lbCurrent ? mOCurrentItem : mOListItem) && !lbCurrent)
             {
                 UWUserSettings.GamepadButtonStyle = liStyle;
@@ -48,20 +48,20 @@ public partial class UWSetupMenu
         float lfStep = UWUserSettings.MouseLookSpeedStep;
         float lfBefore = UWUserSettings.StickLookSpeed;
 
-        GUI.Label(new Rect(pfLeft, lfTop, 220f, 26f), "Stick look speed", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pfLeft, lfTop, 220f, 26f), "Stick look speed", mOListLabel);
 
         float lfSpeed = GUI.HorizontalSlider(new Rect(pfLeft + 230f, lfTop + 8f, pfInner - 400f, 20f),
             lfBefore, UWUserSettings.MinStickLookSpeed, UWUserSettings.MaxStickLookSpeed);
 
         lfSpeed = Mathf.Round(lfSpeed / lfStep) * lfStep;
 
-        if (GUI.Button(new Rect(pfLeft + pfInner - 160f, lfTop, 26f, 26f), "<", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(pfLeft + pfInner - 160f, lfTop, 26f, 26f), "<", mOButton))
             lfSpeed = lfBefore - lfStep;
 
-        if (GUI.Button(new Rect(pfLeft + pfInner - 130f, lfTop, 26f, 26f), ">", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(pfLeft + pfInner - 130f, lfTop, 26f, 26f), ">", mOButton))
             lfSpeed = lfBefore + lfStep;
 
-        GUI.Label(new Rect(pfLeft + pfInner - 95f, lfTop, 95f, 26f), Mathf.RoundToInt(lfSpeed * 100f) + " %", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pfLeft + pfInner - 95f, lfTop, 95f, 26f), Mathf.RoundToInt(lfSpeed * 100f) + " %", mOListLabel);
 
         if (Mathf.RoundToInt(lfSpeed * 100f) != Mathf.RoundToInt(lfBefore * 100f))
         {
@@ -73,7 +73,7 @@ public partial class UWSetupMenu
 
         // THE STICKS: swapped for left-handed players, the look reversed up and down.
         // The sticks' presses go with them where the player has not changed them (UWKeyBindings).
-        bool lbSwap = GUI.Toggle(new Rect(pfLeft, lfTop, 300f, 26f), UWUserSettings.GamepadSwapSticks,
+        bool lbSwap = UWJapaneseInterface.Toggle(new Rect(pfLeft, lfTop, 300f, 26f), UWUserSettings.GamepadSwapSticks,
             "  Swap the sticks (left-handed)", mOToggle);
 
         if (lbSwap != UWUserSettings.GamepadSwapSticks)
@@ -83,7 +83,7 @@ public partial class UWSetupMenu
             UWControls.ApplyKeyBindings();
         }
 
-        bool lbInvert = GUI.Toggle(new Rect(pfLeft + 310f, lfTop, pfInner - 310f, 26f), UWUserSettings.StickInvertY,
+        bool lbInvert = UWJapaneseInterface.Toggle(new Rect(pfLeft + 310f, lfTop, pfInner - 310f, 26f), UWUserSettings.StickInvertY,
             "  Invert looking up and down", mOToggle);
 
         if (lbInvert != UWUserSettings.StickInvertY)
@@ -95,7 +95,7 @@ public partial class UWSetupMenu
         lfTop += 32f;
 
         // THE BUTTON HINTS in the modern interface (per user, 2026-10-08).
-        bool lbHints = GUI.Toggle(new Rect(pfLeft, lfTop, pfInner, 26f), UWUserSettings.GamepadButtonHints,
+        bool lbHints = UWJapaneseInterface.Toggle(new Rect(pfLeft, lfTop, pfInner, 26f), UWUserSettings.GamepadButtonHints,
             "  Button hints in the game (crosshair, action bar)", mOToggle);
 
         if (lbHints != UWUserSettings.GamepadButtonHints)
@@ -129,7 +129,7 @@ public partial class UWSetupMenu
             UWKeyBindings.Entry lOEntry = UWKeyBindings.PadEntries[liAt];
             float lfRowTop = liAt * RowHeight;
 
-            GUI.Label(new Rect(6f, lfRowTop + 4f, lOContent.width - 220f, 26f), lOEntry.Label, mOListLabel);
+            UWJapaneseInterface.Label(new Rect(6f, lfRowTop + 4f, lOContent.width - 220f, 26f), lOEntry.Label, mOListLabel);
 
             // The button's glyph in the chosen style left of its name (UWGlyphs).
             Texture2D lOGlyph = UWGlyphs.ForPath(UWKeyBindings.GetPath(lOEntry));
@@ -139,20 +139,20 @@ public partial class UWSetupMenu
 
             string lsButton = mOListeningFor == lOEntry ? "Press a button..." : UWKeyBindings.GetKeyName(lOEntry);
 
-            if (GUI.Button(new Rect(lOContent.width - 170f, lfRowTop + 3f, 160f, 26f), lsButton, mOButton)
+            if (UWJapaneseInterface.Button(new Rect(lOContent.width - 170f, lfRowTop + 3f, 160f, 26f), lsButton, mOButton)
                 && mOListeningFor == null)
                 fListenForPad(lOEntry);
         }
 
         GUI.EndScrollView();
 
-        GUI.Label(new Rect(pfLeft, pODialog.yMax - 82f, pfInner, 22f), msBindingNotice, mODimLabel);
+        UWJapaneseInterface.Label(new Rect(pfLeft, pODialog.yMax - 82f, pfInner, 22f), msBindingNotice, mODimLabel);
 
         float lfButtonTop = pODialog.yMax - 46f;
 
         GUI.enabled = UWKeyBindings.HasGamepadChanges && mOListeningFor == null;
 
-        if (GUI.Button(new Rect(pfLeft, lfButtonTop, 180f, 30f), "Back to default", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(pfLeft, lfButtonTop, 180f, 30f), "Back to default", mOButton))
         {
             UWKeyBindings.ResetGamepad();
             msBindingNotice = string.Empty;
@@ -160,7 +160,7 @@ public partial class UWSetupMenu
 
         GUI.enabled = true;
 
-        if (GUI.Button(new Rect(pODialog.xMax - 130f, lfButtonTop, 110f, 30f), "Done", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(pODialog.xMax - 130f, lfButtonTop, 110f, 30f), "Done", mOButton))
         {
             mbControlsDialogOpen = false;
             mOListeningFor = null;
@@ -173,22 +173,22 @@ public partial class UWSetupMenu
     {
         const float Step = 0.01f;
 
-        GUI.Label(new Rect(pfLeft, pfTop, 220f, 26f), psLabel, mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pfLeft, pfTop, 220f, 26f), psLabel, mOListLabel);
 
         float lfValue = GUI.HorizontalSlider(new Rect(pfLeft + 230f, pfTop + 8f, pfInner - 470f, 20f),
             pfBefore, 0f, UWUserSettings.MaxStickDeadzone);
 
         lfValue = Mathf.Round(lfValue / Step) * Step;
 
-        if (GUI.Button(new Rect(pfLeft + pfInner - 230f, pfTop, 26f, 26f), "<", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(pfLeft + pfInner - 230f, pfTop, 26f, 26f), "<", mOButton))
             lfValue = pfBefore - Step;
 
-        if (GUI.Button(new Rect(pfLeft + pfInner - 200f, pfTop, 26f, 26f), ">", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(pfLeft + pfInner - 200f, pfTop, 26f, 26f), ">", mOButton))
             lfValue = pfBefore + Step;
 
         string lsNow = pfNow < 0f ? "no pad" : "now " + Mathf.RoundToInt(pfNow * 100f) + " %";
 
-        GUI.Label(new Rect(pfLeft + pfInner - 165f, pfTop, 165f, 26f),
+        UWJapaneseInterface.Label(new Rect(pfLeft + pfInner - 165f, pfTop, 165f, 26f),
             Mathf.RoundToInt(lfValue * 100f) + " %  (" + lsNow + ")", mOListLabel);
 
         if (Mathf.RoundToInt(lfValue * 100f) != Mathf.RoundToInt(pfBefore * 100f))

@@ -10,6 +10,11 @@ TrueTypeFontImporter:
   includeFontData: 1
   fontNames:
   - Liberation Sans
+  - Noto Sans JP
+  - Noto Sans CJK JP
+  - Yu Gothic
+  - Meiryo
+  - MS Gothic
   fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0

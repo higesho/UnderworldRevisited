@@ -85,6 +85,24 @@ and a damaged inscription are also deliberately retained to protect formatting.
   If a Japanese OS font is unavailable, the unmodified English art is used.
   UWJapaneseFontDiagnostics.VerifyJapaneseOptionsButtons passed in Unity 6000.6.0f1;
   a new actual-game options screenshot is still required.
+- The modern IMGUI setup bar and help window now use UWJapaneseInterface for
+  the major navigation labels, options/dialog commands, explanatory hints,
+  seven help tabs, the forty manual spell notes, mantra notes and many controls
+  descriptions. Unknown or user-supplied text is left unchanged in English,
+  and localization is disabled when no Japanese OS font is available.
+- Unity 6000.6's IMGUI text layout crashed when a font generated solely with
+  Font.CreateDynamicFontFromOSFont was assigned directly to a GUIStyle.
+  The solution is to keep the game's imported Liberation Sans font with
+  Include Font Data enabled, and configure Japanese OS font family names as
+  fallback entries in its importer. It loads missing glyphs from the local
+  machine without shipping extra fonts. The editor smoke check successfully
+  fetched the Japanese glyph for 設, measured its advance and ran GUIStyle
+  text-height calculations without crashing.
+- UWJapaneseFontDiagnostics.VerifyJapaneseInterface now checks the OS font,
+  uGUI glyph geometry, HUD colours, options artwork, localized navigation,
+  forty help spell notes, mantra notes and IMGUI layout. All passed headlessly
+  after the font fallback change. The real menu/help screen's appearance is
+  still awaiting a visual in-game test.
 - The Unity editor verified the Japanese/English colour selection, but the updated
   game message contrast still needs an in-game screenshot check.
 - Japanese classic labels use Noto Sans JP with a **bold gothic style** in uGUI

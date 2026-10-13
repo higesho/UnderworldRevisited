@@ -223,4 +223,58 @@ public static class UWJapaneseFontDiagnostics
             UnityEngine.Object.DestroyImmediate(texture);
         }
     }
+
+    [MenuItem("UW/Diagnostics/Verify Japanese Setup And Help")]
+    public static void VerifyJapaneseSetupAndHelp()
+    {
+        string[] bar = { "Game", "Motion", "Graphics", "Display", "Controls", "Sound", "Colours" };
+        string[] expected = { "ゲーム", "移動", "画質", "表示", "操作", "音声", "色補正" };
+        Font font = UWJapaneseInterface.FontOr(null);
+        if (font == null || font != UWInterfaceFont.Font)
+            throw new InvalidOperationException("JP_MENU_FAIL: IMGUI must use the imported Latin base font");
+        Debug.Log("JP_MENU_FONT=" + font.name + " dynamic=" + font.dynamic);
+        var importer = AssetImporter.GetAtPath("Assets/Resources/Fonts/LiberationSans-Regular.ttf")
+            as TrueTypeFontImporter;
+        if (importer == null || Array.IndexOf(importer.fontNames, "Noto Sans JP") < 0)
+            throw new InvalidOperationException("JP_MENU_FAIL: OS Japanese font fallback is not configured");
+        font.RequestCharactersInTexture("ゲーム設定", 16, FontStyle.Normal);
+        bool hasJapanese = font.GetCharacterInfo('設', out CharacterInfo sampleCharacter, 16, FontStyle.Normal);
+        Debug.Log("JP_MENU_FALLBACK_GLYPH=" + hasJapanese + " width=" + sampleCharacter.advance);
+
+        for (int i = 0; i < bar.Length; i++)
+            if (UWJapaneseInterface.Text(bar[i]) != expected[i])
+                throw new InvalidOperationException("JP_MENU_FAIL: untranslated top menu " + bar[i]);
+
+        foreach (string note in UWHelpContent.ManualSpellNotes.Values)
+            if (UWJapaneseInterface.Text(note) == note)
+                throw new InvalidOperationException("JP_MENU_FAIL: untranslated spell help note " + note);
+
+        foreach (KeyValuePair<int, string> mantra in UWHelpContent.ManualMantras)
+            if (UWJapaneseInterface.Text(mantra.Value) == mantra.Value)
+                throw new InvalidOperationException("JP_MENU_FAIL: untranslated mantra note");
+
+        if (UWJapaneseInterface.Text("Strength") != "筋力" ||
+            UWJapaneseInterface.Text("Colour strength") != "補正の強さ" ||
+            UWJapaneseInterface.Text("Circle 4  -  12 mana") != "第4環 － 消費魔力12" ||
+            UWJapaneseInterface.Text("Page 3 of 28") != "28ページ中 3ページ目" ||
+            UWJapaneseInterface.Text("Homebrew custom text") != "Homebrew custom text")
+            throw new InvalidOperationException("JP_MENU_FAIL: dynamic values or English fallback changed");
+
+        GUIStyle style = new GUIStyle { font = font, fontSize = 14, wordWrap = true };
+        foreach (string text in expected)
+            if (style.CalcHeight(new GUIContent(text), 90f) <= 0)
+                throw new InvalidOperationException("JP_MENU_FAIL: label cannot be measured " + text);
+
+        Debug.Log("JP_MENU_HELP_OK: translated navigation, spell help, mantra help, dynamic formatting and font geometry");
+    }
+
+    [MenuItem("UW/Diagnostics/Verify Japanese Interface")]
+    public static void VerifyJapaneseInterface()
+    {
+        VerifyJapaneseFont();
+        VerifyJapaneseHudColours();
+        VerifyJapaneseOptionsButtons();
+        VerifyJapaneseSetupAndHelp();
+        Debug.Log("JP_INTERFACE_ALL_OK: font, colours, classic options artwork, setup and help passed");
+    }
 }

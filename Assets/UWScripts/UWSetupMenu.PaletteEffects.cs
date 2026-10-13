@@ -50,10 +50,10 @@ public partial class UWSetupMenu
         float lfInner = lODialog.width - 40f;
         float lfTop = lODialog.y + 14f;
 
-        GUI.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Palette effects", mOLabel);
-        GUI.Label(new Rect(lfLeft + 230f, lfTop + 4f, lfInner - 370f, 22f), "drag here to move", mODimLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Palette effects", mOLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft + 230f, lfTop + 4f, lfInner - 370f, 22f), "drag here to move", mODimLabel);
 
-        if (GUI.Button(new Rect(lODialog.xMax - 130f, lfTop - 2f, 110f, 30f), "Done", mOButton))
+        if (UWJapaneseInterface.Button(new Rect(lODialog.xMax - 130f, lfTop - 2f, 110f, 30f), "Done", mOButton))
             mbPaletteEffectsDialogOpen = false;
 
         lfTop += 32f;
@@ -69,13 +69,13 @@ public partial class UWSetupMenu
         UWPaletteEffects.PresetEnum leCurrent = UWPaletteEffects.CurrentPreset;
         float lfPresetWidth = (lfInner - 230f) / lsPresets.Length;
 
-        GUI.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Preset", mOListLabel);
+        UWJapaneseInterface.Label(new Rect(lfLeft, lfTop, 220f, 26f), "Preset", mOListLabel);
 
         for (int liPreset = 0; liPreset < lsPresets.Length; liPreset++)
         {
             bool lbCurrent = (int)leCurrent == liPreset;
 
-            if (GUI.Button(new Rect(lfLeft + 230f + (liPreset * lfPresetWidth), lfTop, lfPresetWidth, 26f), lsPresets[liPreset],
+            if (UWJapaneseInterface.Button(new Rect(lfLeft + 230f + (liPreset * lfPresetWidth), lfTop, lfPresetWidth, 26f), lsPresets[liPreset],
                 lbCurrent ? mOCurrentItem : mOListItem) && !lbCurrent)
                 UWPaletteEffects.ApplyPreset((UWPaletteEffects.PresetEnum)liPreset);
         }
@@ -98,7 +98,7 @@ public partial class UWSetupMenu
         {
             bool lbCurrent = UWUserSettings.PaletteGrimeTone == liTone;
 
-            if (GUI.Button(new Rect(lfLeft + 230f + (liTone * lfToneWidth), lfTop, lfToneWidth, 26f), lsTones[liTone],
+            if (UWJapaneseInterface.Button(new Rect(lfLeft + 230f + (liTone * lfToneWidth), lfTop, lfToneWidth, 26f), lsTones[liTone],
                 lbCurrent ? mOCurrentItem : mOListItem) && !lbCurrent)
             {
                 UWUserSettings.PaletteGrimeTone = liTone;
@@ -123,7 +123,7 @@ public partial class UWSetupMenu
             UWUserSettings.PaletteGroundShadows, UWPaletteEffects.MaxGroundShadows,
             "A dark patch under creatures and things, so they stand on the ground.", pfValue => UWUserSettings.PaletteGroundShadows = pfValue);
 
-        bool lbGlow = GUI.Toggle(new Rect(lfLeft, lfTop, lfInner, 26f), UWUserSettings.PaletteGlow,
+        bool lbGlow = UWJapaneseInterface.Toggle(new Rect(lfLeft, lfTop, lfInner, 26f), UWUserSettings.PaletteGlow,
             "  Glow - lava and flames keep their full colour, in the dark too", mOToggle);
 
         if (lbGlow != UWUserSettings.PaletteGlow)
@@ -134,7 +134,7 @@ public partial class UWSetupMenu
 
         lfTop += 32f;
 
-        bool lbLights = GUI.Toggle(new Rect(lfLeft, lfTop, lfInner, 26f), UWUserSettings.PaletteLightSources,
+        bool lbLights = UWJapaneseInterface.Toggle(new Rect(lfLeft, lfTop, lfInner, 26f), UWUserSettings.PaletteLightSources,
             "  Light sources", mOToggle);
 
         if (lbLights != UWUserSettings.PaletteLightSources)
@@ -184,14 +184,14 @@ public partial class UWSetupMenu
     private void fPaletteEffectRow(ref float pfTop, float pfLeft, float pfWidth, string psLabel, float pfValue, float pfMax,
         string psHint, System.Action<float> pOStore)
     {
-        GUI.Label(new Rect(pfLeft, pfTop, 220f, 26f), psLabel, mOListLabel);
+        UWJapaneseInterface.Label(new Rect(pfLeft, pfTop, 220f, 26f), psLabel, mOListLabel);
 
         float lfWanted = GUI.HorizontalSlider(new Rect(pfLeft + 230f, pfTop + 8f, pfWidth - 330f, 20f),
             pfValue, 0f, pfMax);
 
         lfWanted = Mathf.Clamp(Mathf.Round(lfWanted * 2f) / 2f, 0f, pfMax);
 
-        GUI.Label(new Rect(pfLeft + pfWidth - 90f, pfTop, 90f, 26f),
+        UWJapaneseInterface.Label(new Rect(pfLeft + pfWidth - 90f, pfTop, 90f, 26f),
             lfWanted <= 0f ? "Off" : lfWanted.ToString("0.#") + " steps", mOListLabel);
 
         pfTop += 28f;
