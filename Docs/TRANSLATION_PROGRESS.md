@@ -3,11 +3,11 @@
 Generated from locally extracted original strings and Localization/ja.tsv. Original game text is not included in this report.
 
 - Source text requiring translation: **7091**
-- Translated: **1816**
-- Remaining nonempty text: **5275**
+- Translated: **2354**
+- Remaining nonempty text: **4737**
 - Empty source entries: **3893**
-- Reserved block entries: **122**
-- Coverage: **25.61%**
+- Original string blocks: **122**
+- Coverage: **33.2%**
 
 | Block | Nonempty | Translated | Remaining |
 |---:|---:|---:|---:|
@@ -39,15 +39,15 @@ Generated from locally extracted original strings and Localization/ja.tsv. Origi
 | 3585 | 46 | 46 | 0 |
 | 3586 | 163 | 163 | 0 |
 | 3587 | 97 | 97 | 0 |
-| 3588 | 136 | 7 | 129 |
-| 3589 | 64 | 5 | 59 |
-| 3590 | 79 | 7 | 72 |
-| 3591 | 60 | 7 | 53 |
+| 3588 | 136 | 136 | 0 |
+| 3589 | 64 | 64 | 0 |
+| 3590 | 79 | 79 | 0 |
+| 3591 | 60 | 60 | 0 |
 | 3592 | 15 | 15 | 0 |
-| 3593 | 54 | 7 | 47 |
-| 3594 | 53 | 7 | 46 |
+| 3593 | 54 | 54 | 0 |
+| 3594 | 53 | 53 | 0 |
 | 3595 | 30 | 30 | 0 |
-| 3596 | 139 | 7 | 132 |
+| 3596 | 139 | 139 | 0 |
 | 3597 | 99 | 0 | 99 |
 | 3598 | 74 | 0 | 74 |
 | 3599 | 98 | 0 | 98 |

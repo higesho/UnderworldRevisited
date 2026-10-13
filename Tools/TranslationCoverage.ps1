@@ -39,7 +39,7 @@ foreach ($line in [System.IO.File]::ReadLines($translations, [System.Text.Encodi
 
 $validSourceCount = $sourceCount - $emptyCount
 $remaining = $validSourceCount - $translatedKeys.Count
-$reserved = $blocks.Count
+$blockCount = $blocks.Count
 $report = New-Object System.Collections.Generic.List[string]
 $report.Add('# Japanese translation coverage')
 $report.Add('')
@@ -49,7 +49,7 @@ $report.Add("- Source text requiring translation: **$validSourceCount**")
 $report.Add("- Translated: **$($translatedKeys.Count)**")
 $report.Add("- Remaining nonempty text: **$remaining**")
 $report.Add("- Empty source entries: **$emptyCount**")
-$report.Add("- Reserved block entries: **$reserved**")
+$report.Add("- Original string blocks: **$blockCount**")
 $report.Add("- Coverage: **$([math]::Round(100 * $translatedKeys.Count / $validSourceCount, 2))%**")
 $report.Add('')
 $report.Add('| Block | Nonempty | Translated | Remaining |')
