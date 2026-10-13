@@ -68,6 +68,13 @@ public class UWPlayerTerrain : MonoBehaviour
 
     public bool IsOnLava { get; private set; }
 
+    /// <summary>
+    /// Swimming lowers the player's view without moving the collision body.
+    /// The VR head-pose driver applies this offset independently so that
+    /// swimming does not overwrite a tracked head position.
+    /// </summary>
+    public float VRCameraHeightOffset => mfAppliedCameraOffset;
+
     public void Init(UWLevelLoader pOLevelLoader, Transform pOCamera)
     {
         mOLevelLoader = pOLevelLoader;
@@ -496,7 +503,9 @@ public class UWPlayerTerrain : MonoBehaviour
                 * Mathf.Lerp(lfRough, lfSteady, fGetSwimSkillFraction(pOSettings));
 
             // The rigid distance between player object and camera, without our own offset.
-            float lfRigidOffset = mOCamera.position.y - transform.position.y - mfAppliedCameraOffset;
+            float lfRigidOffset = UWVRBootstrap.IsHeadsetActive
+                ? mfBaseCameraLocalY
+                : mOCamera.position.y - transform.position.y - mfAppliedCameraOffset;
 
             lfWanted = pfTileFloor + lfHeight + lfSway - (transform.position.y + lfRigidOffset);
         }
@@ -504,6 +513,12 @@ public class UWPlayerTerrain : MonoBehaviour
         float lfSpeed = pOSettings != null ? pOSettings.SwimViewFollowSpeed : 60f;
 
         mfAppliedCameraOffset = Mathf.MoveTowards(mfAppliedCameraOffset, lfWanted, lfSpeed * Time.deltaTime);
+
+        // Only the VR pose driver may write the tracked camera's local
+        // position. Its height includes VRCameraHeightOffset instead of
+        // adding synthetic head bob, which would induce VR sickness.
+        if (UWVRBootstrap.IsHeadsetActive)
+            return;
 
         Vector3 lOLocal = mOCamera.localPosition;
         lOLocal.y = mfBaseCameraLocalY + mfAppliedCameraOffset + fGetHeadBob() + fGetLevitationBob();
@@ -565,6 +580,14 @@ public class UWPlayerTerrain : MonoBehaviour
     {
         if (mOCamera == null)
             return;
+
+        // The HMD supplies real roll. Do not force it to a game-generated
+        // swimming roll (or to zero), especially immediately before render.
+        if (UWVRBootstrap.IsHeadsetActive)
+        {
+            mfAppliedCameraRoll = 0f;
+            return;
+        }
 
         UWSettings lOSettings = UWSettings.Instance;
 

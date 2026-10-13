@@ -122,7 +122,8 @@ public static class UWGamepad
             && (lOMouse.position.ReadValue() - UWGamepadPointer.Position).sqrMagnitude < 9f)
             return;
 
-        IsActive = lOControl.device is Gamepad;
+        IsActive = lOControl.device is Gamepad
+            || (UWVRBootstrap.IsHeadsetActive && lOControl.device is UnityEngine.InputSystem.XR.XRController);
     }
 
     private static float msfMouseIgnoredUntil;
@@ -192,6 +193,9 @@ public static class UWGamepad
     /// <summary>Whether an action's current press comes from a gamepad.</summary>
     public static bool IsFromGamepad(InputAction pOAction)
     {
-        return pOAction != null && pOAction.activeControl != null && pOAction.activeControl.device is Gamepad;
+        return pOAction != null && pOAction.activeControl != null
+            && (pOAction.activeControl.device is Gamepad
+                || (UWVRBootstrap.IsHeadsetActive
+                    && pOAction.activeControl.device is UnityEngine.InputSystem.XR.XRController));
     }
 }

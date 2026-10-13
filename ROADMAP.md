@@ -119,10 +119,12 @@ of what is built was also read out of the original's executable.
 
 ## Later
 
-- **VR support (Japanese-localization fork initiative).** Feasibility study for PC-tethered
-  OpenXR headsets, with stereo rendering, headset tracking, independent player movement,
-  interaction rays and world-space UI. Japanese translation additions are temporarily paused
-  while VR feasibility is investigated. See `Docs/VR_FEASIBILITY_JA.md`.
+- **VR support (Japanese-localization fork initiative; in progress).** The Windows OpenXR
+  prototype compiles and builds with opt-in headset tracking, gaze interaction rays,
+  basic Touch-controller bindings and a temporary stereo-camera UI bridge. Offline
+  validation passes. Next: real-HMD validation, UI/controller interaction, world scale,
+  stereo correctness, comfort and performance. Japanese translation additions remain
+  temporarily paused. See `Docs/VR_FEASIBILITY_JA.md`.
 
 - Move more rules from the Unity side into the engine-free layer, so the game logic can be
   used without Unity.

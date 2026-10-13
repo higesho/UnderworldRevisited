@@ -439,12 +439,17 @@ public class UWControls : System.IDisposable
             .With("Left", "<Keyboard>/a")
             .With("Right", "<Keyboard>/d");
         lMove.AddBinding("<Gamepad>/leftStick");
+        // OpenXR Touch controllers use XRController, not Gamepad. Supplying
+        // these paths alongside the existing desktop inputs allows the VR
+        // build to walk without requiring an additional physical gamepad.
+        lMove.AddBinding("<XRController>{LeftHand}/thumbstick");
 
         lMap.AddAction("Look", InputActionType.Value, expectedControlLayout: "Vector2")
             .AddBinding("<Mouse>/delta").WithProcessor(MouseDeltaScale);
 
-        lMap.AddAction("LookStick", InputActionType.Value, expectedControlLayout: "Vector2")
-            .AddBinding("<Gamepad>/rightStick");
+        InputAction lLookStick = lMap.AddAction("LookStick", InputActionType.Value, expectedControlLayout: "Vector2");
+        lLookStick.AddBinding("<Gamepad>/rightStick");
+        lLookStick.AddBinding("<XRController>{RightHand}/thumbstick");
 
         lMap.AddAction("CursorDrag", InputActionType.Button)
             .AddBinding("<Mouse>/leftButton");
@@ -469,6 +474,7 @@ public class UWControls : System.IDisposable
         lToggleInventory.AddBinding("<Keyboard>/#(c)");
         // The pad's d-pad down since 2026-10-07 (per user: Y jumps instead).
         lToggleInventory.AddBinding("<Gamepad>/dpad/down");
+        lToggleInventory.AddBinding("<XRController>{LeftHand}/primaryButton");
 
         // Height while hovering. Q and E come from the original (per user, 2026-09-03);
         // combat mode and interaction gave up these keys for it.
@@ -557,10 +563,12 @@ public class UWControls : System.IDisposable
         InputAction lModernUse = lMap.AddAction("ModernUse", InputActionType.Button);
         lModernUse.AddBinding("<Keyboard>/#(e)");
         lModernUse.AddBinding("<Gamepad>/buttonSouth");
+        lModernUse.AddBinding("<XRController>{RightHand}/primaryButton");
 
         InputAction lModernReady = lMap.AddAction("ModernReady", InputActionType.Button);
         lModernReady.AddBinding("<Keyboard>/#(r)");
         lModernReady.AddBinding("<Gamepad>/leftStickPress");
+        lModernReady.AddBinding("<XRController>{RightHand}/gripPressed");
 
         // The LEFT CTRL sinks since 2026-10-04 (per user; V from 2026-10-03, C before). The
         // original's Ctrl shortcuts take the right Ctrl then in the modern scheme (UWGameUI).
@@ -588,11 +596,18 @@ public class UWControls : System.IDisposable
         InputAction lModernAttack = lMap.AddAction("ModernAttack", InputActionType.Button);
         lModernAttack.AddBinding("<Mouse>/leftButton");
         lModernAttack.AddBinding("<Gamepad>/rightTrigger");
+        lModernAttack.AddBinding("<XRController>{RightHand}/triggerPressed");
 
         // B only goes back, Y jumps (per user, 2026-10-07; B jumped while nothing was open).
-        lMap.AddAction("PadBack", InputActionType.Button).AddBinding("<Gamepad>/buttonEast");
-        lMap.AddAction("PadJump", InputActionType.Button).AddBinding("<Gamepad>/buttonNorth");
-        lMap.AddAction("PadCast", InputActionType.Button).AddBinding("<Gamepad>/leftTrigger");
+        InputAction lPadBack = lMap.AddAction("PadBack", InputActionType.Button);
+        lPadBack.AddBinding("<Gamepad>/buttonEast");
+        lPadBack.AddBinding("<XRController>{RightHand}/secondaryButton");
+        InputAction lPadJump = lMap.AddAction("PadJump", InputActionType.Button);
+        lPadJump.AddBinding("<Gamepad>/buttonNorth");
+        lPadJump.AddBinding("<XRController>{LeftHand}/secondaryButton");
+        InputAction lPadCast = lMap.AddAction("PadCast", InputActionType.Button);
+        lPadCast.AddBinding("<Gamepad>/leftTrigger");
+        lPadCast.AddBinding("<XRController>{LeftHand}/triggerPressed");
         lMap.AddAction("PadSlotPrevious", InputActionType.Button).AddBinding("<Gamepad>/leftShoulder");
         lMap.AddAction("PadSlotNext", InputActionType.Button).AddBinding("<Gamepad>/rightShoulder");
         lMap.AddAction("PadSlotUse", InputActionType.Button).AddBinding("<Gamepad>/dpad/up");

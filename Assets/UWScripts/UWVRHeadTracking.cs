@@ -60,7 +60,10 @@ public sealed class UWVRHeadTracking : MonoBehaviour
                         mInitialTrackedPosition = lOPosition;
                         mbCalibrated = true;
                     }
-                    transform.localPosition = mBaseLocalPosition + lOPosition - mInitialTrackedPosition;
+                    float lfSwimmingOffset = UWScene.PlayerTerrain != null
+                        ? UWScene.PlayerTerrain.VRCameraHeightOffset : 0f;
+                    transform.localPosition = mBaseLocalPosition + lOPosition - mInitialTrackedPosition
+                        + Vector3.up * lfSwimmingOffset;
                 }
 
                 transform.localRotation = lORotation;

@@ -2,6 +2,20 @@
 
 状態: Windows向けVR試作ビルドまで作成済み。Unity 6000.6.0f1でC#コンパイル成功、Windows開発ビルド成功（エラー0）。**HMDへの左右眼描画、追跡精度、操作の実機検証は未実施**。
 
+## 2026-10-14 実機試験なしで進めた実装
+
+- `UWVRAim`: VR時はHMD正面から世界への視線Rayを出す。`Interaction` の調査・使用・拾う・魔法・投射物でRay計算を共有する。非VR時は以前と同じ画面座標Rayを使う。
+- `UWVRCanvasBridge`: 元の `ScreenSpaceOverlay` CanvasをVR時だけ `ScreenSpaceCamera` に移し、画面の前方3ワールド単位に投影する。メニュー・HUD・所持品等は既存の配置と並び順を維持する暫定表示。動的に作られるCanvasにも追従し、VR終了後は元の設定に戻す。
+- `UWVRBootstrap`: プレイヤーカメラのないメニューで一時的なVRカメラを生成する。プレイヤー出現時には切り替える。左右眼の解像度と描画方式をログに出力する。
+- `UWVRHeadTracking` と `UWPlayerTerrain`: 水泳中の視点高さをVR追跡側に引き継ぐ。通常の歩行時の頭の上下揺れ・泳ぎでの強制傾きをHMD時は止め、頭の姿勢を上書きしない。
+- `UWVRComfortTurn`: モダン操作時は右スティックで30度ずつ体を旋回。UI操作中は発動しない。
+- `UWControls` と `UWGamepad`: 左右Quest Touchコントローラーのスティック・ボタンを既存の移動・使用・戦闘・魔法などへ接続。OpenXRのXRControllerとして扱う。物理コントローラー入力の実機確認は未実施。
+- `UWVRDiagnostics.RunOfflineChecks`: XRの有効化、非VR時のXR自動起動禁止、Touch入力定義、非VR時の視線Ray互換をエディターの自動検査で確認する。
+- `UWVRBuild`: Windowsの試験版ビルド前に上記チェックを実行し、VR/通常モードの起動バッチと日本語説明書を自動同梱する。
+- Unity 6000.6.0f1で `UWVRDiagnostics.RunOfflineChecks` を実行し、XRローダー・デスクトップRay互換・Touch入力・VR Canvas変換の検査が **PASS**。続く `UWVRBuild.BuildWindowsPrototype` のWindows開発ビルドも **Succeeded / errors 0** で完了。
+
+**ここまでの「実装済み」はコードと非VR環境での検査を意味し、Quest実機で動作したことは意味しない。** 実機でのステレオ出力・操作・UIの正確さは保留。
+
 ### 現在の試験ビルド
 
 - ローカル: `Build-vr-prototype/UR.exe`。配布用Releaseとは別の開発ビルドで、原作ゲームデータは含まない。

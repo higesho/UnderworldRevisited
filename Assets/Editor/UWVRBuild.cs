@@ -12,6 +12,7 @@ public static class UWVRBuild
     public static void BuildWindowsPrototype()
     {
         UWVRSetup.ConfigureWindowsOpenXR();
+        UWVRDiagnostics.RunOfflineChecks();
 
         string[] lOScenes = EditorBuildSettings.scenes
             .Where(pOScene => pOScene.enabled)
@@ -38,5 +39,18 @@ public static class UWVRBuild
                   "; output: " + lOOptions.locationPathName);
         if (lOReport.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
             throw new Exception("[UWVR] Windows VR prototype build failed.");
+
+        // Always recreate the launch scripts and Japanese test guide. They
+        // must not depend on files left over from a previous test build.
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -logFile \"%~dp0VR_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchDesktop.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -logFile \"%~dp0Desktop_Test.log\"\r\n");
+
+        string lSGuide = Path.Combine(lSProjectRoot, "Docs", "VR_TEST_JA.txt");
+        if (File.Exists(lSGuide))
+            File.Copy(lSGuide, Path.Combine(lSBuildDirectory, "README_VR_TEST_JA.txt"), true);
+
+        Debug.Log("[UWVR] VR and desktop launch scripts and test guide refreshed.");
     }
 }

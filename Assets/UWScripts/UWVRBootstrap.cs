@@ -17,9 +17,12 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private bool mbReported;
     private bool mbStartedSubsystems;
     private Camera mTrackedCamera;
+    private Camera mMenuCamera;
+    private Camera mCurrentVRCamera;
 
     public static bool IsRequested => msRequested;
     public static bool IsHeadsetActive => msRequested && XRSettings.isDeviceActive;
+    public static Camera CurrentVRCamera => msInstance != null ? msInstance.mCurrentVRCamera : null;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Initialize()
@@ -33,6 +36,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
         GameObject lOHost = new GameObject("UW VR Bootstrap");
         DontDestroyOnLoad(lOHost);
         msInstance = lOHost.AddComponent<UWVRBootstrap>();
+        lOHost.AddComponent<UWVRCanvasBridge>();
     }
 
     private IEnumerator Start()
@@ -65,32 +69,68 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private void Update()
     {
         if (!IsHeadsetActive)
+        {
+            mCurrentVRCamera = null;
+            if (mMenuCamera != null)
+                mMenuCamera.gameObject.SetActive(false);
             return;
+        }
 
         if (!mbReported)
         {
             Debug.Log("[UWVR] XR headset active; legacy mouse look disabled. VR UI and controller interaction remain incomplete.");
+            Debug.Log("[UWVR] Eye textures " + XRSettings.eyeTextureWidth + " x "
+                + XRSettings.eyeTextureHeight + "; stereo rendering: " + XRSettings.stereoRenderingMode);
             mbReported = true;
         }
-
-        if (mTrackedCamera != null)
-            return;
 
         // The player is not necessarily present on the main menu. Attach the
         // tracking component only to the actual player camera when it appears.
         GameObject lOPlayer = UWScene.Player;
-        if (lOPlayer == null)
+        Camera lOCamera = lOPlayer != null ? lOPlayer.GetComponentInChildren<Camera>(true) : null;
+
+        if (lOCamera != null && lOCamera.isActiveAndEnabled)
+        {
+            if (lOPlayer.GetComponent<UWVRComfortTurn>() == null)
+                lOPlayer.AddComponent<UWVRComfortTurn>();
+
+            if (mTrackedCamera != lOCamera)
+            {
+                if (lOCamera.GetComponent<UWVRHeadTracking>() == null)
+                    lOCamera.gameObject.AddComponent<UWVRHeadTracking>();
+                mTrackedCamera = lOCamera;
+                Debug.Log("[UWVR] Head pose tracking attached to player camera.");
+            }
+
+            mCurrentVRCamera = lOCamera;
+            if (mMenuCamera != null)
+                mMenuCamera.gameObject.SetActive(false);
             return;
+        }
 
-        Camera lOCamera = lOPlayer.GetComponentInChildren<Camera>(true);
-        if (lOCamera == null)
-            return;
+        // The original main menu is an overlay and may have no player camera.
+        // Supply a stereo camera so it can be displayed before the world loads.
+        if (mMenuCamera == null)
+        {
+            GameObject lOMenu = new GameObject("UW VR Menu Camera", typeof(Camera),
+                typeof(AudioListener), typeof(UWVRHeadTracking));
+            lOMenu.transform.SetParent(transform, false);
+            mMenuCamera = lOMenu.GetComponent<Camera>();
+            mMenuCamera.clearFlags = CameraClearFlags.SolidColor;
+            mMenuCamera.backgroundColor = Color.black;
+            // Include UI layers: ScreenSpaceCamera canvas objects must not be
+            // removed by the camera's culling mask.
+            mMenuCamera.cullingMask = ~0;
+            mMenuCamera.depth = -100f;
+            mMenuCamera.nearClipPlane = 0.05f;
+            mMenuCamera.farClipPlane = 20f;
+            mMenuCamera.stereoTargetEye = StereoTargetEyeMask.Both;
+            Debug.Log("[UWVR] Created temporary stereo camera for the main menu.");
+        }
 
-        if (lOCamera.GetComponent<UWVRHeadTracking>() == null)
-            lOCamera.gameObject.AddComponent<UWVRHeadTracking>();
-
-        mTrackedCamera = lOCamera;
-        Debug.Log("[UWVR] Head pose tracking attached to player camera.");
+        if (!mMenuCamera.gameObject.activeSelf)
+            mMenuCamera.gameObject.SetActive(true);
+        mCurrentVRCamera = mMenuCamera;
     }
 
     private void OnDestroy()

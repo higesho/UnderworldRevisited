@@ -833,7 +833,7 @@ public class Interaction : MonoBehaviour
             if (mbWorldPress)
             {
                 mOWorldPressAt = lOPointer;
-                fAimAt(Camera.main.ScreenPointToRay(lOPointer), out mOWorldPressFront, out msWorldPressChunk, out mOWorldPressPickable);
+                fAimAt(UWVRAim.ScreenPoint(Camera.main, lOPointer), out mOWorldPressFront, out msWorldPressChunk, out mOWorldPressPickable);
             }
 
             return;
@@ -882,12 +882,15 @@ public class Interaction : MonoBehaviour
     /// world, else at the crosshair (per user, 2026-10-04).</summary>
     private Ray fGetModernAimRay()
     {
+        if (UWVRAim.IsGazeActive)
+            return UWVRAim.Forward(Camera.main);
+
         if (fIsPointerFree() && Mouse.current != null && Camera.main != null)
         {
             Vector2 lOPointer = Mouse.current.position.ReadValue();
 
             if (!UWModernPointer.IsOverUi(lOPointer))
-                return Camera.main.ScreenPointToRay(lOPointer);
+                return UWVRAim.ScreenPoint(Camera.main, lOPointer);
         }
 
         return fGetInteractionRay();
@@ -907,7 +910,7 @@ public class Interaction : MonoBehaviour
         if (Camera.main == null)
             return null;
 
-        fAimAt(Camera.main.ScreenPointToRay(pOPointer), out UWEntityInfo lOFront, out string _, out UWEntityInfo lOPickable);
+        fAimAt(UWVRAim.ScreenPoint(Camera.main, pOPointer), out UWEntityInfo lOFront, out string _, out UWEntityInfo lOPickable);
 
         UWEntityInfo lOTarget = !fIsGeometry(lOFront) ? lOFront : lOPickable;
 
@@ -3402,7 +3405,7 @@ public class Interaction : MonoBehaviour
         // shape, a sprite's pixels -, past spell effects and pure logic volumes. A plain raycast
         // took the first box, and a blood stain beside a boulder got the rock hammer (per user,
         // 2026-10-01).
-        if (!fRaycastPastEffects(Camera.main.ScreenPointToRay(pOScreenPos), LookRayRange, out RaycastHit lHit3D))
+        if (!fRaycastPastEffects(UWVRAim.ScreenPoint(Camera.main, pOScreenPos), LookRayRange, out RaycastHit lHit3D))
             return null;
 
         return lHit3D.collider.GetComponentInParent<UWEntityInfo>();
@@ -4739,7 +4742,7 @@ public class Interaction : MonoBehaviour
     /// click-vs-drag timing (see mbIsPending/ClickMoveThreshold there).</summary>
     public UWEntityInfo TryGetPickupTargetAt(Vector2 pOScreenPos)
     {
-        return TryGetPickupTarget(Camera.main.ScreenPointToRay(pOScreenPos));
+        return TryGetPickupTarget(UWVRAim.ScreenPoint(Camera.main, pOScreenPos));
     }
 
     /// <summary>
@@ -5232,7 +5235,7 @@ public class Interaction : MonoBehaviour
         // TryGetPickupTargetAt only returns pickable things - creatures and doors are
         // not among them. Hence a separate ray here that takes whatever it hits.
         if (lOTarget == null && Camera.main != null
-            && fRaycastPastEffects(Camera.main.ScreenPointToRay(pOAt), LookRayRange, out RaycastHit lOHit))
+            && fRaycastPastEffects(UWVRAim.ScreenPoint(Camera.main, pOAt), LookRayRange, out RaycastHit lOHit))
             lOTarget = lOHit.collider.GetComponentInParent<UWEntityInfo>();
 
         bool lbDone = liMajor == UWMiscSpell.MajorClass
@@ -5321,7 +5324,7 @@ public class Interaction : MonoBehaviour
 
             // A projectile flies towards the click (UWHudRunes.fAfterModernCast: it waits only
             // when cast with the pointer free).
-            fLaunchSpellProjectile(Camera.main != null ? Camera.main.ScreenPointToRay(lOAt) : (Ray?)null);
+            fLaunchSpellProjectile(Camera.main != null ? UWVRAim.ScreenPoint(Camera.main, lOAt) : (Ray?)null);
             miPendingProjectileId = -1;
             return true;
         }
@@ -5438,10 +5441,13 @@ public class Interaction : MonoBehaviour
     /// </summary>
     private Ray fGetInteractionRay()
     {
-        if (mControlScheme == null || mControlScheme.Current == UWControlScheme.SchemeEnum.Original)
-            return Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+        if (UWVRAim.IsGazeActive)
+            return UWVRAim.Forward(Camera.main);
 
-        return Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        if (mControlScheme == null || mControlScheme.Current == UWControlScheme.SchemeEnum.Original)
+            return UWVRAim.ScreenPoint(Camera.main, Mouse.current.position.ReadValue());
+
+        return UWVRAim.Forward(Camera.main);
     }
 
     /// <summary>
