@@ -33,7 +33,7 @@ public static class UWJapaneseInterface
         { "Stepped", "段階式" },
         { "Response", "反応速度" },
         { "Picture", "映像" },
-        { "View", "視野角" },
+        { "View", "画角" },
         { "Head bob", "視点の揺れ" },
         { "Weapon", "武器" },
         { "Original fps", "原作の更新回数" },
@@ -46,15 +46,19 @@ public static class UWJapaneseInterface
         { "Palette effects...", "原作色調の効果…" },
         { "  Classic screen widescreen", "  原作画面を横長にする" },
         { "  World at the original's resolution", "  原作の解像度で3Dを描画" },
-        { "  Logos and intro at startup", "  起動時にロゴと導入映像を再生" },
-        { "  Keep running in the background", "  非アクティブ時も動作を続ける" },
-        { "  Choose attributes at creation", "  キャラクター作成時に能力値を指定する" },
+        { "  Logos and intro at startup", "  起動時にロゴと導入を再生" },
+        { "  Keep running in the background", "  他の画面でも動作を続ける" },
+        { "  Choose attributes at creation", "  作成時に能力値を指定" },
         { "  4x needs a window 1600 pixels tall", "  4倍表示には高さ1600ピクセル以上が必要" },
         { "Window", "ウィンドウ" },
         { "Borderless fullscreen", "枠なし全画面" },
         { "Mode", "表示方式" },
         { "Resolution", "解像度" },
         { "   (desktop)", "   （デスクトップ）" },
+        { "At once", "即時" },
+        { "Orig.", "原作" },
+        { "Health", "体力" },
+        { "Poisoned", "毒状態" },
         { "Back to default", "初期設定に戻す" },
         { "Drives:", "ドライブ：" },
         { "Found:  ", "検出：  " },
@@ -414,6 +418,19 @@ public static class UWJapaneseInterface
     {
         if (!IsAvailable || original == null) return original;
         if (Translations.TryGetValue(original, out string japanese)) return japanese;
+        const string desktopSuffix = "   (desktop)";
+        if (original.EndsWith(desktopSuffix, StringComparison.Ordinal))
+            return original.Substring(0, original.Length - desktopSuffix.Length) +
+                "   （デスクトップ）";
+        const string mt32NoRoms = "MT-32: no MT-32 or CM-32L ROMs in that folder";
+        if (original == mt32NoRoms)
+            return "MT-32：指定フォルダーにMT-32／CM-32LのROMがありません";
+        const string mt32EmulationMissing = "MT-32: the MT-32 emulation is missing on this system (";
+        if (original.StartsWith(mt32EmulationMissing, StringComparison.Ordinal) &&
+            original.EndsWith(")", StringComparison.Ordinal))
+            return "MT-32：エミュレーターが見つかりません（" +
+                original.Substring(mt32EmulationMissing.Length, original.Length - mt32EmulationMissing.Length - 1)
+                + "）";
         const string manualFooter = "      Arrow keys or the wheel turn the pages, Esc or a click on the page closes";
         if (original.EndsWith(manualFooter, StringComparison.Ordinal))
         {

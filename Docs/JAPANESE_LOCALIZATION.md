@@ -115,6 +115,29 @@ and a damaged inscription are also deliberately retained to protect formatting.
   translated `Build-ja-6874-menus` renders black when captured through
   PrintWindow. Therefore no visual acceptance claim is made for the new
   menus: a normally visible player window must still be checked later.
+- Later visual regression work succeeded at capturing the normally visible
+  `Build-ja-6874-controls` top menu and all seven setup categories. The images
+  exposed real problems which a headless translation audit did not catch:
+  the Game dropdown's Japanese toggle labels exceeded its 260px bounds,
+  the Motion modal stayed painted below the Graphics dropdown when switching
+  tabs, and the UI retained English strings such as `At once`, `Orig.`,
+  `(desktop)`, missing MT-32 ROM status, `Health` and `Poisoned`.
+  Original screenshots remain private in `LocalizationPrivate\ja-tab-*.png`.
+- `UWSetupMenu.fCloseTopBarPanels` now resets every top-level modal and dropdown
+  when another top-bar category is chosen. The Japanese labels were shortened
+  where they must fit the compact Game dropdown; status suffixes and missing
+  MT-32 ROM messages are translated while preserving variable content.
+  `UWJapaneseFontDiagnostics.VerifyExclusiveSetupPanels` asserts previous
+  modal state is cleared, and the setup smoke test measures the three
+  Japanese Game-menu toggle captions at the real 16px IMGUI font size:
+  their measured widths are approximately 180, 180 and 161 pixels before
+  reserving 24 pixels for the toggle icon (the available width is 244).
+  Both tests pass in Unity 6000.6.0f1.
+- The corrected build compiles and starts, and its title and character
+  creation view can be captured separately. However, the second run's menu
+  reveal has not yet been captured reliably after returning from character
+  creation, so the *post-fix visual acceptance* remains outstanding. Do not
+  claim the UI overlay is visually perfect solely from the headless tests.
 - The Unity editor verified the Japanese/English colour selection, but the updated
   game message contrast still needs an in-game screenshot check.
 - Japanese classic labels use Noto Sans JP with a **bold gothic style** in uGUI

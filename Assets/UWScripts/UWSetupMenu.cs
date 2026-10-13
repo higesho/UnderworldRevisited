@@ -782,6 +782,23 @@ public partial class UWSetupMenu : MonoBehaviour
             fDrawGraphicsMenu();
     }
 
+    /// <summary>
+    /// A top-level tab replaces every other top-level panel. In particular, switching
+    /// from Motion/Display/Sound to the Graphics or Game dropdown must not leave the
+    /// previous large dialog painted behind the dropdown.
+    /// </summary>
+    private void fCloseTopBarPanels()
+    {
+        meOpenMenu = MenuEnum.None;
+        mbFolderDialogOpen = false;
+        mbControlsDialogOpen = false;
+        mbColoursDialogOpen = false;
+        mbSoundDialogOpen = false;
+        mbMotionDialogOpen = false;
+        mbDisplayDialogOpen = false;
+        mbPaletteEffectsDialogOpen = false;
+    }
+
     private void fDrawBar(float pfWidth)
     {
         fFill(new Rect(0f, 0f, pfWidth, BarHeight), BarColour);
@@ -789,7 +806,12 @@ public partial class UWSetupMenu : MonoBehaviour
         Rect lOGame = new Rect(8f, 0f, 70f, BarHeight);
 
         if (fBarItem(lOGame, "Game", meOpenMenu == MenuEnum.Game))
-            meOpenMenu = meOpenMenu == MenuEnum.Game ? MenuEnum.None : MenuEnum.Game;
+        {
+            bool lbOpen = meOpenMenu != MenuEnum.Game;
+            fCloseTopBarPanels();
+            if (lbOpen)
+                meOpenMenu = MenuEnum.Game;
+        }
 
         // Graphics needs the game data - not on the first-run screen. Controls do not, but there
         // is nothing to play yet either.
@@ -800,65 +822,47 @@ public partial class UWSetupMenu : MonoBehaviour
         // Einstellung"): the player's motion and the picture of it, with the explanations.
         if (fBarItem(new Rect(lOGame.xMax, 0f, 90f, BarHeight), "Motion", mbMotionDialogOpen))
         {
-            mbMotionDialogOpen = !mbMotionDialogOpen;
-
-            if (mbMotionDialogOpen)
-            {
-                meOpenMenu = MenuEnum.None;
-                mbControlsDialogOpen = false;
-                mbColoursDialogOpen = false;
-                mbDisplayDialogOpen = false;
-                mbSoundDialogOpen = false;
-            }
+            bool lbOpen = !mbMotionDialogOpen;
+            fCloseTopBarPanels();
+            mbMotionDialogOpen = lbOpen;
         }
 
         if (fBarItem(new Rect(lOGame.xMax + 90f, 0f, 90f, BarHeight), "Graphics", meOpenMenu == MenuEnum.Graphics))
-            meOpenMenu = meOpenMenu == MenuEnum.Graphics ? MenuEnum.None : MenuEnum.Graphics;
+        {
+            bool lbOpen = meOpenMenu != MenuEnum.Graphics;
+            fCloseTopBarPanels();
+            if (lbOpen)
+                meOpenMenu = MenuEnum.Graphics;
+        }
 
         // Beside Graphics: window or fullscreen and the resolution (per user, 2026-09-26).
         if (fBarItem(new Rect(lOGame.xMax + 180f, 0f, 90f, BarHeight), "Display", mbDisplayDialogOpen))
         {
-            mbDisplayDialogOpen = !mbDisplayDialogOpen;
-
-            if (mbDisplayDialogOpen)
-            {
-                meOpenMenu = MenuEnum.None;
-                mbControlsDialogOpen = false;
-                mbColoursDialogOpen = false;
-                mbSoundDialogOpen = false;
-                mbMotionDialogOpen = false;
-                mbPaletteEffectsDialogOpen = false;
-            }
+            bool lbOpen = !mbDisplayDialogOpen;
+            fCloseTopBarPanels();
+            mbDisplayDialogOpen = lbOpen;
         }
 
         if (fBarItem(new Rect(lOGame.xMax + 270f, 0f, 90f, BarHeight), "Controls", mbControlsDialogOpen))
         {
-            if (mbControlsDialogOpen)
-                mbControlsDialogOpen = false;
-            else
+            bool lbOpen = !mbControlsDialogOpen;
+            fCloseTopBarPanels();
+            if (lbOpen)
                 fOpenControlsDialog();
         }
 
         if (fBarItem(new Rect(lOGame.xMax + 360f, 0f, 90f, BarHeight), "Sound", mbSoundDialogOpen))
         {
-            mbSoundDialogOpen = !mbSoundDialogOpen;
-
-            if (mbSoundDialogOpen)
-            {
-                meOpenMenu = MenuEnum.None;
-                mbControlsDialogOpen = false;
-                mbColoursDialogOpen = false;
-                mbDisplayDialogOpen = false;
-                mbMotionDialogOpen = false;
-                mbPaletteEffectsDialogOpen = false;
-            }
+            bool lbOpen = !mbSoundDialogOpen;
+            fCloseTopBarPanels();
+            mbSoundDialogOpen = lbOpen;
         }
 
         if (fBarItem(new Rect(lOGame.xMax + 450f, 0f, 90f, BarHeight), "Colours", mbColoursDialogOpen))
         {
-            if (mbColoursDialogOpen)
-                mbColoursDialogOpen = false;
-            else
+            bool lbOpen = !mbColoursDialogOpen;
+            fCloseTopBarPanels();
+            if (lbOpen)
                 fOpenColoursDialog();
         }
     }

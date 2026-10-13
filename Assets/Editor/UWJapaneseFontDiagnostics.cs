@@ -262,6 +262,12 @@ public static class UWJapaneseFontDiagnostics
 
         if (UWJapaneseInterface.Text("Strength") != "筋力" ||
             UWJapaneseInterface.Text("Colour strength") != "補正の強さ" ||
+            UWJapaneseInterface.Text("At once") != "即時" ||
+            UWJapaneseInterface.Text("Orig.") != "原作" ||
+            UWJapaneseInterface.Text("Health") != "体力" ||
+            UWJapaneseInterface.Text("Poisoned") != "毒状態" ||
+            UWJapaneseInterface.Text("2560 x 1080   (desktop)") != "2560 x 1080   （デスクトップ）" ||
+            !UWJapaneseInterface.Text("MT-32: no MT-32 or CM-32L ROMs in that folder").Contains("ROMがありません") ||
             UWJapaneseInterface.Text("Circle 4  -  12 mana") != "第4環 － 消費魔力12" ||
             UWJapaneseInterface.Text("Page 3 of 28") != "28ページ中 3ページ目" ||
             UWJapaneseInterface.Text("Pages 3 and 4 of 28") != "全28ページ、3・4ページ目" ||
@@ -276,7 +282,70 @@ public static class UWJapaneseFontDiagnostics
             if (style.CalcHeight(new GUIContent(text), 90f) <= 0)
                 throw new InvalidOperationException("JP_MENU_FAIL: label cannot be measured " + text);
 
+        // The compact top-left Game dropdown is only 260 reference pixels wide.
+        // It has an 8-pixel inset and the toggle reserves room for its indicator.
+        // Unity's GUI.skin cannot be read in a headless batchmode method (outside
+        // OnGUI), so measure the font's text and reserve an additional 24 pixels
+        // for the checkbox and its spacing instead.
+        var toggleText = new GUIStyle { font = font, fontSize = 16 };
+        string[] compactLabels = {
+            "  Logos and intro at startup",
+            "  Keep running in the background",
+            "  Choose attributes at creation"
+        };
+        foreach (string english in compactLabels)
+        {
+            string translated = UWJapaneseInterface.Text(english);
+            float needed = toggleText.CalcSize(new GUIContent(translated)).x;
+            Debug.Log("JP_GAME_TOGGLE_WIDTH " + translated + " = " + needed + "px");
+            if (needed + 24f > 244f)
+                throw new InvalidOperationException("JP_MENU_FAIL: Game menu toggle clips (" +
+                    needed + "px): " + translated);
+        }
+
         Debug.Log("JP_MENU_HELP_OK: translated navigation, spell and mantra help, all binding labels, dynamic messages and font geometry");
+    }
+
+    [MenuItem("UW/Diagnostics/Verify Exclusive Setup Panels")]
+    public static void VerifyExclusiveSetupPanels()
+    {
+        var test = new GameObject("Setup panel exclusivity test");
+        try
+        {
+            UWSetupMenu menu = test.AddComponent<UWSetupMenu>();
+            var type = typeof(UWSetupMenu);
+            const System.Reflection.BindingFlags privateInstance =
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            string[] flags = {
+                "mbFolderDialogOpen", "mbControlsDialogOpen", "mbColoursDialogOpen",
+                "mbSoundDialogOpen", "mbMotionDialogOpen", "mbDisplayDialogOpen",
+                "mbPaletteEffectsDialogOpen"
+            };
+
+            foreach (string name in flags)
+            {
+                var field = type.GetField(name, privateInstance);
+                if (field == null) throw new InvalidOperationException("JP_PANELS_FAIL: missing " + name);
+                field.SetValue(menu, true);
+            }
+            var dropDown = type.GetField("meOpenMenu", privateInstance);
+            if (dropDown == null) throw new InvalidOperationException("JP_PANELS_FAIL: no dropdown state");
+            dropDown.SetValue(menu, Enum.Parse(dropDown.FieldType, "Graphics"));
+            var clear = type.GetMethod("fCloseTopBarPanels", privateInstance);
+            if (clear == null) throw new InvalidOperationException("JP_PANELS_FAIL: no exclusive switch");
+            clear.Invoke(menu, null);
+
+            foreach (string name in flags)
+                if ((bool)type.GetField(name, privateInstance).GetValue(menu))
+                    throw new InvalidOperationException("JP_PANELS_FAIL: stacked dialog " + name);
+            if (dropDown.GetValue(menu).ToString() != "None")
+                throw new InvalidOperationException("JP_PANELS_FAIL: old dropdown remains open");
+            Debug.Log("JP_PANELS_OK: switching top-level tabs clears all prior dialogs and dropdowns");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(test);
+        }
     }
 
     [MenuItem("UW/Diagnostics/Verify Japanese Interface")]
@@ -286,6 +355,7 @@ public static class UWJapaneseFontDiagnostics
         VerifyJapaneseHudColours();
         VerifyJapaneseOptionsButtons();
         VerifyJapaneseSetupAndHelp();
+        VerifyExclusiveSetupPanels();
         AuditJapaneseControlsHelp();
         Debug.Log("JP_INTERFACE_ALL_OK: font, colours, classic options artwork, setup and help passed");
     }
