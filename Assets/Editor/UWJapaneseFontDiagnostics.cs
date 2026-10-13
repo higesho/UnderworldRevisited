@@ -159,4 +159,68 @@ public static class UWJapaneseFontDiagnostics
 
         Debug.Log("JP_HUD_COLOURS_OK: Japanese uses light ink; English and special colours preserved");
     }
+
+    [MenuItem("UW/Diagnostics/Verify Japanese Options Buttons")]
+    public static void VerifyJapaneseOptionsButtons()
+    {
+        Font japanese = UWUiFonts.JapaneseFontFor("保存　終了");
+        if (japanese == null)
+            throw new InvalidOperationException("JP_OPTIONS_FAIL: no installed Japanese gothic font");
+        if (UWJapaneseOptionsArt.LabelFor(6) != "セーブ" ||
+            UWJapaneseOptionsArt.LabelFor(7) != "セーブ" ||
+            UWJapaneseOptionsArt.LabelFor(30) != null ||
+            !UWJapaneseOptionsArt.NeedsCleaning(3) ||
+            UWJapaneseOptionsArt.NeedsCleaning(30))
+            throw new InvalidOperationException("JP_OPTIONS_FAIL: incorrect sprite/label mapping");
+
+        const int width = 31, height = 14;
+        Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
+        var pixels = new Color32[width * height];
+        for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color32(35, 0, 0, 255);
+        for (int x = 0; x < width; x++) pixels[x] = new Color32(1, 0, 0, 255); // border
+        pixels[5 * width + 13] = new Color32(98, 0, 0, 255); // normal lettering
+        pixels[5 * width + 14] = new Color32(1, 0, 0, 255); // adjacent shadow
+        pixels[6 * width + 13] = new Color32(96, 0, 0, 255); // pressed lettering
+        pixels[6 * width + 14] = new Color32(146, 0, 0, 255); // variant
+        texture.SetPixels32(pixels);
+        texture.Apply(false, false);
+
+        var canvas = new GameObject("Japanese options test", typeof(RectTransform), typeof(Canvas));
+        try
+        {
+            UWJapaneseOptionsArt.EraseLatinInk(texture);
+            var cleaned = texture.GetPixels32();
+            for (int y = 5; y <= 6; y++)
+            for (int x = 13; x <= 14; x++)
+                if (cleaned[y * width + x].r != 35)
+                    throw new InvalidOperationException("JP_OPTIONS_FAIL: Latin ink or shadow remains");
+            if (cleaned[13].r != 1)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: the original button border was damaged");
+
+            GameObject node = new GameObject("Option button", typeof(RectTransform), typeof(Image));
+            node.transform.SetParent(canvas.transform, false);
+            Image image = node.GetComponent<Image>();
+            image.sprite = Sprite.Create(texture, new Rect(0, 0, width, height),
+                new Vector2(0.5f, 0.5f), 1f);
+            UWJapaneseOptionsArt.ApplyLabel(image, 6, japanese);
+            Text label = node.GetComponentInChildren<Text>(true);
+            if (label == null || label.text != "セーブ" || label.font != japanese ||
+                label.fontStyle != FontStyle.Bold || label.raycastTarget)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: Japanese button label is missing");
+            if (label.fontSize < 6 || label.fontSize > 9)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: Japanese button label does not fit");
+            UWJapaneseOptionsArt.ApplyLabel(image, 7, japanese);
+            if (node.GetComponentsInChildren<Text>(true).Length != 1)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: selection created duplicate labels");
+            UWJapaneseOptionsArt.ApplyLabel(image, 30, japanese);
+            if (label.gameObject.activeSelf)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: Roman save-slot numbers were replaced");
+            Debug.Log("JP_OPTIONS_OK: labels, selection, original borders and ink removal verified");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(canvas);
+            UnityEngine.Object.DestroyImmediate(texture);
+        }
+    }
 }

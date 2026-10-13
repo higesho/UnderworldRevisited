@@ -17,7 +17,7 @@ players, so no environment variable is needed for a normal fork build.
 All 7,091 nonempty source strings are accounted for: 6,874 translated and 217
 intentionally preserved in English or a fictional language. This is full review
 coverage of the game's string archive, **not** a claim that every pixel of the
-game UI is Japanese. Text embedded in original image assets still needs work.
+game UI is Japanese. Some original-image lettering requires separate handling.
 
 ## Build verification (2026-10-13)
 
@@ -74,9 +74,17 @@ and a damaged inscription are also deliberately retained to protect formatting.
   English messages retain their existing palette colours.
 - The options save list labels unused slots `（未使用）` for display only. The original
   ASCII placeholder, editable save names and on-disk `DESC` data remain untouched.
-- The left-side options buttons contain English words *painted into the original
-  OPTBTNS.GR sprites*. These are not missing `STRINGS.PAK` translations and require
-  separate image/overlay localization. They remain in English in this preview.
+- The left-side options buttons have English words painted into the original
+  OPTBTNS.GR sprites, independently of STRINGS.PAK. UWJapaneseOptionsArt now
+  replaces the palette-indexed Latin lettering and adjacent shadows at runtime,
+  then places Japanese bold gothic uGUI text in the same original button bounds.
+  Save, Restore, Music, Sound, Detail, Return, Quit, options state headings and
+  confirmation buttons are covered. This also replaces the embedded text in
+  the options backgrounds while preserving original borders, pressed-state art,
+  Roman save-slot numbers, click rectangles, palette rendering and save data.
+  If a Japanese OS font is unavailable, the unmodified English art is used.
+  UWJapaneseFontDiagnostics.VerifyJapaneseOptionsButtons passed in Unity 6000.6.0f1;
+  a new actual-game options screenshot is still required.
 - The Unity editor verified the Japanese/English colour selection, but the updated
   game message contrast still needs an in-game screenshot check.
 - Japanese classic labels use Noto Sans JP with a **bold gothic style** in uGUI
@@ -98,6 +106,15 @@ To export the original text privately (do not commit the resulting file):
 
 ```powershell
 dotnet run --project Tools/UWDump -- export-tsv 'L:\Games\GOG\TocaRaceDriver3\Ultima Underworld' 'L:\Games\UlutimaUW\LocalizationPrivate\original-strings.tsv'
+```
+
+For a private reference picture of an original interface sprite, the data-only
+tool can also export a portable PPM RGB image (or a PGM palette-index image)
+without Unity. Keep these files outside the repository and never ship the
+original game's images in a release:
+
+```powershell
+dotnet run --project Tools/UWDump -- export-gr 'L:\Games\GOG\TocaRaceDriver3\Ultima Underworld' OPTBTNS 6 'L:\Games\UlutimaUW\LocalizationPrivate\save-button.ppm'
 ```
 
 To validate overrides after every translation batch:

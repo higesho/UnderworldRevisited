@@ -63,6 +63,9 @@ namespace UnderworldRevisited.Tools
                 case "validate-tsv":
                     return ValidateTsv(lsDataPath, psArgs);
 
+                case "export-gr":
+                    return fExportGraphic(lOData, psArgs);
+
                 case "find":
                     return fFindString(lOData, psArgs);
 
@@ -89,6 +92,7 @@ namespace UnderworldRevisited.Tools
             Console.WriteLine("  uwdump strings <path> <block> [from] [n]  strings of a block");
             Console.WriteLine("  uwdump export-tsv <path> <output.tsv>       export all string IDs and texts");
             Console.WriteLine("  uwdump validate-tsv <path> <ja.tsv>         validate Japanese overrides against original text");
+            Console.WriteLine("  uwdump export-gr <path> <type> <id> <out.ppm> export a private sprite reference");
             Console.WriteLine("  uwdump find    <path> <text>              search all string blocks");
             Console.WriteLine("  uwdump level   <path> <1-9> [x y radius]  tile map and what stands in it");
             Console.WriteLine("  uwdump object  <path> <id>                properties of an object type");
@@ -96,6 +100,54 @@ namespace UnderworldRevisited.Tools
             Console.WriteLine();
             Console.WriteLine("<path> is the DATA folder of an installation, or the GOG installation");
             Console.WriteLine("folder or game.gog itself - the image is then extracted into a cache once.");
+        }
+
+        /// <summary>
+        /// Export a reference graphic for editing/inspection without storing the original game's
+        /// artwork in the repository. The PPM format needs no imaging dependency or Unity Editor.
+        /// Keep the output outside Git and do not include it in a redistributable ZIP.
+        /// </summary>
+        private static int fExportGraphic(DataImport data, string[] args)
+        {
+            if (args.Length != 5 || !Enum.TryParse(args[2], true, out UWTexture.TextureTypes type) ||
+                !int.TryParse(args[3], out int index) || index < 0)
+                return 1;
+
+            UWTexture picture;
+            try { picture = data.Textures.GetTextureByType(type, index); }
+            catch (Exception error) { Console.Error.WriteLine(error.Message); return 4; }
+            if (picture == null || picture.Width <= 0 || picture.Height <= 0)
+                return 4;
+
+            bool indicesOnly = string.Equals(Path.GetExtension(args[4]), ".pgm", StringComparison.OrdinalIgnoreCase);
+            UWColor32[] pixels = picture.GetUWColor32();
+            if (pixels.Length < picture.Width * picture.Height)
+                return 4;
+            using (var stream = File.Create(args[4]))
+            {
+                byte[] header = System.Text.Encoding.ASCII.GetBytes(
+                    (indicesOnly ? "P5\n" : "P6\n") + picture.Width + " " + picture.Height + "\n255\n");
+                stream.Write(header, 0, header.Length);
+                if (indicesOnly)
+                {
+                    byte[] paletteIndices = picture.GetMainPaletteIndices();
+                    if (paletteIndices == null || paletteIndices.Length < picture.Width * picture.Height)
+                        return 4;
+                    stream.Write(paletteIndices, 0, picture.Width * picture.Height);
+                }
+                else
+                {
+                    foreach (UWColor32 colour in pixels)
+                    {
+                        stream.WriteByte(colour.R);
+                        stream.WriteByte(colour.G);
+                        stream.WriteByte(colour.B);
+                    }
+                }
+            }
+            Console.WriteLine("Exported private sprite: " + type + " " + index + " (" +
+                picture.Width + "x" + picture.Height + ")");
+            return 0;
         }
 
         private static int ExportTsv(DataImport data, string[] args)

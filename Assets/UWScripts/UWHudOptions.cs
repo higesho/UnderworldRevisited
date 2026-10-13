@@ -444,6 +444,16 @@ public sealed class UWHudOptions
 
         Texture2D lOTexture = UWIconTextureBuilder.Build(lOSource, mOUi.TextureFilterMode);
 
+        // The original OPTBTNS.GR pictures have the English words painted directly
+        // into their pixels. Replace only that lettering, using the user's installed
+        // Japanese gothic font; keep the underlying original artwork, pressed states
+        // and input hit boxes. If no Japanese OS font is available, retain the English
+        // original intact instead of producing blank buttons.
+        Font lOJapaneseFont = peType == UWTexture.TextureTypes.OPTBTNS
+            ? UWUiFonts.JapaneseFontFor("日本語") : null;
+        if (lOJapaneseFont != null && UWJapaneseOptionsArt.NeedsCleaning(piIndex))
+            UWJapaneseOptionsArt.EraseLatinInk(lOTexture);
+
         // Release the previous picture of mOUi Image - it belongs only to it.
         if (pOImage.sprite != null && mOUiSpriteShown.ContainsKey(pOImage))
         {
@@ -464,6 +474,8 @@ public sealed class UWHudOptions
         pOImage.color = Color.white;
         UWIconPalette.Apply(pOImage);
         ((RectTransform)pOImage.transform).sizeDelta = new Vector2(lOTexture.width, lOTexture.height);
+        if (peType == UWTexture.TextureTypes.OPTBTNS)
+            UWJapaneseOptionsArt.ApplyLabel(pOImage, piIndex, lOJapaneseFont);
     }
 
     /// <summary>Fills the seven slots. Minus one leaves a slot empty.</summary>
