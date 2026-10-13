@@ -119,6 +119,11 @@ of what is built was also read out of the original's executable.
 
 ## Later
 
+- **VR support (Japanese-localization fork initiative).** Feasibility study for PC-tethered
+  OpenXR headsets, with stereo rendering, headset tracking, independent player movement,
+  interaction rays and world-space UI. Japanese translation additions are temporarily paused
+  while VR feasibility is investigated. See `Docs/VR_FEASIBILITY_JA.md`.
+
 - Move more rules from the Unity side into the engine-free layer, so the game logic can be
   used without Unity.
 - Ultima Underworld II.
