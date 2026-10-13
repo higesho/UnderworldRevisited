@@ -125,4 +125,21 @@ public static class UWJapaneseFontDiagnostics
             UnityEngine.Object.DestroyImmediate(canvas);
         }
     }
+
+    [MenuItem("UW/Diagnostics/Verify Japanese HUD Colours")]
+    public static void VerifyJapaneseHudColours()
+    {
+        Color32 normal = new Color32(60, 40, 32, 255);
+        Color32 red = new Color32(220, 40, 35, 255);
+        Color32 japanese = UWHudMessageLog.DisplayColourForLine("何も見えない。", normal, normal);
+
+        if (japanese.r < 230 || japanese.g < 200 || japanese.b < 175)
+            throw new InvalidOperationException("JP_HUD_FAIL: Japanese log text is too dark");
+        if (!UWHudMessageLog.DisplayColourForLine("Nothing is visible.", normal, normal).Equals(normal))
+            throw new InvalidOperationException("JP_HUD_FAIL: Original English ink changed");
+        if (!UWHudMessageLog.DisplayColourForLine("失敗した。", red, normal).Equals(red))
+            throw new InvalidOperationException("JP_HUD_FAIL: A warning's special colour changed");
+
+        Debug.Log("JP_HUD_COLOURS_OK: Japanese uses light ink; English and special colours preserved");
+    }
 }

@@ -32,6 +32,10 @@ public sealed class UWHudMessageLog
 
     /// <summary>Font colour of the log, as previously taken from the original.</summary>
     private static readonly Color mOLogTextColour = new Color(61f / 255f, 28f / 255f, 8f / 255f, 1f);
+    // The original dark-brown ink has too little contrast on the log's brown background
+    // once Japanese is drawn through uGUI instead of through the original bitmap font.
+    // Keep original colours for English and for game messages with explicit colour codes.
+    private static readonly Color32 mOJapaneseLogTextColour = new Color32(255, 244, 222, 255);
     private Text mMessageLogText;
 
     /// <summary>The log in the original font. The text next to it (mMessageLogText)
@@ -319,9 +323,41 @@ public sealed class UWHudMessageLog
             lOLines[lOLines.Count - 1] += "_";
         }
 
+        // A CJK line needs brighter ink on the brown panel. Only replace the normal
+        // colour; red warnings and green success/prompt messages retain their meaning.
+        Color32[] lyPalette = fGetLogColourTable();
+        Color32 lONormal = lyPalette[0];
+        for (int liLine = 0; liLine < lOLines.Count && liLine < lOLineColours.Count; liLine++)
+        {
+            string lsLine = lOLines[liLine];
+            Color32 lOColour = lOLineColours[liLine];
+
+            // RenderLines records the inherited colour before parsing the line.
+            // A leading colour code must affect that line, not only the next one.
+            if (lsLine.Length >= 2 && UWFont.IsColourCode(lsLine, 0))
+            {
+                int liCode = lsLine[1] - '0';
+                if (liCode >= 0 && liCode < lyPalette.Length)
+                    lOColour = lyPalette[liCode];
+            }
+
+            lOLineColours[liLine] = DisplayColourForLine(lsLine, lOColour, lONormal);
+        }
+
         // The modern font gets, per line, the colour that was in effect at the line start; the
         // codes themselves are removed by UWTextLabel.
         UWTextLabel.Get(mMessageLogImage).Set(lOFont, mMessageLogTexture, lOLines, lOLineColours, false);
+    }
+
+    /// <summary>Keep the original palette colours unless the ordinary message ink
+    /// would make translated Japanese text unreadable against the brown log.</summary>
+    public static Color32 DisplayColourForLine(string text, Color32 original, Color32 normal)
+    {
+        if (original.r == normal.r && original.g == normal.g && original.b == normal.b &&
+            UWUiFonts.JapaneseFontFor(text) != null)
+            return mOJapaneseLogTextColour;
+
+        return original;
     }
 
     /// <summary>

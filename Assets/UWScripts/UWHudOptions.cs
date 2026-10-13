@@ -672,11 +672,19 @@ public sealed class UWHudOptions
         mOUi.mOInteraction.AddMessage(SaveListHeading);
 
         for (int liAt = 1; liAt <= UWSavegameSlots.SlotCount; liAt++)
-            mOUi.mOInteraction.AddMessage(lsNumerals[liAt - 1] + "- "
-                + UWSavegameSlots.GetName(lsRoot, liAt));
+        {
+            string lsName = UWSavegameSlots.GetName(lsRoot, liAt);
+
+            // Display-only replacement. The original ASCII placeholder remains untouched
+            // for save-name editing and for the on-disk DESC format.
+            if (lsName == UWSavegameSlots.UnusedSlotName)
+                lsName = "（未使用）";
+
+            mOUi.mOInteraction.AddMessage(lsNumerals[liAt - 1] + "- " + lsName);
+        }
     }
 
-    private const string SaveListHeading = "\\6     Save Game Descriptions";
+    private const string SaveListHeading = "\\6     セーブデータ一覧";
 
     /// <summary>Block 1: "\\6     Please enter a save file description:" - green, and the
     /// typed line below stays green (per user, 2026-09-12).</summary>

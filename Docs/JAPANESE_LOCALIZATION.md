@@ -37,6 +37,21 @@ Translation coverage is still only a small sample, not a full localization.
 - Full UI layout, longer text wrapping, remaining classic HUD paths and gameplay
   are not yet fully tested. The preview is not a complete translation.
 
+## Gameplay HUD follow-up
+
+- Character creation is already showing Japanese correctly; do not change that screen
+  when working on later HUD text adjustments.
+- The classic in-game message log uses the original dark-brown palette colour. For
+  ordinary Japanese lines only, `UWHudMessageLog` uses light cream text for contrast;
+  English and explicitly coloured game messages keep their existing colours.
+- The options save list labels unused slots `（未使用）` for display only. The original
+  ASCII placeholder, editable save names and on-disk `DESC` data remain untouched.
+- The left-side options buttons contain English words *painted into the original
+  OPTBTNS.GR sprites*. These are not missing `STRINGS.PAK` translations and require
+  separate image/overlay localization. They remain in English in this preview.
+- The Unity editor verified the Japanese/English colour selection, but the updated
+  game message contrast still needs an in-game screenshot check.
+
 When Unity Package Manager resolution is very slow on a non-system drive,
 the same project sources can be copied to a temporary directory on a faster local
 drive for an Editor build. Do not copy the generated `Library`, `Temp`, or `Logs`
