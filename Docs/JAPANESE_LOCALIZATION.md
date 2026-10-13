@@ -4,10 +4,10 @@ Branch: `japanese-localization` (based on the upstream `main`).
 
 ## Current implementation
 
-The translated in-game messages are in `Localization/ja.tsv` (5,062 entries:
+The translated in-game messages are in `Localization/ja.tsv` (5,786 entries:
 including 404 object names, 213 spell and enchantment strings, 251 scenery
-descriptions, 69 book/note entries, 115 inscriptions/signs and 3,644 dialogue
-entries from 65 conversation blocks).
+descriptions, 69 book/note entries, 115 inscriptions/signs and 4,368 dialogue
+entries from 80 conversation blocks).
 Set `UW_JA_TRANSLATIONS` to that file's full path to enable them,
 or place `Localization/ja.tsv` next to the executable for automatic discovery.
 When running from the Unity Editor the project root's `Localization/ja.tsv` is
@@ -22,7 +22,7 @@ Translation coverage is incomplete; remaining strings fall back to English.
   `Localization/ja.tsv` beside `UR.exe`.
 - The translations were loaded successfully from the GOG installation
   by the engine-free `Tools/UWDump` tool, with and without the environment variable.
-- `uwdump validate-tsv` checked 5,062 rows against the original strings: zero
+- `uwdump validate-tsv` checked 5,786 rows against the original strings: zero
   invalid keys, duplicate keys, newline differences, control-code or dialogue
   placeholder mismatches.
 - The Editor smoke test (`UWJapaneseFontDiagnostics.VerifyJapaneseFont`) selected
@@ -31,7 +31,7 @@ Translation coverage is incomplete; remaining strings fall back to English.
 - `UWJapaneseFontDiagnostics.VerifyJapaneseClassicLabels` verified that the
   character-creation UI displays CJK with Noto Sans JP while untranslated
   Latin text still uses the original bitmap font in classic mode.
-- The original `STRINGS.PAK` remains the source for 6,044 untranslated entries,
+- The original `STRINGS.PAK` remains the source for 5,320 untranslated entries,
   checked byte-for-byte against the decoded originals by `validate-tsv`.
 - The Windows player was launched with the GOG data and its character-creation
   screen visibly showed translated labels and options after the font fix.
@@ -42,13 +42,14 @@ Translation coverage is incomplete; remaining strings fall back to English.
 
 The incremental translation counts (with empty source rows tracked separately) are
 recorded in `Docs/TRANSLATION_PROGRESS.md`. The original source has 7,091
-nonempty entries; 5,062 are translated, 120 intentionally retain the original
-fictional language / parsing terms, and 1,909 still require translation.
-All entries in 65 dialogue blocks (3585-3612, 3648-3651, 3672-3674,
-3696-3699, 3720-3728, 3730-3733, 3745-3746 and 3768-3778)
+nonempty entries; 5,786 are translated, 121 intentionally retain the original
+fictional language / parsing terms, and 1,184 still require translation.
+All entries in 80 dialogue blocks (3585-3612, 3648-3651, 3672-3674,
+3696-3699, 3720-3728, 3730-3733, 3745-3746, 3768-3778 and 3792-3806)
 are now reviewed, with zero outstanding entries. Entries in 3728 use
 original command/keyword text; the mine code in 3745 and the
-Folanae password entry in 3771 are likewise preserved.
+Folanae password entry in 3771, and the vault password in 3796 are
+likewise preserved.
 
 The intentional exceptions are enumerated in `Localization/ja-preserve.tsv`,
 and the coverage script checks them against original nonempty block/index IDs.
