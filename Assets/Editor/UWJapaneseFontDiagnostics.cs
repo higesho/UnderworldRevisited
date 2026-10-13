@@ -212,10 +212,29 @@ public static class UWJapaneseFontDiagnostics
             UWJapaneseOptionsArt.ApplyLabel(image, 7, japanese);
             if (node.GetComponentsInChildren<Text>(true).Length != 1)
                 throw new InvalidOperationException("JP_OPTIONS_FAIL: selection created duplicate labels");
+            UWJapaneseOptionsArt.SetVisible(image, false);
+            if (image.enabled || label.gameObject.activeSelf)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: hidden option leaks its Japanese text");
+            UWJapaneseOptionsArt.SetVisible(image, true);
+            if (!image.enabled || !label.gameObject.activeSelf)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: option label did not return with image");
             UWJapaneseOptionsArt.ApplyLabel(image, 30, japanese);
-            if (label.gameObject.activeSelf)
+            UWJapaneseOptionsArt.SetVisible(image, false);
+            UWJapaneseOptionsArt.SetVisible(image, true);
+            if (label.gameObject.activeSelf || !string.IsNullOrEmpty(label.text))
                 throw new InvalidOperationException("JP_OPTIONS_FAIL: Roman save-slot numbers were replaced");
-            Debug.Log("JP_OPTIONS_OK: labels, selection, original borders and ink removal verified");
+            UWJapaneseOptionsArt.ApplyLabel(image, 3, japanese);
+            UWJapaneseOptionsArt.SetVisible(image, false);
+            if (label.gameObject.activeSelf)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: quit caption remained after close");
+            UWJapaneseOptionsArt.SetVisible(image, true);
+            if (!label.gameObject.activeSelf)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: quit caption did not show when opened");
+            UWJapaneseOptionsArt.ApplyLabel(image, 1, japanese);
+            UWJapaneseOptionsArt.SetVisible(image, true);
+            if (label.gameObject.activeSelf)
+                throw new InvalidOperationException("JP_OPTIONS_FAIL: obsolete quit caption leaked onto top panel");
+            Debug.Log("JP_OPTIONS_OK: labels, selection, hidden text, original borders and ink removal verified");
         }
         finally
         {

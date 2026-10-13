@@ -393,7 +393,7 @@ public sealed class UWHudOptions
         mOptionsPanelImage = UWGameUI.fCreateImage("OptionsPanel", mOUi.mGameFrame,
             optionsPanelLeft, -optionsPanelTop, 1f, 1f, Color.white);
 
-        mOptionsPanelImage.enabled = false;
+        UWJapaneseOptionsArt.SetVisible(mOptionsPanelImage, false);
 
         mOptionsEntryImages = new Image[optionsEntryCount];
         miOptionsEntryArt = new int[optionsEntryCount];
@@ -403,7 +403,7 @@ public sealed class UWHudOptions
             mOptionsEntryImages[liAt] = UWGameUI.fCreateImage("OptionsEntry" + liAt, mOUi.mGameFrame,
                 optionsEntryLeft, -(optionsEntryTop + (liAt * optionsEntryPitch)), 1f, 1f, Color.white);
 
-            mOptionsEntryImages[liAt].enabled = false;
+            UWJapaneseOptionsArt.SetVisible(mOptionsEntryImages[liAt], false);
             miOptionsEntryArt[liAt] = optNone;
         }
     }
@@ -486,13 +486,13 @@ public sealed class UWHudOptions
 
         if (piBackground == optNone)
         {
-            mOptionsPanelImage.enabled = false;
+            UWJapaneseOptionsArt.SetVisible(mOptionsPanelImage, false);
             mOUi.Commands.SetVisible(true);
         }
         else
         {
             fSetUiSprite(mOptionsPanelImage, UWTexture.TextureTypes.OPTBTNS, piBackground);
-            mOptionsPanelImage.enabled = true;
+            UWJapaneseOptionsArt.SetVisible(mOptionsPanelImage, true);
 
             // The panel covers the whole icon column in the original (35 by 108 at 4/10); ours
             // drew the command icons over it, because they are built after the panel (per
@@ -508,13 +508,13 @@ public sealed class UWHudOptions
 
             if (piEntries[liAt] == optNone)
             {
-                mOptionsEntryImages[liAt].enabled = false;
+                UWJapaneseOptionsArt.SetVisible(mOptionsEntryImages[liAt], false);
 
                 continue;
             }
 
             fSetUiSprite(mOptionsEntryImages[liAt], UWTexture.TextureTypes.OPTBTNS, piEntries[liAt]);
-            mOptionsEntryImages[liAt].enabled = true;
+            UWJapaneseOptionsArt.SetVisible(mOptionsEntryImages[liAt], true);
         }
     }
 

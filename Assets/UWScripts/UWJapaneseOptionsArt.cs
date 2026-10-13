@@ -32,6 +32,29 @@ public static class UWJapaneseOptionsArt
 
     private const string TextObjectName = "Japanese Options Label";
 
+    /// <summary>
+    /// A disabled Unity UI Image does not disable its child Text components.
+    /// Always hide or show the localized lettering alongside the original image;
+    /// otherwise options captions leak over the six classic action icons even
+    /// when the options panel is closed.
+    /// </summary>
+    public static void SetVisible(Image picture, bool visible)
+    {
+        if (picture == null) return;
+
+        picture.enabled = visible;
+        Transform caption = picture.transform.Find(TextObjectName);
+        if (caption != null)
+            caption.gameObject.SetActive(visible && LabelForPicture(picture));
+    }
+
+    private static bool LabelForPicture(Image picture)
+    {
+        Transform caption = picture.transform.Find(TextObjectName);
+        Text label = caption != null ? caption.GetComponent<Text>() : null;
+        return label != null && !string.IsNullOrEmpty(label.text);
+    }
+
     public static bool NeedsCleaning(int pictureIndex)
     {
         // 1-5 are the complete pre-painted options panels. Their visible entries are
@@ -134,7 +157,12 @@ public static class UWJapaneseOptionsArt
 
         if (font == null || text == null)
         {
-            if (existing != null) existing.gameObject.SetActive(false);
+            if (existing != null)
+            {
+                Text previous = existing.GetComponent<Text>();
+                if (previous != null) previous.text = string.Empty;
+                existing.gameObject.SetActive(false);
+            }
             return;
         }
 
@@ -174,6 +202,7 @@ public static class UWJapaneseOptionsArt
 
         label.font = font;
         label.text = text;
+        label.gameObject.SetActive(picture.enabled);
         int longest = 0;
         foreach (string line in text.Split('\n')) longest = Mathf.Max(longest, line.Length);
         // These are 31-pixel-wide original buttons. A bold 6-9px font can fit

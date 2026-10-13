@@ -197,6 +197,34 @@ $env:UW_JA_TRANSLATIONS = 'C:\Translations\underworld-ja.tsv'
 
 ## Outstanding work
 
+### 2026-10-13: real-game Japanese options label visibility regression
+
+The previous `Build-ja-6874-visualfix` player starts successfully and supports
+character creation and Japanese gameplay messages, but a real screenshot revealed
+that the Japanese Save label (and other options captions) could remain visible
+over the original left-side command icons **while the options menu was closed**.
+The cause was `UnityEngine.UI.Image.enabled = false` disabling the painted
+image but not the child `UnityEngine.UI.Text` object placed there for Japanese.
+`UWJapaneseOptionsArt.SetVisible` now synchronizes parent image visibility
+and child caption visibility. `ApplyLabel` clears obsolete text when a
+sprite is switched to a nontranslated index and never resurrects a label on
+a hidden image. The options menu now calls `SetVisible` on its background
+and each menu entry. Editor regression checks assert hide/show, unchanged
+Roman save slots, no stale Quit text after switching to the main options
+screen, and the existing border/palette preservation tests. All interface
+tests passed headlessly in Unity 6000.6.0f1 (exit code 0).
+
+The new Windows executable was built and launched separately in
+`Build-ja-6874-options-fixed`. A fresh test character was created and the
+real gameplay image `LocalizationPrivate/options-fixed-after-name.png`
+**confirmed no Japanese captions over the closed left-side command icons**.
+Screenshots are private test artifacts, not bundled. This is a visual
+acceptance test of the specific label-leak regression, not yet a complete
+visual review of every open options submenu or of all translated dialogue.
+Another gameplay test also showed residual English `out of` in some
+health/mana status strings; that formatting remains to be localized.
+
+
 The modern HUD tries an installed OS Japanese font (Noto Sans CJK JP,
 Noto Sans JP, Yu Gothic, Meiryo or MS Gothic) when the text contains Japanese.
 The Noto Sans JP and uGUI selection paths passed the Unity Editor smoke test.
