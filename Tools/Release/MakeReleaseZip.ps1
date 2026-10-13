@@ -94,6 +94,16 @@ foreach ($File in @("LICENSE", "THIRD_PARTY_NOTICES.md", "README.md")) {
 $JapaneseReadme = Join-Path $ProjectRoot 'README_JA.md'
 if (Test-Path $JapaneseReadme) {
     Copy-Item $JapaneseReadme -Destination (Join-Path $Stage 'README_JA.md')
+
+    # Provide an easily opened Japanese plain-text README alongside the Markdown
+    # source.  UTF-8 BOM keeps Japanese legible in older Windows text viewers.
+    $PlainJapaneseReadme = Get-Content $JapaneseReadme -Raw -Encoding UTF8
+    $PlainJapaneseReadme = $PlainJapaneseReadme -replace '(?m)^#{1,6}\s+', ''
+    $PlainJapaneseReadme = $PlainJapaneseReadme -replace '\*\*', ''
+    $PlainJapaneseReadme = $PlainJapaneseReadme -replace '\[([^\]]+)\]\(([^)]+)\)', '$1 ($2)'
+    $PlainJapaneseReadme = $PlainJapaneseReadme -replace '`', ''
+    [System.IO.File]::WriteAllText((Join-Path $Stage 'README_JA.txt'),
+        $PlainJapaneseReadme, (New-Object System.Text.UTF8Encoding($true)))
 }
 
 Copy-Item (Join-Path $PSScriptRoot "README.txt") -Destination $Stage
