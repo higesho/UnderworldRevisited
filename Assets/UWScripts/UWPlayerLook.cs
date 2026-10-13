@@ -84,6 +84,11 @@ public class UWPlayerLook : MonoBehaviour
 
     private void Update()
     {
+        // XR owns the camera rotation while a headset is rendering. Keep mouse/gamepad
+        // look from overwriting the tracked pose on the same frame.
+        if (UWVRBootstrap.IsHeadsetActive)
+            return;
+
         UWControlScheme.SchemeEnum leCurrent = mScheme.Current;
 
         // When the scheme changes, the view points straight ahead again - the free pitch of the
