@@ -2,6 +2,20 @@
 
 状態: 調査段階。VR機能は未実装、HMD実機試験も未実施。
 
+## 2026-10-13 初期実装の追加
+
+### Unity読込時間に関する追跡結果
+
+- 当初の「Initial Asset Database Refreshで停止」という判断は、待ち時間を十分に取っておらず早計だった。
+- 22:34に開始した再検証では `Logs/upm.log` にOpenXR 1.17.1（27.3 MB）の取得が記録され、約65秒かかっている。Unity本体のログが更新されなくても、Package ManagerのCPU使用・キャッシュ展開が継続した。
+- `com.unity.xr.openxr` の展開後も、既存のUniversal Render Pipelineなど数千ファイルからなるパッケージが順次展開されていた。**パッケージ処理中のCPU使用・ファイル更新を見ずにUnityを停止扱いしない。**
+- 上記は「進行を確認した」という事実であって、Unity全体のコンパイル成功を意味しない。
+
+- 起動引数 `-vr` を指定した場合だけ、XR Plug-in ManagementからOpenXRのロード・起動を試みる。通常起動はOpenXRを初期化しない。
+- ユーザーのプレイヤーカメラに `UWVRHeadTracking` を取り付け、HMDの頭部回転・移動差分を反映する仕組みを追加。初回の頭部位置を基準として既存の視点高さを保つ暫定方式。
+- `Underworld > VR > Configure Windows OpenXR` （バッチ実行: `-executeMethod UWVRSetup.ConfigureWindowsOpenXR`）でWindowsのOpenXR設定アセットを生成・登録する機能を追加。設定はXR自動起動をOFFにし、デスクトップ通常起動への影響を抑える。
+- 以上は**コード追加段階**。Unityでのコンパイル、実際のOpenXR起動、立体視とHMD追跡の正しさは検証待ち。
+
 ## 最初の実装（2026-10-13）
 
 ## OpenXRパッケージ導入段階
