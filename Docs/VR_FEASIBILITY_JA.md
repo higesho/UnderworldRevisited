@@ -4,6 +4,12 @@
 
 ## 最初の実装（2026-10-13）
 
+## OpenXRパッケージ導入段階
+
+- Unity 6000.6用XR Plug-in Management 4.7.0とOpenXR Plugin 1.17.1を`Packages/manifest.json`に追加。
+- パッケージを追加しただけではPC向けOpenXRプロバイダーは有効にならない。UnityのProject Settings > XR Plug-in ManagementでStandalone側のOpenXRを有効化し、対象HMDのInteraction ProfileとProject Validationを確認する。
+- この段階では未検証の設定アセットを手書きで追加しない。XR初期化・ステレオ描画と通常起動の両立確認が次の工程。
+
 - `-vr` オプションだけで動作する `UWVRBootstrap` を追加。XRを設定していない環境では既存の通常画面を変更しない。
 - HMDがXRランタイムによって有効と判断された場合、従来の `UWPlayerLook` が追跡回転を上書きしないよう抑制する。
 - **OpenXRパッケージの導入、XR Plug-in Managementの有効化、左右眼描画、HMD実機検証はまだ未完了。** ここではVRの開始条件と入力の競合防止だけを準備した。
