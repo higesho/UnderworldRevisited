@@ -138,6 +138,14 @@ of what is built was also read out of the original's executable.
   The equipment-and-depth Windows VR prototype passes offline validation and
   a fresh Windows x64 development build (2026-10-14, zero errors); the headset
   view and controller gestures remain untested.
+  Experimental opt-in world-anchored inventory (-vr-spatial-inventory): the
+  existing bag/character canvases render to a transparent offscreen texture
+  on a floating panel; a right-hand Touch 6DoF ray maps back to the legacy
+  input coordinates. Geometry/coordinate checks pass without an HMD, but the
+  GPU texture projection and headset/controller UX await real-device tests.
+  Offline Ray/space tests PASS; the new Windows x64 spatial-inventory prototype
+  builds with zero errors (2026-10-14), and its ZIP is validated. The normal
+  VR mode remains the fallback until real-headset testing proves the new path.
   Next: real-HMD validation, UI/controller interaction, stereo correctness and comfort.
   Japanese translation additions remain
   temporarily paused. See `Docs/VR_FEASIBILITY_JA.md`.

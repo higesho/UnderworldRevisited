@@ -104,6 +104,62 @@ public static class UWVRDiagnostics
             && Mathf.Abs(UWVRCanvasBridge.DistanceForCanvasName(
                 "Modern HUD", 2.25f, 1.8f) - 2.25f) < 0.001f,
             "VR inventory planes must match while the HUD stays at its own distance");
+        fRequire(!UWVRSpatialInventory.IsEnabled,
+            "Headset-free editor test must not create spatial inventory renderers");
+        fRequire(UWVRSpatialInventory.IsInventoryCanvas("Modern bags")
+            && UWVRSpatialInventory.IsInventoryCanvas("Modern character panel")
+            && !UWVRSpatialInventory.IsInventoryCanvas("Modern HUD"),
+            "Spatial inventory must redirect only bags and character panels");
+
+        // A physical inventory quad is anchored in world space. Test the
+        // controller-ray to source-screen mapping without any XR runtime or
+        // renderer. Rotated/nonuniformly scaled panels must map precisely.
+        Matrix4x4 lOPanelMatrix = Matrix4x4.TRS(new Vector3(2f, 1.5f, 3f),
+            Quaternion.Euler(0f, 30f, 0f), new Vector3(1.65f, 0.93f, 1f));
+        Ray lOCentreRay = new Ray(lOPanelMatrix.MultiplyPoint3x4(new Vector3(0f, 0f, -1f)),
+            lOPanelMatrix.MultiplyVector(Vector3.forward).normalized);
+        fRequire(UWVRSpatialInventory.TryIntersectPanel(lOCentreRay,
+                lOPanelMatrix.inverse, out Vector2 lOUV)
+            && (lOUV - new Vector2(0.5f, 0.5f)).sqrMagnitude < 0.00001f,
+            "Spatial inventory ray does not hit the physical panel centre");
+
+        Ray lOOffsetRay = new Ray(lOPanelMatrix.MultiplyPoint3x4(new Vector3(0.25f, -0.3f, -1f)),
+            lOPanelMatrix.MultiplyVector(Vector3.forward).normalized);
+        fRequire(UWVRSpatialInventory.TryIntersectPanel(lOOffsetRay,
+                lOPanelMatrix.inverse, out lOUV)
+            && (lOUV - new Vector2(0.75f, 0.2f)).sqrMagnitude < 0.00001f,
+            "Spatial inventory controller ray does not map to the source screen UV");
+
+        Ray lOMissRay = new Ray(lOPanelMatrix.MultiplyPoint3x4(new Vector3(0.75f, 0f, -1f)),
+            lOPanelMatrix.MultiplyVector(Vector3.forward).normalized);
+        fRequire(!UWVRSpatialInventory.TryIntersectPanel(lOMissRay,
+                lOPanelMatrix.inverse, out _),
+            "A controller pointing outside the physical panel must not click the UI");
+
+        Ray lOBackRay = new Ray(lOPanelMatrix.MultiplyPoint3x4(new Vector3(0f, 0f, 1f)),
+            lOPanelMatrix.MultiplyVector(Vector3.back).normalized);
+        fRequire(!UWVRSpatialInventory.TryIntersectPanel(lOBackRay,
+                lOPanelMatrix.inverse, out _),
+            "Touch ray must not click the physical panel from its back face");
+
+        GameObject lOTestTracking = new GameObject("VR offline Touch ray tracking space");
+        try
+        {
+            lOTestTracking.transform.position = new Vector3(3f, 4f, 5f);
+            lOTestTracking.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            lOTestTracking.transform.localScale = Vector3.one * 16f;
+            Ray lOTrackedRay = UWVRHeadTracking.RayFromTrackedPose(lOTestTracking.transform,
+                new Vector3(0.25f, 0.5f, 1f), Quaternion.identity,
+                new Vector3(0.25f, 0.25f, 0.5f));
+            Vector3 lOExpected = lOTestTracking.transform.TransformPoint(new Vector3(0f, 0.25f, 0.5f));
+            fRequire((lOTrackedRay.origin - lOExpected).sqrMagnitude < 0.00001f
+                && (lOTrackedRay.direction - Vector3.right).sqrMagnitude < 0.00001f,
+                "XR Touch controller ray ignores tracking origin, yaw or world scale");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(lOTestTracking);
+        }
 
         // Confirm all eleven equipment points land in exactly the same
         // first-hit inventory zone as an actual click, including overlapped
@@ -286,7 +342,7 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, headset movement, stereo UI depth, all 11 equipment hit areas, bag slot navigation, cursor transparency.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, headset movement, stereo UI, 11 equipment zones, world-anchored inventory ray mapping, XR hand calibration, cursor transparency.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 

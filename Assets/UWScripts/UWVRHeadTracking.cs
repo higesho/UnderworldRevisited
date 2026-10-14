@@ -22,6 +22,38 @@ public sealed class UWVRHeadTracking : MonoBehaviour
     private bool mbOriginalPoseCaptured;
     private bool mbCalibrated;
 
+    /// <summary>
+    /// XR controller poses share the tracking origin and room-scale calibration
+    /// used by the headset. A controller ray must pass through this space:
+    /// using raw XR positions as Unity world coordinates breaks the ray when
+    /// world units per metre are not one or the player moves in the dungeon.
+    /// </summary>
+    public bool TryGetControllerRay(XRNode peNode, out Ray pORay)
+    {
+        pORay = default;
+        if (!UWVRBootstrap.IsHeadsetActive || mTrackingSpace == null || !mbCalibrated)
+            return false;
+
+        UnityEngine.XR.InputDevice lOController = InputDevices.GetDeviceAtXRNode(peNode);
+        if (!lOController.isValid
+            || !lOController.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out Vector3 lOPosition)
+            || !lOController.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out Quaternion lORotation))
+            return false;
+
+        pORay = RayFromTrackedPose(mTrackingSpace, lOPosition,
+            lORotation, mInitialTrackedPosition);
+        return true;
+    }
+
+    /// <summary>Pure conversion reused in headset-free tests.</summary>
+    public static Ray RayFromTrackedPose(Transform pOTrackingSpace,
+        Vector3 pOControllerPosition, Quaternion pOControllerRotation,
+        Vector3 pOHeadOrigin)
+    {
+        return new Ray(pOTrackingSpace.TransformPoint(pOControllerPosition - pOHeadOrigin),
+            (pOTrackingSpace.rotation * pOControllerRotation) * Vector3.forward);
+    }
+
     private void OnEnable()
     {
         CaptureOriginalPose();

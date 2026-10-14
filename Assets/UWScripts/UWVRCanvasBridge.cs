@@ -93,7 +93,8 @@ public sealed class UWVRCanvasBridge : MonoBehaviour
                 liNew++;
             }
 
-            ConfigureCanvas(lOCanvas, lOCamera);
+            if (!UWVRSpatialInventory.TryConfigureSourceCanvas(lOCanvas))
+                ConfigureCanvas(lOCanvas, lOCamera);
         }
 
         if (liNew > 0)

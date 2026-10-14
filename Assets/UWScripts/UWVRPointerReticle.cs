@@ -35,6 +35,14 @@ public sealed class UWVRPointerReticle : MonoBehaviour
 
         mCanvas.enabled = true;
 
+        // A hand ray hits the world-anchored physical inventory surface. Do
+        // not display a second head-locked pointer at a different depth.
+        if (UWVRSpatialInventory.HasTouchHit)
+        {
+            mCanvas.enabled = false;
+            return;
+        }
+
         // Put the software cursor just in front of the currently interactive
         // UI plane. Otherwise a cursor at the default HUD distance appears
         // behind the nearer stereo inventory when a bag is opened.

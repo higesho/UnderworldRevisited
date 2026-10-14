@@ -268,7 +268,7 @@ public class UWGamepadPointer : MonoBehaviour
         if (IsDriving)
         {
             Vector2 lOStick = lOPlayer.LookStick.ReadValue<Vector2>();
-            if (!fMoveVRInventorySlot(lOStick, lOPlayer.LookStick))
+            if (!fMoveVRSpatialTouch() && !fMoveVRInventorySlot(lOStick, lOPlayer.LookStick))
                 fMove(lOStick);
             fWheel(lOPlayer);
         }
@@ -310,6 +310,28 @@ public class UWGamepadPointer : MonoBehaviour
     private static float msfRightSentAt = -10f;
 
     private static bool msbRightHeld;
+
+    /// <summary>
+    /// Map the Touch's tracked laser hit back into the original mouse pixel
+    /// coordinates. The same click/drag/tooltip rules handle inventory items;
+    /// if there is no tracked pose or the hand misses the panel, the existing
+    /// right-thumbstick selector remains available.
+    /// </summary>
+    private bool fMoveVRSpatialTouch()
+    {
+        if (Mouse.current == null || !UWVRSpatialInventory.TryGetTouchScreenPoint(out Vector2 lOPoint))
+            return false;
+
+        mOAt = lOPoint;
+        Mouse.current.WarpCursorPosition(lOPoint);
+        mOLastWarp = lOPoint;
+        msOPosition = lOPoint;
+        msbPlaced = true;
+        msbPlacePending = false;
+        UWGamepad.NoteSyntheticMouse();
+        mbVRSlotStickHeld = false;
+        return true;
+    }
 
     /// <summary>
     /// Snap between bag and paperdoll slots with a gamepad or Touch in VR.

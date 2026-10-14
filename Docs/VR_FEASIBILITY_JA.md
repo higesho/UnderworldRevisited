@@ -4,6 +4,20 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 空間固定インベントリと右手TouchのRay操作（10月14日）
+
+- `-vr-spatial-inventory` を明示したVR起動に限り、`UWVRSpatialInventory` が既存のバッグ・キャラクター画面のCanvasを専用カメラと透明RenderTextureに向け、プレイヤーの前方に**世界座標で固定された平面パネル**として表示する試験経路を追加。通常VRモードとデスクトップモードの表示は変更しない。
+- パネルは幅約1.65メートル、距離は既存の `-vr-inventory-distance=N`（既定1.8メートル）。現時点ではバッグと装備画面をまとめた1枚の平面で、アイテム個別の3Dモデルや実際に手で持つ仕組みではない。F8キーで視界正面に再配置でき、開き直し時にも再配置する。
+- `UWVRHeadTracking.TryGetControllerRay` は右手Touchの6DoF位置・回転を、頭の初期位置とVR追跡空間の倍率を踏まえ、ゲーム世界のRayへ変換。頭と手で異なるワールド尺度にならないようにした。
+- Rayとパネルの交点をUVへ変換し、既存の画面ピクセル座標へ戻して `UWGamepadPointer` の合成マウス入力に渡す。クリック・ドラッグ・装備判定を再実装しない。Touchの位置・姿勢が得られないときは右スティックの旧操作にフォールバック。パネル上の照準線と小さな点を用意した。
+- `UWVRCanvasBridge` は空間モードに限りバッグとキャラクターパネルのCanvasを専用カメラに向ける。他のHUD/メニューCanvasは以前のステレオカメラ変換を保持。`UWVRPointerReticle` はTouch Rayが当たっている間、二重に表示される画面固定カーソルを隠す。
+- `LaunchVR_SpatialInventory.bat` を追加。通常VR起動時は以前の固定表示に戻るため、実機で問題が出ても旧試験版の操作経路を比較できる。
+- Unity 6000.6.0f1でHMDなしの自動検査は **PASS**。回転・非均一倍率のあるパネルでのRay位置、範囲外・裏面の除外、16倍の追跡空間における手の座標を確認。ただしGPU RenderTextureとHMD左右眼の表示、XRランタイムからのコントローラー位置、実際のクリック・ドラッグ操作は**未検証**。
+- `unity-vr-spatial-build-20261014.log` に `[UWVR-OFFLINE] PASS`、`[UWVR] Build result: Succeeded; errors: 0` を確認。Unity Hubの認証付きバッチでWindows x64開発ビルドが成功した。
+- 配布ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-spatial-touch-win64.zip`（102,024,254バイト、352項目）。OpenXR用DLL、新しいゲーム用 `Assembly-CSharp.dll`、日本語説明書、7種類の起動バッチ（新規 `LaunchVR_SpatialInventory.bat` を含む）を検証した。原作ゲームデータは同梱しない。前のZIPも保持。
+- ZIP SHA-256：`0DDC6C4C7462DAA852EBE9E76B3073CA916DC6D58C59B5536E0FF4B167925BAC`。
+- この完成判定は**コードの自動検査・Windows実行ファイル生成・ZIPの構成検査**までであり、透明RenderTextureの見え方、Rayの左右眼での位置、Quest Touchの実入力、実際のアイテム移動はHMD実機で別途確認すること。
+
 ### 装備11領域の選択・VRインベントリ平面の奥行き分離（10月14日）
 
 - `UWClickRules.TryGetInventorySpotArea` は原作の装備当たり判定表を読み取り専用で公開。原作の優先順位やクリック動作自体は変更していない。

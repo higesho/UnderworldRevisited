@@ -16,6 +16,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private static float msWorldUnitsPerMeter = UWVRWorldSpace.DefaultUnitsPerMeter;
     private static float msUiDistanceMeters = UWVRWorldSpace.DefaultUiDistanceMeters;
     private static float msInventoryDistanceMeters = UWVRWorldSpace.DefaultInventoryDistanceMeters;
+    private static bool msSpatialInventoryRequested;
     private static UWVRBootstrap msInstance;
     private bool mbReported;
     private bool mbStartedSubsystems;
@@ -28,6 +29,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     public static float WorldUnitsPerMeter => msWorldUnitsPerMeter;
     public static float UiDistanceMeters => msUiDistanceMeters;
     public static float InventoryDistanceMeters => msInventoryDistanceMeters;
+    public static bool SpatialInventoryRequested => msSpatialInventoryRequested;
     public static bool HeadRelativeMovement { get; private set; } = true;
     public static bool IsHeadsetActive => msRequested && XRSettings.isDeviceActive;
     public static Camera CurrentVRCamera => msInstance != null ? msInstance.mCurrentVRCamera : null;
@@ -42,6 +44,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
         msWorldUnitsPerMeter = UWVRWorldSpace.DefaultUnitsPerMeter;
         msUiDistanceMeters = UWVRWorldSpace.DefaultUiDistanceMeters;
         msInventoryDistanceMeters = UWVRWorldSpace.DefaultInventoryDistanceMeters;
+        msSpatialInventoryRequested = false;
         HeadRelativeMovement = true;
 
         if (!msRequested || msInstance != null)
@@ -50,6 +53,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
         msWorldUnitsPerMeter = UWVRWorldSpace.ParseUnitsPerMeter(lOArgs);
         msUiDistanceMeters = UWVRWorldSpace.ParseUiDistanceMeters(lOArgs);
         msInventoryDistanceMeters = UWVRWorldSpace.ParseInventoryDistanceMeters(lOArgs);
+        msSpatialInventoryRequested = Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-spatial-inventory", StringComparison.OrdinalIgnoreCase));
         HeadRelativeMovement = !Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-body-relative", StringComparison.OrdinalIgnoreCase));
 
@@ -57,11 +62,13 @@ public sealed class UWVRBootstrap : MonoBehaviour
             + " game units per metre; walking relative to "
             + (HeadRelativeMovement ? "head" : "body") + "; UI distance "
             + msUiDistanceMeters + " metres; inventory "
-            + msInventoryDistanceMeters + " metres.");
+            + msInventoryDistanceMeters + " metres; spatial inventory "
+            + (msSpatialInventoryRequested ? "enabled" : "off") + ".");
 
         GameObject lOHost = new GameObject("UW VR Bootstrap");
         DontDestroyOnLoad(lOHost);
         msInstance = lOHost.AddComponent<UWVRBootstrap>();
+        lOHost.AddComponent<UWVRSpatialInventory>();
         lOHost.AddComponent<UWVRCanvasBridge>();
         lOHost.AddComponent<UWVRPointerReticle>();
     }
