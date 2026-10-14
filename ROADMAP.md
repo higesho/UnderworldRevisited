@@ -159,6 +159,15 @@ of what is built was also read out of the original's executable.
   procedurally generated item-form meshes with original icon overlays.
   Headset UI visibility, actual grip/trigger event timing, haptics, physical
   ergonomics and real-world item transfers are not yet verified.
+  The hand-grab input now tracks physical grip edges across bag open/close,
+  aborts an active grab through the existing inventory return path if the UI
+  disappears or loses focus, and keeps a stable mouse-up pointer across the
+  deferred Unity input event. 3D tokens highlight the hovered item, and
+  event logs provide source/pickup/release/confirmation diagnostics for HMD
+  testing. New headset-free edge-condition checks pass (2026-10-14).
+  Unity 6000.6.0f1 Windows x64 prototype rebuild also succeeded with zero
+  errors, and the 353-entry grip-input-diagnostics ZIP passed package checks.
+  In-game item transfers and haptics still need actual Quest verification.
   Unity 6000.6.0f1 offline checks PASS and the updated hand-grab prototype
   Windows x64 development build succeeds (2026-10-14, zero errors). A new
   353-entry ZIP with eight launch scripts is validated. HMD behavior still

@@ -192,11 +192,39 @@ public static class UWVRDiagnostics
             && !UWVRNearGrab.CanBeginGrip(true, true, true, false),
             "Hand grab must require a new grip press, reach, occupied slot, and free cursor");
 
+        // The hardware grip must be monitored even with the interface
+        // closed; otherwise opening a bag while already gripping produces
+        // an unintended phantom grab on its first active frame.
+        fRequire(UWVRNearGrab.IsNewPhysicalGrip(true, false, true)
+            && !UWVRNearGrab.IsNewPhysicalGrip(true, true, true)
+            && !UWVRNearGrab.IsNewPhysicalGrip(true, false, false)
+            && !UWVRNearGrab.IsNewPhysicalGrip(false, false, true),
+            "VR grab must only begin on a real Touch grip rising edge");
+
         Vector2 lOOrigin = new Vector2(25f, 30f);
         Vector2 lOTarget = new Vector2(100f, 90f);
         fRequire((UWVRNearGrab.ReleasePoint(lOOrigin, lOTarget, false) - lOOrigin).sqrMagnitude < 0.00001f
             && (UWVRNearGrab.ReleasePoint(lOOrigin, lOTarget, true) - lOTarget).sqrMagnitude < 0.00001f,
             "Invalid off-panel grip release must return to its original slot");
+
+        Vector2 lOHandMoved = new Vector2(64f, 50f);
+        fRequire(UWVRNearGrab.TryChoosePointer(true, true, true, true,
+                lOTarget, lOHandMoved, lOOrigin, out Vector2 lOPointer)
+            && lOPointer == lOTarget,
+            "Mouse-up coordinate must take priority over hand movement");
+        fRequire(UWVRNearGrab.TryChoosePointer(false, true, false, true,
+                lOTarget, lOHandMoved, lOOrigin, out lOPointer)
+            && lOPointer == lOOrigin,
+            "Loss of hand tracking during drag must keep the original source slot");
+        fRequire(UWVRNearGrab.TryChoosePointer(false, true, true, true,
+                lOTarget, lOHandMoved, lOOrigin, out lOPointer)
+            && lOPointer == lOHandMoved,
+            "Near-hand drag must follow the tracked hand while in reach");
+        fRequire(!UWVRNearGrab.TryChoosePointer(false, false, false, true,
+                lOTarget, lOHandMoved, lOOrigin, out _)
+            && !UWVRNearGrab.TryChoosePointer(false, false, true, false,
+                lOTarget, lOHandMoved, lOOrigin, out _),
+            "Near-hand control may not steal the pointer when hidden or untracked");
 
         // A physical inventory quad is anchored in world space. Test the
         // controller-ray to source-screen mapping without any XR runtime or
@@ -432,7 +460,7 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, stereo UI, 11 equipment zones, spatial ray, 14 procedural mesh families, near-hand reach and clipping, XR hand scale, cursor safety.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, stereo UI, 11 equipment zones, spatial ray, 14 procedural mesh families, near-hand reach, physical grip edge, mouse-up priority, lost-tracking fallback and cursor safety.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 

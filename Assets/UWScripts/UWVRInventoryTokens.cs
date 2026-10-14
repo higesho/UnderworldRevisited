@@ -45,6 +45,7 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
         = new Dictionary<UWVRItemGeometry.Form, Mesh>();
     private TokenView mHeldView;
     private Material mBodyMaterial;
+    private MaterialPropertyBlock mHoverMaterialProperties;
     private Mesh mQuad;
     private UWObject mHeldItem;
     private UWTexture mHeldSource;
@@ -140,6 +141,7 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
             lOToken.Item = lOVisual.Item;
             SetIcon(lOToken, lOVisual.Icon);
             SetShape(lOToken, UWVRItemGeometry.Classify(lOVisual.Item));
+            SetHovered(lOToken, lOVisual.Item == UWVRNearGrab.HoveredItem);
 
             Vector3 lOShape = CategoryShape(lOVisual.Item.GetCategory());
             lOToken.Root.localPosition = new Vector3(lOUV.center.x - 0.5f,
@@ -264,6 +266,25 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
         // silhouette all around it; this is not merely a rectangular slab.
         Vector2 lOIconSize = UWVRItemGeometry.IconFaceScale(peForm);
         pOToken.Face.transform.localScale = new Vector3(lOIconSize.x, lOIconSize.y, 1f);
+    }
+
+    /// <summary>The hand's nearest valid item becomes visibly brighter. A
+    /// property block keeps the shared item material intact and avoids one
+    /// new Material allocation per hover change.</summary>
+    private void SetHovered(TokenView pOToken, bool pbHovered)
+    {
+        if (mHoverMaterialProperties == null)
+            mHoverMaterialProperties = new MaterialPropertyBlock();
+
+        mHoverMaterialProperties.Clear();
+        if (pbHovered)
+        {
+            Color lOHighlight = new Color(0.72f, 0.5f, 0.17f, 1f);
+            mHoverMaterialProperties.SetColor("_BaseColor", lOHighlight);
+            mHoverMaterialProperties.SetColor("_Color", lOHighlight);
+        }
+
+        pOToken.Body.SetPropertyBlock(mHoverMaterialProperties);
     }
 
     private Material mFaceTemplate;

@@ -4,6 +4,19 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 近接グリップの入力競合・状態遷移の補強（10月14日）
+
+- `UWVRNearGrab` は実際の右Touchグリップを**バッグが閉じている間も監視**し、インベントリを表示する前から握っていたグリップを新しい掴みとして誤認識しないよう変更。明示的な押下の立ち上がりのみを採用する。
+- グリップ中にインベントリが閉じる、文脈メニューが表示される、PCの操作対象が切り替わる等で制御できなくなった際は、原作の `UWModernBags.ReturnCursorItem()` を使い、取得済みのアイテムを持ち物へ戻すことを試みる。マウスが処理する場所は従来UIの座標へ限定し、近接操作の新しい所持品モデルを作らない。
+- 左マウスの合成入力は `UWGamepadPointer` だけが担当し、現在表示中のインベントリがある場合のみグリップによるマウス押下を送る。解除後は2フレーム元のドロップ座標を優先する。手の追跡がなくなれば掴み元の座標へ戻す計算を維持。
+- 右Touchが近づいたアイテムのトークンを明るくする視覚フィードバックを追加。既存の共有Materialを壊さない `MaterialPropertyBlock` を使用。
+- `VR_HandGrab_Test.log` に `[UWVR-GRAB]` のイベントログを追加。コントローラーが認識されたか、グリップ／振動機能の有無、押下・解除が合成マウスへ届いたか、アイテム取得・配置の確認/未確認を記録。**これは検証可能性の改善であり、HMD実機による動作試験を代替するものではない**。
+- Unity 6000.6.0f1のHMDなし自動検査で、物理グリップの新規押下判定、グリップ開始条件、解除座標の優先順位、追跡を失った場合の座標復帰、インターフェース非表示時のポインター不介入などをチェックし、`[UWVR-OFFLINE] PASS` を確認。ログ：`L:\Games\UlutimaUW\unity-vr-gripstate-offline-20261014.log`。実際のMouseイベントやQuest入力は未検証。
+- 追加修正を含むUnity Hub経由のWindows 64bit開発ビルドを実行し、`L:\Games\UlutimaUW\unity-vr-gripstate-build-20261014.log` で `[UWVR-OFFLINE] PASS`、`[UWVR] Build result: Succeeded; errors: 0` を確認。
+- 新しい試験ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-grip-input-diagnostics-win64.zip`（102,037,658バイト／353項目）。新しい `Assembly-CSharp.dll`、OpenXR用DLL、8種類の起動バッチ、日本語説明書・翻訳データを検査。原作ゲームデータは含まず、以前のZIPもそのまま保持。
+- ZIP SHA-256：`96CF41DC7DD6B205D80D8874B21B6FF38CFAEF3697576E3A3EA60D3FA374F343`。
+- 自動検査は**純粋な座標計算・入力状態の分岐とWindows版ビルド**を検証したもので、Questのグリップ押下、OS合成Mouseの順序、実ゲーム上のアイテム受け渡し、振動、左右眼レンダリングの動作を実機で検証したものではない。新しい `[UWVR-GRAB]` ログで今後の実機故障箇所を特定する。
+
 ### 近距離Touchグリップ・触覚出力とカテゴリ別立体形状（10月14日）
 
 - 明示的な `-vr -vr-spatial-inventory -vr-near-grab` のみ、既存の1.8m・幅1.65mの浮遊パネルを**距離0.68m・幅0.85m**の手の届く配置へ変更。`LaunchVR_HandGrab.bat` を追加。通常VRと以前の `LaunchVR_SpatialInventory.bat` の位置や入力は変更しない。

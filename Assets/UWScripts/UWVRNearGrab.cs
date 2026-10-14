@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.XR;
 using UWDataImport.UWData;
 
@@ -31,13 +32,18 @@ public sealed class UWVRNearGrab : MonoBehaviour
     private Vector2 mReleasePoint;
     private UWObject mHoverItem;
     private UWObject mPickedItem;
-    private int miWaitForDropUntil;
+    private int miWaitForDropUntil = -1;
+    private ushort miPendingItemId;
     private float mfLastHapticAt = -10f;
+    private bool mbReportedController;
 
     public static bool IsEnabled => UWVRSpatialInventory.IsEnabled && UWVRBootstrap.NearGrabRequested;
     public static bool IsActive => IsEnabled && UWVRSpatialInventory.VisiblePanel != null;
     public static bool GripHeld => msInstance != null && msInstance.mbGrabbing;
     public static bool GripStarted => msInstance != null && msInstance.mbGripStarted;
+    public static UWObject HoveredItem => IsActive && msInstance != null
+        && msInstance.mbNearPointValid && !msInstance.mbGrabbing
+        ? msInstance.mHoverItem : null;
 
     /// <summary>Grip is already the usual ready-weapon command. Only reserve
     /// it while this opt-in physical reach interface is actually displayed;
@@ -52,26 +58,39 @@ public sealed class UWVRNearGrab : MonoBehaviour
         if (msInstance == null)
             return false;
 
-        // On the release frame the original mouse must be on the correct
-        // target before its release event. An off-panel release is returned to
-        // its original slot so no dungeon-world drop is attempted.
-        if (Time.frameCount <= msInstance.miReleasePointUntilFrame)
+        // OS mouse injection is received by the Input System asynchronously.
+        // Give the release point priority over new hand movement until the
+        // game has read mouse-up; the older laser may not steal the drop.
+        return TryChoosePointer(Time.frameCount <= msInstance.miReleasePointUntilFrame,
+            msInstance.mbGrabbing, msInstance.mbNearPointValid, IsActive,
+            msInstance.mReleasePoint, msInstance.mNearPoint, msInstance.mOriginPoint,
+            out pOPoint);
+    }
+
+    /// <summary>Pure cursor resolver for offline regression tests, including
+    /// the release-frame hand-off to the original Unity mouse handler.</summary>
+    public static bool TryChoosePointer(bool pbReleasePending, bool pbGrabbing,
+        bool pbNearPointValid, bool pbPanelActive,
+        Vector2 pORelease, Vector2 pONear, Vector2 pOOrigin,
+        out Vector2 pOResult)
+    {
+        pOResult = Vector2.zero;
+        if (pbReleasePending)
         {
-            pOPoint = msInstance.mReleasePoint;
+            pOResult = pORelease;
             return true;
         }
 
-        if (msInstance.mbGrabbing)
+        if (pbGrabbing)
         {
-            pOPoint = msInstance.mbNearPointValid
-                ? msInstance.mNearPoint : msInstance.mOriginPoint;
+            pOResult = pbNearPointValid ? pONear : pOOrigin;
             return true;
         }
 
-        if (!IsActive || !msInstance.mbNearPointValid)
+        if (!pbPanelActive || !pbNearPointValid)
             return false;
 
-        pOPoint = msInstance.mNearPoint;
+        pOResult = pONear;
         return true;
     }
 
@@ -104,6 +123,14 @@ public sealed class UWVRNearGrab : MonoBehaviour
         return pbGripJustPressed && pbControllerNear && pbItemPresent && pbCursorEmpty;
     }
 
+    /// <summary>Monitor the physical Touch grip even while the panel is shut.
+    /// Holding grip before opening a bag must NEVER count as a new grab.</summary>
+    public static bool IsNewPhysicalGrip(bool pbPhysicalGripDown,
+        bool pbPhysicalGripWasDown, bool pbInterfaceActive)
+    {
+        return pbInterfaceActive && pbPhysicalGripDown && !pbPhysicalGripWasDown;
+    }
+
     /// <summary>Releasing a grabbed item off an actual equipment/bag slot
     /// returns the pointer to its source. The original click-and-click logic
     /// then preserves the item rather than throwing it into the world.</summary>
@@ -117,7 +144,7 @@ public sealed class UWVRNearGrab : MonoBehaviour
     {
         UnityEngine.XR.InputDevice lODevice = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
         return lODevice.isValid
-            && lODevice.TryGetFeatureValue(CommonUsages.gripButton, out bool lbDown)
+            && lODevice.TryGetFeatureValue(UnityEngine.XR.CommonUsages.gripButton, out bool lbDown)
             && lbDown;
     }
 
@@ -128,10 +155,45 @@ public sealed class UWVRNearGrab : MonoBehaviour
 
         UWModernBags lOBags = UWModernBags.Instance;
         UWInventory lOInventory = UWScene.Inventory;
+        bool lbPhysicalGrip = IsEnabled && ReadRightGrip();
         bool lbActive = IsActive && UWModernPointer.IsFree
             && lOBags != null && lOInventory != null
-            && !UWModernBags.IsMenuOpen && !UWModernBags.IsSplitting;
-        bool lbGrip = lbActive && ReadRightGrip();
+            && Mouse.current != null && Application.isFocused
+            && !UWModernBags.IsMenuOpen && !UWModernBags.IsSplitting
+            && !UWModernQuestion.IsBlocking && !UWControls.IsTextEntryActive
+            && UWGamepadPointer.ClicksActive;
+        bool lbGrip = lbActive && lbPhysicalGrip;
+
+        if (lbActive && !mbReportedController)
+        {
+            UnityEngine.XR.InputDevice lODevice = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+            bool lbGripAvailable = lODevice.isValid
+                && lODevice.TryGetFeatureValue(UnityEngine.XR.CommonUsages.gripButton, out bool lbGripValue);
+            bool lbHapticAvailable = lODevice.isValid
+                && lODevice.TryGetHapticCapabilities(out HapticCapabilities lOHaptics)
+                && lOHaptics.supportsImpulse && lOHaptics.numChannels > 0;
+            Debug.Log("[UWVR-GRAB] interface ready frame=" + Time.frameCount
+                + " controller=" + lODevice.isValid
+                + " gripFeature=" + lbGripAvailable
+                + " vibration=" + lbHapticAvailable);
+            mbReportedController = true;
+        }
+
+        // If the bag closes or the application loses focus during a grip,
+        // do not allow the later synthetic mouse-up to drop the held item in
+        // the 3D world. The existing inventory return method puts it back in
+        // its original equipment/bag slot or another valid carried slot.
+        if (mbGrabbing && !lbActive)
+        {
+            Debug.LogWarning("[UWVR-GRAB] gesture canceled (UI hidden, modal or focus lost). item="
+                + (mPickedItem != null ? mPickedItem.ID.ToString() : "none"));
+            if (lOBags != null && lOInventory != null && lOInventory.CursorItem != null)
+                lOBags.ReturnCursorItem();
+            mbGrabbing = false;
+            mPickedItem = null;
+            miWaitForDropUntil = -1;
+            miReleasePointUntilFrame = -1;
+        }
 
         if (lbActive)
         {
@@ -162,7 +224,8 @@ public sealed class UWVRNearGrab : MonoBehaviour
         else
             mHoverItem = null;
 
-        if (!mbGrabbing && CanBeginGrip(lbGrip && !mbRawGripDown,
+        if (!mbGrabbing && Time.frameCount > miReleasePointUntilFrame
+            && CanBeginGrip(IsNewPhysicalGrip(lbPhysicalGrip, mbRawGripDown, lbActive),
                 mbNearPointValid,
                 mbNearPointValid && lOBags != null
                     && lOBags.TryGetVRItemAt(mNearPoint, out UWObject _),
@@ -172,6 +235,8 @@ public sealed class UWVRNearGrab : MonoBehaviour
             mbGrabbing = true;
             mbGripStarted = true;
             mPickedItem = null;
+            Debug.Log("[UWVR-GRAB] grip start frame=" + Time.frameCount
+                + " source=" + mOriginPoint);
         }
 
         if (mbGrabbing && lOInventory != null && lOInventory.CursorItem != null)
@@ -180,6 +245,8 @@ public sealed class UWVRNearGrab : MonoBehaviour
             {
                 mPickedItem = lOInventory.CursorItem;
                 Pulse(0.38f, 0.055f);
+                Debug.Log("[UWVR-GRAB] item taken id=" + mPickedItem.ID
+                    + " frame=" + Time.frameCount);
             }
         }
 
@@ -187,13 +254,18 @@ public sealed class UWVRNearGrab : MonoBehaviour
         {
             // A valid drop is strictly inside an actual bag/equipment slot;
             // releasing anywhere else keeps the item on the original cursor.
-            mReleasePoint = ReleasePoint(mOriginPoint, mNearPoint,
-                mbNearPointValid && lOBags != null && lOBags.IsVRDropSlot(mNearPoint));
+            bool lbValidDrop = mbNearPointValid && lOBags != null
+                && lOBags.IsVRDropSlot(mNearPoint);
+            mReleasePoint = ReleasePoint(mOriginPoint, mNearPoint, lbValidDrop);
             // OS mouse injection is observed by the Input System on its next
             // update. Keep the release pixel stable for the next two frames;
             // otherwise the old laser cursor could overwrite a valid drop.
             miReleasePointUntilFrame = Time.frameCount + 2;
-            miWaitForDropUntil = mPickedItem != null ? Time.frameCount + 5 : -1;
+            miWaitForDropUntil = mPickedItem != null ? Time.frameCount + 8 : -1;
+            miPendingItemId = mPickedItem != null ? mPickedItem.ID : (ushort)0;
+            Debug.Log("[UWVR-GRAB] release frame=" + Time.frameCount
+                + " dest=" + mReleasePoint + " validSlot=" + lbValidDrop
+                + " item=" + (mPickedItem != null ? mPickedItem.ID.ToString() : "not_taken"));
             mbGrabbing = false;
             mPickedItem = null;
         }
@@ -201,15 +273,22 @@ public sealed class UWVRNearGrab : MonoBehaviour
         // Confirmation comes from the game's actual inventory, not from the
         // grip signal. Never rumble for a drop that the game has rejected.
         if (miWaitForDropUntil >= Time.frameCount && lOInventory != null
-            && lOInventory.CursorItem == null)
+            && lOInventory.CursorItem == null && Time.frameCount > miReleasePointUntilFrame)
         {
             Pulse(0.26f, 0.05f);
+            Debug.Log("[UWVR-GRAB] game confirmed placement item="
+                + miPendingItemId + " frame=" + Time.frameCount);
             miWaitForDropUntil = -1;
         }
         else if (miWaitForDropUntil < Time.frameCount)
+        {
+            if (miWaitForDropUntil >= 0)
+                Debug.Log("[UWVR-GRAB] item remained on cursor or placement unconfirmed id="
+                    + miPendingItemId + " frame=" + Time.frameCount);
             miWaitForDropUntil = -1;
+        }
 
-        mbRawGripDown = lbGrip;
+        mbRawGripDown = lbPhysicalGrip;
     }
 
     private void Pulse(float pfAmplitude, float pfSeconds)

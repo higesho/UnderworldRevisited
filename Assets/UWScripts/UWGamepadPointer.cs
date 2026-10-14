@@ -68,6 +68,7 @@ public class UWGamepadPointer : MonoBehaviour
     private Vector2 mOLastWarp = new Vector2(-1000f, -1000f);
 
     private bool mbLeftDown;
+    private bool mbLeftFromNearGrab;
 
     private bool mbRightDown;
 
@@ -281,14 +282,24 @@ public class UWGamepadPointer : MonoBehaviour
 
         // One synthetic mouse button owns both the ordinary trigger and a
         // near-hand grip. Never generate a second down while either is held.
-        if (UWVRNearGrab.GripStarted && !mbLeftDown)
+        if (UWVRNearGrab.GripStarted && UWVRNearGrab.IsActive
+            && UWModernPointer.IsFree && !mbLeftDown)
         {
             UWOsMouse.Button(UWOsMouse.ButtonEnum.Left, true);
             UWGamepad.NoteSyntheticMouse();
             mbLeftDown = true;
+            mbLeftFromNearGrab = true;
+            Debug.Log("[UWVR-GRAB] synthetic mouse-down delivered frame=" + Time.frameCount);
         }
         else if (!UWVRNearGrab.GripHeld)
+        {
             fButton(lOPlayer.PadClick, UWOsMouse.ButtonEnum.Left, ref mbLeftDown);
+            if (!mbLeftDown && mbLeftFromNearGrab)
+            {
+                Debug.Log("[UWVR-GRAB] synthetic mouse-up delivered frame=" + Time.frameCount);
+                mbLeftFromNearGrab = false;
+            }
+        }
         fButton(lOPlayer.PadContext, UWOsMouse.ButtonEnum.Right, ref mbRightDown);
     }
 
@@ -538,7 +549,12 @@ public class UWGamepadPointer : MonoBehaviour
     private void fLetGo()
     {
         if (mbLeftDown)
+        {
             UWOsMouse.Button(UWOsMouse.ButtonEnum.Left, false);
+            if (mbLeftFromNearGrab)
+                Debug.LogWarning("[UWVR-GRAB] mouse button released because pointer stopped driving (frame="
+                    + Time.frameCount + ")");
+        }
 
         if (mbRightDown)
         {
@@ -547,6 +563,7 @@ public class UWGamepadPointer : MonoBehaviour
         }
 
         mbLeftDown = false;
+        mbLeftFromNearGrab = false;
         mbRightDown = false;
         msbRightHeld = false;
         mfWheelHeld = -1f;
