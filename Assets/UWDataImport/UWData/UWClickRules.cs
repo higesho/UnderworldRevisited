@@ -549,6 +549,23 @@ namespace UWDataImport.UWData
 			return InventorySpot.None;
 		}
 
+		/// <summary>Unmodified source rectangle of an inventory hit area, for UI
+		/// navigation that must use the same positions as the original game.</summary>
+		public static bool TryGetInventorySpotArea(InventorySpot peSpot, out Area pOArea)
+		{
+			foreach ((Area lOArea, InventorySpot leSpot) in msInventorySpots)
+			{
+				if (leSpot != peSpot)
+					continue;
+
+				pOArea = lOArea;
+				return true;
+			}
+
+			pOArea = default;
+			return false;
+		}
+
 		/// <summary>The backpack slot of a spot, 0 to 7 in rows from the top left, or -1.</summary>
 		public static int BackpackSlotOf(InventorySpot peSpot)
 		{

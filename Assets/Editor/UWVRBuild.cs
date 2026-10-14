@@ -56,6 +56,8 @@ public static class UWVRBuild
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-body-relative -logFile \"%~dp0VR_BodyRelative_Test.log\"\r\n");
         File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_UIFar.bat"),
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-ui-distance=3.5 -logFile \"%~dp0VR_UIFar_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_InventoryFar.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-inventory-distance=2.5 -logFile \"%~dp0VR_InventoryFar_Test.log\"\r\n");
 
         string lSGuide = Path.Combine(lSProjectRoot, "Docs", "VR_TEST_JA.txt");
         if (File.Exists(lSGuide))

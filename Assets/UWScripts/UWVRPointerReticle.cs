@@ -35,9 +35,18 @@ public sealed class UWVRPointerReticle : MonoBehaviour
 
         mCanvas.enabled = true;
 
-        if (mCamera != lOCamera)
+        // Put the software cursor just in front of the currently interactive
+        // UI plane. Otherwise a cursor at the default HUD distance appears
+        // behind the nearer stereo inventory when a bag is opened.
+        bool lbInventory = (UWModernBags.Instance != null && UWModernBags.Instance.IsOpen)
+            || (UWModernPanel.Instance != null && UWModernPanel.Instance.IsOpen);
+        float lfDistance = (lbInventory ? UWVRBootstrap.InventoryDistanceMeters
+            : UWVRBootstrap.UiDistanceMeters) - 0.04f;
+        float lfDesiredPlane = UWVRCanvasBridge.CalculatePlaneDistance(lOCamera, lfDistance);
+
+        if (mCamera != lOCamera || Mathf.Abs(mCanvas.planeDistance - lfDesiredPlane) > 0.001f)
         {
-            UWVRCanvasBridge.ConfigureCanvas(mCanvas, lOCamera);
+            UWVRCanvasBridge.ConfigureCanvas(mCanvas, lOCamera, lfDistance);
             mCanvas.sortingOrder = 32000;
             mCamera = lOCamera;
         }

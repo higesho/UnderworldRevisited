@@ -312,17 +312,22 @@ public class UWGamepadPointer : MonoBehaviour
     private static bool msbRightHeld;
 
     /// <summary>
-    /// Snap only while actively navigating bag slots with a gamepad or Touch
-    /// thumbstick in VR. Slot centres are computed by UWModernBags from its
-    /// real screen rects, so clicking and drag/drop use unchanged hit tests.
+    /// Snap between bag and paperdoll slots with a gamepad or Touch in VR.
+    /// The existing screen-space pointer still delivers all clicks and drags.
     /// </summary>
     private bool fMoveVRInventorySlot(Vector2 pOStick, InputAction pOAction)
     {
         UWModernBags lOBags = UWModernBags.Instance;
-        if (!UWVRBootstrap.IsHeadsetActive || lOBags == null || !lOBags.IsOpen
+        UWModernPanel lOPanel = UWModernPanel.Instance;
+        UWControls lOControls = fControls();
+        bool lbClickDown = lOControls != null
+            && (lOControls.Player.PadClick.IsPressed() || lOControls.Player.PadContext.IsPressed());
+        bool lbHasEquipment = lOPanel != null && lOPanel.HasVREquipmentSlots;
+        if (!UWVRBootstrap.IsHeadsetActive || lOBags == null
+            || (!lOBags.IsOpen && !lbHasEquipment)
             || UWModernBags.IsMenuOpen || UWModernBags.IsSplitting
             || !UWGamepad.IsFromGamepad(pOAction) || Mouse.current == null
-            || mbLeftDown || mbRightDown)
+            || mbLeftDown || mbRightDown || lbClickDown)
         {
             mbVRSlotStickHeld = false;
             return false;

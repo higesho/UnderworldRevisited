@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -67,7 +68,7 @@ public sealed class UWVRCanvasBridge : MonoBehaviour
             foreach (Canvas lODeadCanvas in lODead)
                 mOriginal.Remove(lODeadCanvas);
 
-        Canvas[] lOCanvases = Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include);
+        Canvas[] lOCanvases = UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include);
 
         int liNew = 0;
         foreach (Canvas lOCanvas in lOCanvases)
@@ -108,9 +109,27 @@ public sealed class UWVRCanvasBridge : MonoBehaviour
         if (pOCanvas == null || pOCamera == null)
             return;
 
+        ConfigureCanvas(pOCanvas, pOCamera, DistanceForCanvasName(pOCanvas.name,
+            UWVRBootstrap.UiDistanceMeters, UWVRBootstrap.InventoryDistanceMeters));
+    }
+
+    /// <summary>Two related inventory canvases must share one depth plane:
+    /// drag/drop and mouse screen coordinates still belong to one interface.</summary>
+    public static float DistanceForCanvasName(string psName, float pfUiMeters, float pfInventoryMeters)
+    {
+        return string.Equals(psName, "Modern bags", StringComparison.Ordinal)
+            || string.Equals(psName, "Modern character panel", StringComparison.Ordinal)
+            ? pfInventoryMeters : pfUiMeters;
+    }
+
+    public static void ConfigureCanvas(Canvas pOCanvas, Camera pOCamera, float pfDistanceMeters)
+    {
+        if (pOCanvas == null || pOCamera == null)
+            return;
+
         pOCanvas.renderMode = RenderMode.ScreenSpaceCamera;
         pOCanvas.worldCamera = pOCamera;
-        pOCanvas.planeDistance = CalculatePlaneDistance(pOCamera, UWVRBootstrap.UiDistanceMeters);
+        pOCanvas.planeDistance = CalculatePlaneDistance(pOCamera, pfDistanceMeters);
     }
 
     /// <summary>

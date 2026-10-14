@@ -1779,36 +1779,47 @@ public partial class UWModernBags : MonoBehaviour
     private readonly List<Vector2> mOVrSlotCentres = new List<Vector2>(64);
 
     /// <summary>
-    /// The VR controller can step between the actual inventory slots rather
-    /// than slowly moving a cursor pixel by pixel. Only bag windows already
-    /// laid out on screen participate: no new slot coordinates are invented.
+    /// The VR controller can step between actual bag AND equipment hit areas.
+    /// Only visible, already laid-out windows participate; mouse and drag
+    /// hit testing stays unchanged.
     /// No input is injected here so it is also safe to use during testing.
     /// </summary>
     public bool TryGetNextVRSlot(Vector2 pOPointer, Vector2 pODirection, out Vector2 pOCentre)
     {
         pOCentre = Vector2.zero;
-        if (!mbOpen || !fIsShown() || IsMenuOpen || IsSplitting || fPageShown())
+        UWModernPanel lOPanel = fPanel();
+        bool lbEquipment = lOPanel != null && lOPanel.HasVREquipmentSlots;
+        if ((!mbOpen && !lbEquipment) || !fIsShown() || IsMenuOpen || IsSplitting || fPageShown())
             return false;
 
         mOVrSlotCentres.Clear();
         bool lbOnSlot = false;
 
-        foreach (Window lOWindow in mOWindows)
-        {
-            if (lOWindow.Root == null || !lOWindow.Root.gameObject.activeInHierarchy)
-                continue;
-
-            for (int liSlot = 0; liSlot < lOWindow.SlotCount; liSlot++)
+        if (mbOpen)
+            foreach (Window lOWindow in mOWindows)
             {
-                Rect lORect = lOWindow.Slots[liSlot].ScreenRect;
-                if (lORect.width <= 0f || lORect.height <= 0f)
+                if (lOWindow.Root == null || !lOWindow.Root.gameObject.activeInHierarchy)
                     continue;
 
-                if (lORect.Contains(pOPointer))
-                    lbOnSlot = true;
+                for (int liSlot = 0; liSlot < lOWindow.SlotCount; liSlot++)
+                {
+                    Rect lORect = lOWindow.Slots[liSlot].ScreenRect;
+                    if (lORect.width <= 0f || lORect.height <= 0f)
+                        continue;
 
-                mOVrSlotCentres.Add(lORect.center);
+                    if (lORect.Contains(pOPointer))
+                        lbOnSlot = true;
+
+                    mOVrSlotCentres.Add(lORect.center);
+                }
             }
+
+        if (lbEquipment)
+        {
+            if (lOPanel.TryGetEquipSlotAt(pOPointer, out UWArmorItemMap.BodySlot _))
+                lbOnSlot = true;
+
+            lOPanel.AppendVREquipmentSlotCentres(mOVrSlotCentres);
         }
 
         return UWVRInventoryNavigation.TryChooseNext(mOVrSlotCentres,

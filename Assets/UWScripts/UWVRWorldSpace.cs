@@ -16,6 +16,8 @@ public static class UWVRWorldSpace
     public const string ScaleArgument = "-vr-units-per-meter=";
     public const float DefaultUiDistanceMeters = 2.25f;
     public const string UiDistanceArgument = "-vr-ui-distance=";
+    public const float DefaultInventoryDistanceMeters = 1.8f;
+    public const string InventoryDistanceArgument = "-vr-inventory-distance=";
 
     public static float ParseUnitsPerMeter(string[] pOArgs)
     {
@@ -63,6 +65,32 @@ public static class UWVRWorldSpace
             }
 
         return DefaultUiDistanceMeters;
+    }
+
+    /// <summary>
+    /// The two modern inventory canvases can be placed on a closer stereo
+    /// plane than the main HUD, while keeping all existing screen-space hit
+    /// tests and moving them together to avoid depth conflicts.
+    /// </summary>
+    public static float ParseInventoryDistanceMeters(string[] pOArgs)
+    {
+        if (pOArgs != null)
+            foreach (string lsArg in pOArgs)
+            {
+                if (lsArg == null || !lsArg.StartsWith(InventoryDistanceArgument, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                string lsNumber = lsArg.Substring(InventoryDistanceArgument.Length);
+                if (float.TryParse(lsNumber, NumberStyles.Float, CultureInfo.InvariantCulture, out float lfMeters)
+                    && !float.IsNaN(lfMeters) && !float.IsInfinity(lfMeters)
+                    && lfMeters >= 1f && lfMeters <= 5f)
+                    return lfMeters;
+
+                Debug.LogWarning("[UWVR] Invalid inventory distance; using 1.8 metres: " + lsArg);
+                break;
+            }
+
+        return DefaultInventoryDistanceMeters;
     }
 
     /// <summary>

@@ -129,8 +129,15 @@ of what is built was also read out of the original's executable.
   VR-only inventory slot-to-slot thumbstick navigation and direct Touch bag
   toggling are implemented without replacing original drag/drop hit tests;
   their offline checks and a new Windows prototype build pass (2026-10-14,
-  errors: 0). The character paperdoll, controller behavior in a real headset,
-  and hand-tracked interaction still require further work.
+  errors: 0). The VR right thumbstick can now navigate all eleven original
+  paperdoll equipment hit zones as well as bag slots, even across panels;
+  a separate configurable stereo inventory distance keeps bags and the
+  character panel aligned, with the reticle on their near side. Real-headset
+  interaction, tracked-hand gestures and genuinely spatial inventory panels
+  still require further work.
+  The equipment-and-depth Windows VR prototype passes offline validation and
+  a fresh Windows x64 development build (2026-10-14, zero errors); the headset
+  view and controller gestures remain untested.
   Next: real-HMD validation, UI/controller interaction, stereo correctness and comfort.
   Japanese translation additions remain
   temporarily paused. See `Docs/VR_FEASIBILITY_JA.md`.

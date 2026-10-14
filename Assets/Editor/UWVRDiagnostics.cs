@@ -9,6 +9,7 @@ using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features.Interactions;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UWDataImport.UWData;
 
 /// <summary>Batchmode XR diagnostic that does not rely on an active headset.</summary>
 public static class UWVRDiagnostics
@@ -93,6 +94,59 @@ public static class UWVRDiagnostics
         fRequire(Mathf.Abs(UWVRWorldSpace.ParseUiDistanceMeters(
             new[] { "UR.exe", "-vr-ui-distance=3.5" }) - 3.5f) < 0.001f,
             "VR interface distance argument was not parsed");
+        fRequire(Mathf.Abs(UWVRWorldSpace.ParseInventoryDistanceMeters(
+            new[] { "UR.exe", "-vr-inventory-distance=2.5" }) - 2.5f) < 0.001f,
+            "VR inventory distance argument was not parsed");
+        fRequire(Mathf.Abs(UWVRCanvasBridge.DistanceForCanvasName(
+                "Modern bags", 2.25f, 1.8f) - 1.8f) < 0.001f
+            && Mathf.Abs(UWVRCanvasBridge.DistanceForCanvasName(
+                "Modern character panel", 2.25f, 1.8f) - 1.8f) < 0.001f
+            && Mathf.Abs(UWVRCanvasBridge.DistanceForCanvasName(
+                "Modern HUD", 2.25f, 1.8f) - 2.25f) < 0.001f,
+            "VR inventory planes must match while the HUD stays at its own distance");
+
+        // Confirm all eleven equipment points land in exactly the same
+        // first-hit inventory zone as an actual click, including overlapped
+        // hand/ring and leg/glove areas on the widened paperdoll page.
+        RectInt lOPaperdoll = UWModernHudArt.PaperdollPage;
+        float lfEquipScale = 3f;
+        Rect lOEquipmentPage = new Rect(90f, 110f,
+            lOPaperdoll.width * lfEquipScale, lOPaperdoll.height * lfEquipScale);
+        UWClickRules.InventorySpot[] lOEquipSpots =
+        {
+            UWClickRules.InventorySpot.Helmet,
+            UWClickRules.InventorySpot.Chest,
+            UWClickRules.InventorySpot.Gloves,
+            UWClickRules.InventorySpot.Legs,
+            UWClickRules.InventorySpot.Boots,
+            UWClickRules.InventorySpot.ShoulderLeft,
+            UWClickRules.InventorySpot.ShoulderRight,
+            UWClickRules.InventorySpot.HandLeft,
+            UWClickRules.InventorySpot.HandRight,
+            UWClickRules.InventorySpot.RingLeft,
+            UWClickRules.InventorySpot.RingRight
+        };
+
+        foreach (UWClickRules.InventorySpot leSpot in lOEquipSpots)
+        {
+            fRequire(UWVRInventoryNavigation.TryGetEquipmentCentre(leSpot,
+                    lOEquipmentPage, lOEquipmentPage, lfEquipScale, out Vector2 lOEquipPoint),
+                "VR equipment navigation has no selectable location for " + leSpot);
+
+            int liColumn = Mathf.FloorToInt((lOEquipPoint.x - lOEquipmentPage.xMin) / lfEquipScale);
+            int liRow = Mathf.FloorToInt((lOEquipmentPage.yMax - lOEquipPoint.y) / lfEquipScale);
+            int liX = UWModernHudArt.PageColumnToMain(liColumn);
+            int liY = 199 - lOPaperdoll.y - liRow;
+            fRequire(UWClickRules.InventorySpotAt(liX, liY) == leSpot,
+                "VR equipment point would click a different slot: " + leSpot);
+        }
+
+        Rect lOClippedView = new Rect(lOEquipmentPage.xMin, lOEquipmentPage.yMin,
+            lOEquipmentPage.width, lOEquipmentPage.height * 0.25f);
+        fRequire(!UWVRInventoryNavigation.TryGetEquipmentCentre(
+                UWClickRules.InventorySpot.Helmet, lOEquipmentPage,
+                lOClippedView, lfEquipScale, out Vector2 _),
+            "VR navigation must not select equipment clipped by the panel scroll area");
 
         // Looking 90 degrees right: forward on the stick must become right
         // relative to the unturned body. Head pitch is explicitly ignored.
@@ -166,6 +220,9 @@ public static class UWVRDiagnostics
                 lOEye.GetComponent<Camera>(), 2.25f);
             fRequire(Mathf.Abs(lfScaledUi - 36f) < 0.01f,
                 "VR panels do not preserve a physical distance across tracking scale changes");
+            fRequire(Mathf.Abs(UWVRCanvasBridge.CalculatePlaneDistance(
+                lOEye.GetComponent<Camera>(), 1.8f) - 28.8f) < 0.01f,
+                "VR equipment/bag plane distance is inconsistent with the XR tracking scale");
 
             lOEye.transform.localPosition = new Vector3(0.25f, 0f, 0f);
             fRequire(Mathf.Abs(lOEye.transform.position.x - lOOriginalEyePosition.x - 4f) < 0.0001f,
@@ -229,7 +286,7 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR setup, Touch, head-relative walking, XR scale/rig restoration, UI distance, stereo UI, cursor transparency, inventory slot navigation.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, headset movement, stereo UI depth, all 11 equipment hit areas, bag slot navigation, cursor transparency.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 

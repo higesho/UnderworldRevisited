@@ -447,6 +447,36 @@ public class UWModernPanel : MonoBehaviour
         return true;
     }
 
+    private static readonly UWClickRules.InventorySpot[] msVREquipmentSpots =
+    {
+        UWClickRules.InventorySpot.Helmet,
+        UWClickRules.InventorySpot.Chest,
+        UWClickRules.InventorySpot.Gloves,
+        UWClickRules.InventorySpot.Legs,
+        UWClickRules.InventorySpot.Boots,
+        UWClickRules.InventorySpot.ShoulderLeft,
+        UWClickRules.InventorySpot.ShoulderRight,
+        UWClickRules.InventorySpot.HandLeft,
+        UWClickRules.InventorySpot.HandRight,
+        UWClickRules.InventorySpot.RingLeft,
+        UWClickRules.InventorySpot.RingRight
+    };
+
+    /// <summary>Only the Character tab's actually visible equipment slots
+    /// can be selected by the VR right thumbstick.</summary>
+    public bool HasVREquipmentSlots => fIsPageOut() && mOPageRect.Overlaps(mOViewRect);
+
+    public void AppendVREquipmentSlotCentres(List<Vector2> pOCentres)
+    {
+        if (!HasVREquipmentSlots || pOCentres == null)
+            return;
+
+        foreach (UWClickRules.InventorySpot leSpot in msVREquipmentSpots)
+            if (UWVRInventoryNavigation.TryGetEquipmentCentre(leSpot,
+                mOPageRect, mOViewRect, miScale, out Vector2 lOCentre))
+                pOCentres.Add(lOCentre);
+    }
+
     // ------------------------------------------------- Opening and closing
 
     public void Open(TabEnum peTab)
