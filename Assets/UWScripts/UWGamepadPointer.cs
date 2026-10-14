@@ -69,6 +69,10 @@ public class UWGamepadPointer : MonoBehaviour
 
     private bool mbLeftDown;
     private bool mbLeftFromNearGrab;
+    private static UWGamepadPointer msInstance;
+    public static bool IsSyntheticLeftDown => msInstance != null && msInstance.mbLeftDown;
+
+    private void Awake() { msInstance = this; }
 
     private bool mbRightDown;
 
@@ -282,7 +286,13 @@ public class UWGamepadPointer : MonoBehaviour
 
         // One synthetic mouse button owns both the ordinary trigger and a
         // near-hand grip. Never generate a second down while either is held.
-        if (UWVRNearGrab.GripStarted && UWVRNearGrab.IsActive
+        if (UWVRNearGrab.SuppressPadClickThisFrame)
+        {
+            // The direct-grab path already called the authoritative inventory
+            // handlers this frame. A trigger click must not act on the same
+            // item a second time or enqueue an OS mouse event after release.
+        }
+        else if (!UWVRNearGrab.UseDirectInventory && UWVRNearGrab.GripStarted && UWVRNearGrab.IsActive
             && UWModernPointer.IsFree && !mbLeftDown)
         {
             UWOsMouse.Button(UWOsMouse.ButtonEnum.Left, true);
@@ -572,5 +582,11 @@ public class UWGamepadPointer : MonoBehaviour
     private void OnDisable()
     {
         fLetGo();
+    }
+
+    private void OnDestroy()
+    {
+        if (msInstance == this)
+            msInstance = null;
     }
 }

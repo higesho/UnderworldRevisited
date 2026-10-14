@@ -4,6 +4,18 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 直接呼び出しによる近接グリップ操作の別経路（10月14日）
+
+- 既存の `LaunchVR_HandGrab.bat` はWindowsのOS合成マウスを経由するため、Unity Input Systemへの非同期入力とバッグの更新順序に依存する。比較用に旧方式は保持し、別の起動オプション `-vr-direct-grab` を**必ず `-vr -vr-spatial-inventory -vr-near-grab` と同時に指定した場合だけ**有効にした。
+- 新しい `LaunchVR_DirectGrab.bat` は元のゲームの `UWModernBags.fLeftPressed` と `fLeftReleased`、保持済みアイテムの `fLeftPressed` を呼び出す公開アダプターを利用する。Windows SendInputによるクリックの押下・解除は発行しない。アイテム・装備のルール自体は引き続き `UWInventoryModel` と既存のバッグ処理が実行する。
+- 同じ装備/バッグ枠へ戻した場合や枠外で離した場合、元の `ReturnCursorItem()` で取得前の所持品へ戻す処理を試みる。異なるアイテムとの交換で別アイテムがカーソルに残った場合も、次のグリップで空き/有効枠へ運んで配置する経路を追加。
+- 結果はカーソルの実体参照で `Placed / Swapped / StillHeld / Returned / ReturnFailed / NoDrag` に分類する。同じIDでも別オブジェクトなら交換と認識する。トリガーの重複クリックを抑止し、通常のHandGrab／レーザー方式には影響しないよう試験フラグで隔離。
+- Unity非HMD検査では、**実際の `UWInventoryModel` のバックパック**へ異なるアイテムを配置し、「取得→交換で相手品がカーソルに残る→元の空き枠へ配置」のモデル状態を検査する。これは原作の移動ロジックを確認するテストで、実際のQuestグリップ入力やステレオ表示・UIへの指の位置は別途実機試験が必要。
+- `L:\Games\UlutimaUW\unity-vr-directgrab-build-20261014.log` で `[UWVR-OFFLINE] PASS` と `[UWVR] Build result: Succeeded; errors: 0` を確認。Unity 6000.6.0f1のWindows x64開発ビルド成功。交換後の継続グリップの開始条件、同じIDの別アイテムを区別する結果判定も検査済み。
+- 新試験ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-direct-inventory-win64.zip`（102,039,713バイト、354項目）。原作データなし、OpenXR用DLL、最新版の `Assembly-CSharp.dll`、新旧操作方式を含む起動バッチ9種類、日本語説明書を検査済み。以前のZIPは上書きしていない。
+- ZIP SHA-256：`815607F6231BAB1AC41C66E198982E5F26E113BD9E950CAAD7744DF413CD8DEA`。
+- 取得・交換・配置の検査は**ゲームのデータモデルを使ったHMD不要の自動検査**であり、Questコントローラーを通じた実操作や左右眼での表示を成功確認したものではない。実機で直接経路に問題があれば、`LaunchVR_HandGrab.bat`（合成マウス経由）および `LaunchVR_SpatialInventory.bat`（従来の遠距離パネル）と比較する。
+
 ### 近接グリップの入力競合・状態遷移の補強（10月14日）
 
 - `UWVRNearGrab` は実際の右Touchグリップを**バッグが閉じている間も監視**し、インベントリを表示する前から握っていたグリップを新しい掴みとして誤認識しないよう変更。明示的な押下の立ち上がりのみを採用する。

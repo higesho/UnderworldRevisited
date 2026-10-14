@@ -18,6 +18,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private static float msInventoryDistanceMeters = UWVRWorldSpace.DefaultInventoryDistanceMeters;
     private static bool msSpatialInventoryRequested;
     private static bool msNearGrabRequested;
+    private static bool msDirectGrabRequested;
     private static UWVRBootstrap msInstance;
     private bool mbReported;
     private bool mbStartedSubsystems;
@@ -32,6 +33,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     public static float InventoryDistanceMeters => msInventoryDistanceMeters;
     public static bool SpatialInventoryRequested => msSpatialInventoryRequested;
     public static bool NearGrabRequested => msNearGrabRequested;
+    public static bool DirectGrabRequested => msDirectGrabRequested;
     public static bool HeadRelativeMovement { get; private set; } = true;
     public static bool IsHeadsetActive => msRequested && XRSettings.isDeviceActive;
     public static Camera CurrentVRCamera => msInstance != null ? msInstance.mCurrentVRCamera : null;
@@ -48,6 +50,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
         msInventoryDistanceMeters = UWVRWorldSpace.DefaultInventoryDistanceMeters;
         msSpatialInventoryRequested = false;
         msNearGrabRequested = false;
+        msDirectGrabRequested = false;
         HeadRelativeMovement = true;
 
         if (!msRequested || msInstance != null)
@@ -60,6 +63,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
             pSArg => string.Equals(pSArg, "-vr-spatial-inventory", StringComparison.OrdinalIgnoreCase));
         msNearGrabRequested = msSpatialInventoryRequested && Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-near-grab", StringComparison.OrdinalIgnoreCase));
+        msDirectGrabRequested = msNearGrabRequested && Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-direct-grab", StringComparison.OrdinalIgnoreCase));
         HeadRelativeMovement = !Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-body-relative", StringComparison.OrdinalIgnoreCase));
 
@@ -69,7 +74,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
             + msUiDistanceMeters + " metres; inventory "
             + msInventoryDistanceMeters + " metres; spatial inventory "
             + (msSpatialInventoryRequested ? "enabled" : "off")
-            + "; near grab " + (msNearGrabRequested ? "enabled" : "off") + ".");
+            + "; near grab " + (msNearGrabRequested ? "enabled" : "off")
+            + "; direct grab " + (msDirectGrabRequested ? "enabled" : "off") + ".");
 
         GameObject lOHost = new GameObject("UW VR Bootstrap");
         DontDestroyOnLoad(lOHost);

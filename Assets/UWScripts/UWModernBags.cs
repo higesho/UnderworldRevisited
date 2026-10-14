@@ -1886,6 +1886,96 @@ public partial class UWModernBags : MonoBehaviour
             || (mbOpen && fFindSlot(pOPoint, out Window _, out int _));
     }
 
+    /// <summary>
+    /// A second, opt-in input path for Quest Touch. The original inventory
+    /// click handlers operate directly on their authoritative inventory model,
+    /// bypassing Windows SendInput timing. The older OS-mouse HandGrab remains
+    /// available as a separate launcher for comparison.
+    /// </summary>
+    public bool TryBeginVRDirectGrab(Vector2 pOPointer, out UWObject pOItem)
+    {
+        pOItem = null;
+        UWInventory lOInventory = fInventory();
+        if (!UWVRNearGrab.UseDirectInventory || lOInventory == null
+            || lOInventory.CursorItem != null || mbPressDrag || IsUsing
+            || UWControls.IsShiftHeld || UWConversationScreen.IsAnyOpen
+            || (mOInteraction != null && mOInteraction.IsItemTargetSpellPending)
+            || !TryGetVRItemAt(pOPointer, out UWObject lOSource))
+            return false;
+
+        fLeftPressed(pOPointer, lOInventory);
+        pOItem = lOInventory.CursorItem;
+        return mbPressDrag && pOItem != null;
+    }
+
+    public enum VRDirectGrabResult
+    {
+        NoDrag, Placed, Swapped, StillHeld, Returned, ReturnFailed
+    }
+
+    /// <summary>Classification uses object identity, not numeric object IDs;
+    /// two stacks with the same ID can be different inventory objects.</summary>
+    public static VRDirectGrabResult ClassifyVRDirectRelease(UWObject pOBefore, UWObject pOAfter)
+    {
+        if (pOBefore == null)
+            return VRDirectGrabResult.NoDrag;
+        if (pOAfter == null)
+            return VRDirectGrabResult.Placed;
+        return pOBefore == pOAfter ? VRDirectGrabResult.StillHeld
+            : VRDirectGrabResult.Swapped;
+    }
+
+    /// <summary>
+    /// Calls the SAME fLeftReleased rules as a desktop drag. Off-panel or
+    /// near-source release cancels this physical grab and returns the carried
+    /// item through fReturnCursorItem (no world drop). A valid target may
+    /// legitimately leave a displaced item on the cursor after swapping.
+    /// </summary>
+    public VRDirectGrabResult FinishVRDirectGrab(Vector2 pOPointer, bool pbValidDrop)
+    {
+        UWInventory lOInventory = fInventory();
+        if (!UWVRNearGrab.UseDirectInventory || lOInventory == null)
+            return VRDirectGrabResult.NoDrag;
+
+        UWObject lOBefore = lOInventory.CursorItem;
+        if (!mbPressDrag || lOBefore == null)
+            return VRDirectGrabResult.NoDrag;
+
+        bool lbReturnToSource = !pbValidDrop
+            || Vector2.Distance(pOPointer, mOPressStart) < ClickMoveThreshold;
+        fLeftReleased(lbReturnToSource ? mOPressStart : pOPointer, lOInventory);
+        if (lbReturnToSource)
+            return ReturnCursorItem() ? VRDirectGrabResult.Returned
+                : VRDirectGrabResult.ReturnFailed;
+
+        return ClassifyVRDirectRelease(lOBefore, lOInventory.CursorItem);
+    }
+
+    /// <summary>The game can leave a displaced item on CursorItem after an
+    /// equipment/backpack swap. A subsequent hand grip must be able to place
+    /// that existing item; do not require it to be picked up a second time.</summary>
+    public VRDirectGrabResult PlaceVRDirectHeldItem(Vector2 pOPointer)
+    {
+        UWInventory lOInventory = fInventory();
+        if (!UWVRNearGrab.UseDirectInventory || lOInventory == null
+            || lOInventory.CursorItem == null || IsUsing || mbPressDrag
+            || UWControls.IsShiftHeld || UWConversationScreen.IsAnyOpen
+            || !IsVRDropSlot(pOPointer))
+            return VRDirectGrabResult.NoDrag;
+
+        UWObject lOBefore = lOInventory.CursorItem;
+        fLeftPressed(pOPointer, lOInventory);
+        return ClassifyVRDirectRelease(lOBefore, lOInventory.CursorItem);
+    }
+
+    /// <summary>Clear a direct grab when the panel closes or focus is lost.
+    /// The model's existing safe return route owns the item restoration.</summary>
+    public bool CancelVRDirectGrab()
+    {
+        mbPressDrag = false;
+        return ReturnCursorItem();
+    }
+
     private bool fFindSlot(Vector2 pOPointer, out Window pOWindow, out int piSlot)
     {
         // The original's page: its eight slots are the backpack's, or the open container's from

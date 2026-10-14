@@ -200,6 +200,12 @@ public static class UWVRDiagnostics
             && !UWVRNearGrab.IsNewPhysicalGrip(true, false, false)
             && !UWVRNearGrab.IsNewPhysicalGrip(false, false, true),
             "VR grab must only begin on a real Touch grip rising edge");
+        fRequire(UWVRNearGrab.CanBeginDirectGrip(true, true, true, true, false)
+            && UWVRNearGrab.CanBeginDirectGrip(true, true, true, false, true)
+            && !UWVRNearGrab.CanBeginDirectGrip(true, true, true, false, false)
+            && !UWVRNearGrab.CanBeginDirectGrip(true, true, false, true, true)
+            && !UWVRNearGrab.CanBeginDirectGrip(false, true, true, true, true),
+            "Direct grip must accept an already-held swapped item on an empty slot, but no blank grip");
 
         Vector2 lOOrigin = new Vector2(25f, 30f);
         Vector2 lOTarget = new Vector2(100f, 90f);
@@ -225,6 +231,38 @@ public static class UWVRDiagnostics
             && !UWVRNearGrab.TryChoosePointer(false, false, true, false,
                 lOTarget, lOHandMoved, lOOrigin, out _),
             "Near-hand control may not steal the pointer when hidden or untracked");
+
+        // Exercise the actual inventory model behind both input routes. A
+        // direct grip must use the original take/drop/swap implementation,
+        // not copy, remove or fabricate item objects in a VR-only container.
+        UWInventoryModel lODirectInventory = new UWInventoryModel(() => null, () => null);
+        UWObject lOFirstItem = new UWObject(0);
+        UWObject lOSecondItem = new UWObject(315);
+        lODirectInventory.Backpack[0] = lOFirstItem;
+        lODirectInventory.Backpack[1] = lOSecondItem;
+        lODirectInventory.BeginDragFromBackpack(0);
+        fRequire(lODirectInventory.Backpack[0] == null
+            && lODirectInventory.CursorItem == lOFirstItem,
+            "Actual inventory model failed to take item into the authoritative cursor");
+        fRequire(lODirectInventory.DropCursorItemInBackpack(1)
+            && lODirectInventory.Backpack[1] == lOFirstItem
+            && lODirectInventory.CursorItem == lOSecondItem
+            && UWModernBags.ClassifyVRDirectRelease(lOFirstItem, lODirectInventory.CursorItem)
+                == UWModernBags.VRDirectGrabResult.Swapped,
+            "Real inventory swap must keep displaced object on cursor and report Swapped");
+        fRequire(lODirectInventory.DropCursorItemInBackpack(0)
+            && lODirectInventory.Backpack[0] == lOSecondItem
+            && lODirectInventory.CursorItem == null
+            && UWModernBags.ClassifyVRDirectRelease(lOSecondItem, lODirectInventory.CursorItem)
+                == UWModernBags.VRDirectGrabResult.Placed,
+            "Real inventory model failed to put swapped item into vacated slot");
+        fRequire(UWModernBags.ClassifyVRDirectRelease(lOFirstItem, lOFirstItem)
+                == UWModernBags.VRDirectGrabResult.StillHeld
+            && UWModernBags.ClassifyVRDirectRelease(lOFirstItem, new UWObject(0))
+                == UWModernBags.VRDirectGrabResult.Swapped
+            && UWModernBags.ClassifyVRDirectRelease(null, null)
+                == UWModernBags.VRDirectGrabResult.NoDrag,
+            "A rejected drop, empty grip, or new item with a repeated ID must be classified correctly");
 
         // A physical inventory quad is anchored in world space. Test the
         // controller-ray to source-screen mapping without any XR runtime or
@@ -460,7 +498,7 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, stereo UI, 11 equipment zones, spatial ray, 14 procedural mesh families, near-hand reach, physical grip edge, mouse-up priority, lost-tracking fallback and cursor safety.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, stereo UI, 11 equipment zones, spatial ray, 14 item mesh families, direct inventory take/swap/carry/replace with object-identity checks, physical grip edge and cursor safety.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 

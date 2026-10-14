@@ -6,16 +6,15 @@ using UWDataImport.UWData;
 /// <summary>
 /// Optional near-hand input adapter for the world-anchored inventory.
 /// When -vr-near-grab is used together with -vr-spatial-inventory, the bag
-/// panel is placed within reach. A right Touch grip started next to a real
-/// item slot holds the SAME synthetic left mouse button used by the game.
-/// The player's existing CursorItem, rather than a second VR inventory, owns
-/// taking, stacking, combining and dropping. Moving the controller to a real
-/// destination slot before releasing performs the game's normal drag.
+/// panel is placed within reach. The original HandGrab mode synthesizes OS
+/// mouse clicks. The extra -vr-direct-grab mode calls the original modern
+/// inventory press/release methods directly, avoiding asynchronous Windows
+/// mouse timing. Both delegate to the SAME underlying inventory model.
 ///
 /// This uses the tracked Touch controller position as a coarse hand proxy,
 /// NOT finger tracking or physics picking. There are no grab colliders.
 /// </summary>
-[DefaultExecutionOrder(-150)]
+[DefaultExecutionOrder(930)]
 public sealed class UWVRNearGrab : MonoBehaviour
 {
     public const float ReachMetres = 0.135f;
@@ -25,6 +24,8 @@ public sealed class UWVRNearGrab : MonoBehaviour
     private bool mbRawGripDown;
     private bool mbGrabbing;
     private bool mbGripStarted;
+    private bool mbDirectReleasedThisFrame;
+    private bool mbDirectCarryOnly;
     private bool mbNearPointValid;
     private int miReleasePointUntilFrame = -1;
     private Vector2 mNearPoint;
@@ -38,9 +39,12 @@ public sealed class UWVRNearGrab : MonoBehaviour
     private bool mbReportedController;
 
     public static bool IsEnabled => UWVRSpatialInventory.IsEnabled && UWVRBootstrap.NearGrabRequested;
+    public static bool UseDirectInventory => IsEnabled && UWVRBootstrap.DirectGrabRequested;
     public static bool IsActive => IsEnabled && UWVRSpatialInventory.VisiblePanel != null;
     public static bool GripHeld => msInstance != null && msInstance.mbGrabbing;
     public static bool GripStarted => msInstance != null && msInstance.mbGripStarted;
+    public static bool SuppressPadClickThisFrame => UseDirectInventory && msInstance != null
+        && (msInstance.mbGrabbing || msInstance.mbDirectReleasedThisFrame);
     public static UWObject HoveredItem => IsActive && msInstance != null
         && msInstance.mbNearPointValid && !msInstance.mbGrabbing
         ? msInstance.mHoverItem : null;
@@ -123,6 +127,14 @@ public sealed class UWVRNearGrab : MonoBehaviour
         return pbGripJustPressed && pbControllerNear && pbItemPresent && pbCursorEmpty;
     }
 
+    public static bool CanBeginDirectGrip(bool pbGripJustPressed,
+        bool pbControllerNear, bool pbValidSlot, bool pbItemPresent,
+        bool pbCursorHasItem)
+    {
+        return pbGripJustPressed && pbControllerNear && pbValidSlot
+            && (pbCursorHasItem || pbItemPresent);
+    }
+
     /// <summary>Monitor the physical Touch grip even while the panel is shut.
     /// Holding grip before opening a bag must NEVER count as a new grab.</summary>
     public static bool IsNewPhysicalGrip(bool pbPhysicalGripDown,
@@ -151,6 +163,7 @@ public sealed class UWVRNearGrab : MonoBehaviour
     private void Update()
     {
         mbGripStarted = false;
+        mbDirectReleasedThisFrame = false;
         mbNearPointValid = false;
 
         UWModernBags lOBags = UWModernBags.Instance;
@@ -187,10 +200,17 @@ public sealed class UWVRNearGrab : MonoBehaviour
         {
             Debug.LogWarning("[UWVR-GRAB] gesture canceled (UI hidden, modal or focus lost). item="
                 + (mPickedItem != null ? mPickedItem.ID.ToString() : "none"));
-            if (lOBags != null && lOInventory != null && lOInventory.CursorItem != null)
+            if (UseDirectInventory)
+            {
+                bool lbRestored = lOBags != null && lOBags.CancelVRDirectGrab();
+                Debug.Log("[UWVR-GRAB] direct interrupted, inventory returned=" + lbRestored);
+                mbDirectReleasedThisFrame = true;
+            }
+            else if (lOBags != null && lOInventory != null && lOInventory.CursorItem != null)
                 lOBags.ReturnCursorItem();
             mbGrabbing = false;
             mPickedItem = null;
+            mbDirectCarryOnly = false;
             miWaitForDropUntil = -1;
             miReleasePointUntilFrame = -1;
         }
@@ -224,19 +244,55 @@ public sealed class UWVRNearGrab : MonoBehaviour
         else
             mHoverItem = null;
 
-        if (!mbGrabbing && Time.frameCount > miReleasePointUntilFrame
-            && CanBeginGrip(IsNewPhysicalGrip(lbPhysicalGrip, mbRawGripDown, lbActive),
-                mbNearPointValid,
-                mbNearPointValid && lOBags != null
-                    && lOBags.TryGetVRItemAt(mNearPoint, out UWObject _),
-                lOInventory != null && lOInventory.CursorItem == null))
+        bool lbNewGrip = IsNewPhysicalGrip(lbPhysicalGrip, mbRawGripDown, lbActive);
+        bool lbCursorHasItem = lOInventory != null && lOInventory.CursorItem != null;
+        bool lbSlot = mbNearPointValid && lOBags != null && lOBags.IsVRDropSlot(mNearPoint);
+        bool lbOccupied = mbNearPointValid && lOBags != null
+            && lOBags.TryGetVRItemAt(mNearPoint, out UWObject _);
+        bool lbStart = UseDirectInventory
+            ? CanBeginDirectGrip(lbNewGrip, mbNearPointValid, lbSlot, lbOccupied, lbCursorHasItem)
+            : CanBeginGrip(lbNewGrip, mbNearPointValid, lbOccupied, !lbCursorHasItem);
+
+        if (!mbGrabbing && Time.frameCount > miReleasePointUntilFrame && lbStart
+            && (!UseDirectInventory || (!UWGamepadPointer.IsSyntheticLeftDown
+                && !Mouse.current.leftButton.isPressed)))
         {
-            mOriginPoint = mNearPoint;
-            mbGrabbing = true;
-            mbGripStarted = true;
-            mPickedItem = null;
-            Debug.Log("[UWVR-GRAB] grip start frame=" + Time.frameCount
-                + " source=" + mOriginPoint);
+            if (UseDirectInventory)
+            {
+                // Exact same modern bag handlers as the desktop mouse, but
+                // synchronous: no Windows click queue can steal/drop the item.
+                if (lbCursorHasItem)
+                {
+                    mOriginPoint = mNearPoint;
+                    mbGrabbing = true;
+                    mbDirectCarryOnly = true;
+                    mPickedItem = lOInventory.CursorItem;
+                    Debug.Log("[UWVR-GRAB] DIRECT resumed displaced item="
+                        + mPickedItem.ID + " frame=" + Time.frameCount);
+                }
+                else if (lOBags.TryBeginVRDirectGrab(mNearPoint, out UWObject lOTaken))
+                {
+                    mOriginPoint = mNearPoint;
+                    mbGrabbing = true;
+                    mbDirectCarryOnly = false;
+                    mPickedItem = lOTaken;
+                    Debug.Log("[UWVR-GRAB] DIRECT press frame=" + Time.frameCount
+                        + " source=" + mOriginPoint + " item=" + lOTaken.ID);
+                    Pulse(0.38f, 0.055f);
+                }
+                else
+                    Debug.Log("[UWVR-GRAB] DIRECT press ignored by inventory (source="
+                        + mNearPoint + ")");
+            }
+            else
+            {
+                mOriginPoint = mNearPoint;
+                mbGrabbing = true;
+                mbGripStarted = true;
+                mPickedItem = null;
+                Debug.Log("[UWVR-GRAB] grip start frame=" + Time.frameCount
+                    + " source=" + mOriginPoint);
+            }
         }
 
         if (mbGrabbing && lOInventory != null && lOInventory.CursorItem != null)
@@ -257,17 +313,41 @@ public sealed class UWVRNearGrab : MonoBehaviour
             bool lbValidDrop = mbNearPointValid && lOBags != null
                 && lOBags.IsVRDropSlot(mNearPoint);
             mReleasePoint = ReleasePoint(mOriginPoint, mNearPoint, lbValidDrop);
-            // OS mouse injection is observed by the Input System on its next
-            // update. Keep the release pixel stable for the next two frames;
-            // otherwise the old laser cursor could overwrite a valid drop.
-            miReleasePointUntilFrame = Time.frameCount + 2;
-            miWaitForDropUntil = mPickedItem != null ? Time.frameCount + 8 : -1;
-            miPendingItemId = mPickedItem != null ? mPickedItem.ID : (ushort)0;
-            Debug.Log("[UWVR-GRAB] release frame=" + Time.frameCount
-                + " dest=" + mReleasePoint + " validSlot=" + lbValidDrop
-                + " item=" + (mPickedItem != null ? mPickedItem.ID.ToString() : "not_taken"));
+            if (UseDirectInventory)
+            {
+                UWModernBags.VRDirectGrabResult leResult;
+                if (lOBags == null)
+                    leResult = UWModernBags.VRDirectGrabResult.NoDrag;
+                else if (mbDirectCarryOnly)
+                    leResult = lbValidDrop ? lOBags.PlaceVRDirectHeldItem(mReleasePoint)
+                        : UWModernBags.VRDirectGrabResult.StillHeld;
+                else
+                    leResult = lOBags.FinishVRDirectGrab(mReleasePoint, lbValidDrop);
+                mbDirectReleasedThisFrame = true;
+                miReleasePointUntilFrame = -1;
+                miWaitForDropUntil = -1;
+                Debug.Log("[UWVR-GRAB] DIRECT release frame=" + Time.frameCount
+                    + " dest=" + mReleasePoint + " validSlot=" + lbValidDrop
+                    + " result=" + leResult
+                    + " cursorItem=" + (lOInventory != null && lOInventory.CursorItem != null
+                        ? lOInventory.CursorItem.ID.ToString() : "none"));
+                if (leResult == UWModernBags.VRDirectGrabResult.Placed
+                    || leResult == UWModernBags.VRDirectGrabResult.Swapped)
+                    Pulse(0.26f, 0.05f);
+            }
+            else
+            {
+                // Legacy Windows SendInput path; retain it for A/B testing.
+                miReleasePointUntilFrame = Time.frameCount + 2;
+                miWaitForDropUntil = mPickedItem != null ? Time.frameCount + 8 : -1;
+                miPendingItemId = mPickedItem != null ? mPickedItem.ID : (ushort)0;
+                Debug.Log("[UWVR-GRAB] release frame=" + Time.frameCount
+                    + " dest=" + mReleasePoint + " validSlot=" + lbValidDrop
+                    + " item=" + (mPickedItem != null ? mPickedItem.ID.ToString() : "not_taken"));
+            }
             mbGrabbing = false;
             mPickedItem = null;
+            mbDirectCarryOnly = false;
         }
 
         // Confirmation comes from the game's actual inventory, not from the
@@ -308,9 +388,22 @@ public sealed class UWVRNearGrab : MonoBehaviour
 
     private void OnDisable()
     {
+        if (mbGrabbing)
+        {
+            UWModernBags lOBags = UWModernBags.Instance;
+            if (lOBags != null)
+            {
+                bool lbReturned = UWVRBootstrap.DirectGrabRequested
+                    ? lOBags.CancelVRDirectGrab() : lOBags.ReturnCursorItem();
+                Debug.LogWarning("[UWVR-GRAB] controller adapter disabled during drag; return="
+                    + lbReturned);
+            }
+        }
         mbGrabbing = false;
         mbRawGripDown = false;
         mbGripStarted = false;
+        mbDirectReleasedThisFrame = false;
+        mbDirectCarryOnly = false;
         mbNearPointValid = false;
         miReleasePointUntilFrame = -1;
     }

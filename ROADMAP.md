@@ -168,6 +168,15 @@ of what is built was also read out of the original's executable.
   Unity 6000.6.0f1 Windows x64 prototype rebuild also succeeded with zero
   errors, and the 353-entry grip-input-diagnostics ZIP passed package checks.
   In-game item transfers and haptics still need actual Quest verification.
+  A separately opt-in -vr-direct-grab route calls the modern bag's original
+  press/release methods without Windows synthetic mouse timing. The original
+  HandGrab script is retained for A/B testing. Direct hand grips can restore
+  off-panel items to their source and carry the displaced item after swaps.
+  Headset-free tests exercise real UWInventoryModel take/swap/place transitions;
+  runtime HMD input and visual alignment still require actual Quest testing.
+  The direct-inventory Windows x64 development build passes its HMD-free checks
+  and succeeds with zero errors (2026-10-14). Its separate 354-entry ZIP has
+  been checked for OpenXR, both grab launchers and absent original game files.
   Unity 6000.6.0f1 offline checks PASS and the updated hand-grab prototype
   Windows x64 development build succeeds (2026-10-14, zero errors). A new
   353-entry ZIP with eight launch scripts is validated. HMD behavior still
