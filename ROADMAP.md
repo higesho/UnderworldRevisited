@@ -221,7 +221,17 @@ of what is built was also read out of the original's executable.
   left-hand spell FX uses a tracked preview orb and a short 3D flash ONLY
   after the existing projectile is successfully spawned. No VR visuals can
   change underlying missile physics, ammo, mana or damage. Physical bowstring
-  haptics, finished assets and headset playtesting remain open.
+  haptic comfort tuning, finished assets and headset playtesting remain open.
+  Optional -vr-combat-haptics emits short XR impulse requests for the nocked
+  bow, four distinct bowstring draw milestones, successful arrow release (right
+  and left Touch), and successful hand-origin spell projectile (left Touch).
+  Throttling, focus/UI/tracking gates and device haptic support checks ensure
+  missing controller or blocked shots never imply successful firing. Actual
+  vibration hardware, comfort and visual timing remain headset-untested.
+  Unity 6000.6.0f1 offline haptic event/timing checks PASS. Windows x64 build
+  succeeds (2026-10-14, 0 errors). Separate 367-entry/22-launcher ZIP has
+  OpenXR DLLs and Japanese guide, with no original game data; no physical
+  Touch vibration tests were possible without a connected headset.
   Unity 6000.6.0f1 offline tests PASS for tracked 2-hand bow pull, lateral
   false-positive rejection, tracking loss, teleport, scale 1/16, duplicate
   release, bow stave and spell orb/ring geometry, color and short fade.

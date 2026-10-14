@@ -4,6 +4,19 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 両手弓・左手魔法のXR振動要求（10月14日）
+
+- 直前 `514cd7a` のGitHubへのプッシュと未コミット変更なしを確認してから開始。
+- `-vr-combat-haptics` を **`-vr -vr-hand-aim -vr-hand-origin` が有効な場合のみ**許可する追加の試験フラグとして実装。既定は無効。比較用の `LaunchVR_BowMagicHaptics.bat` と `LaunchVR_AllCombatHaptics.bat` を追加。従来の20種類のバッチを残す。
+- `UWVRBowHapticTimeline` が左手の弓つがえを1回だけ検出し、有効な弦の引き量が25/50/75/100%へ到達した際に各1回の振動要求を発行する。素早く複数段階を通過しても1フレームで1要求のみ、保持中の連打なし。追跡喪失・キャンセル・攻撃解除・UI切替は段階をリセットする。
+- `UWVRCombatHaptics` はUnity XRの `TryGetHapticCapabilities` と `SendHapticImpulse` を利用。**実際に矢の飛翔体が生成された後のみ**右Touch/左Touchに弦のリリース反応を、**実際に左手元から魔法弾が生成された後のみ**左Touchに発射反応を要求する。弾切れ、壁遮蔽、発射失敗、非対応コントローラーの場合は振動しない。インベントリ・会話・フォーカス喪失時も不発とする。
+- 振動の振幅は暫定的に最大0.46、各インパルスは0.085秒以内とし、同じTouchへの要求には最低0.105秒間隔を設ける。すべての数値はHMD実機での快適性調整が必要。振動を送っても、その機器で触覚が生じたかを自動的に確認できるわけではない。
+- 原作の矢や魔法の発射時刻・飛翔・ダメージ・弾数・魔力、既存の掴み操作の振動は変更しない。装備や視界のVR表示も従来通り。
+- Unity 6000.6.0f1でHMDなしの振動要求判定を検査。`L:\Games\UlutimaUW\unity-vr-combat-haptics-offline-20261014.log` に `[UWVR-OFFLINE] PASS`。同じ弓つがえで二重送信しないこと、引き段階の25/50/75/100%境界、急に引き切った1フレームでも複数送らないこと、追跡喪失・NaNデータの拒否、振幅と時間・最低間隔を確認。これは物理Touchが実際に振動した試験ではない。
+- `L:\Games\UlutimaUW\unity-vr-combat-haptics-build-20261014.log` に `[UWVR-OFFLINE] PASS` と `[UWVR] Build result: Succeeded; errors: 0` を記録。Unity 6000.6.0f1のWindows x64開発ビルドが正常終了。
+- 比較用配布ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-combat-haptics-win64.zip`（**102,068,242バイト／367項目／起動バッチ22種類**）。`LaunchVR_BowMagicHaptics.bat`、`LaunchVR_AllCombatHaptics.bat`、旧版起動バッチ、OpenXR関連DLL、日本語試験ガイド、更新 `Assembly-CSharp.dll` を検査した。原作ゲームデータなし、以前のZIPは保持。
+- ZIP SHA-256：`D9B454918E22DCBE6477905CF6070C3271B2D0EFF70A7DB828ED1C2ECD344B2F`。
+
 ### 両手での弓引きと魔法の左手3D発射演出（10月14日）
 
 - 直前の `53222a7` を `fork/japanese-localization` の最新コミットと照合し、未コミット変更なしから開始。

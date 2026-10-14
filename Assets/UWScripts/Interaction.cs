@@ -82,6 +82,7 @@ public class Interaction : MonoBehaviour
     private readonly UWVRBladeSweep mVRBladeSweep = new UWVRBladeSweep();
     private readonly UWVRTwoHandBowDraw mVRTwoHandBowDraw = new UWVRTwoHandBowDraw();
     private bool mbVRTwoHandBowXRHold;
+    private bool mbVRTwoHandBowShotHapticReady;
     private bool mbPendingVRBladeResolution;
     private UWVRBladeSweep.Contact mPendingVRBladeContact;
 
@@ -588,6 +589,7 @@ public class Interaction : MonoBehaviour
             if (fHoldsLauncher())
             {
                 bool lbDrawn = IsRangedTargeting;
+                mbVRTwoHandBowShotHapticReady = false;
 
                 // Only ordinary bows and actual Touch trigger events use the
                 // two-handed trial. The ORIGINAL minimum charge and ammo
@@ -601,18 +603,21 @@ public class Interaction : MonoBehaviour
                     bool lbPulled = mVRTwoHandBowDraw.TryRelease(lbReleaseTracked,
                         out float lfDrawFraction);
                     lbDrawn = lbDrawn && lbPulled;
+                    mbVRTwoHandBowShotHapticReady = lbDrawn && lbPulled;
                     Debug.Log("[UWVR-BOW] release: pulled=" + lbPulled
                         + "; draw=" + lfDrawFraction.ToString("0.00")
                         + "; original charged=" + IsRangedTargeting);
                 }
                 else
                     mVRTwoHandBowDraw.Reset();
+                UWVRCombatHaptics.ResetBow();
                 mbVRTwoHandBowXRHold = false;
 
                 mbAttackPending = false;
 
                 if (lbDrawn)
                     fResolveAttack();
+                mbVRTwoHandBowShotHapticReady = false;
             }
 
             if (!mbAttackPending)
@@ -876,6 +881,7 @@ public class Interaction : MonoBehaviour
         {
             mVRTwoHandBowDraw.Reset();
             mbVRTwoHandBowXRHold = false;
+            UWVRCombatHaptics.ResetBow();
             return;
         }
 
@@ -888,6 +894,7 @@ public class Interaction : MonoBehaviour
         {
             mVRTwoHandBowDraw.Reset();
             mbVRTwoHandBowXRHold = false;
+            UWVRCombatHaptics.ResetBow();
             return;
         }
 
@@ -899,6 +906,7 @@ public class Interaction : MonoBehaviour
             if (mbVRTwoHandBowXRHold)
                 mVRTwoHandBowDraw.Sample(false, Vector3.zero, Vector3.zero,
                     Vector3.forward, UWVRBootstrap.WorldUnitsPerMeter, Time.deltaTime);
+            UWVRCombatHaptics.ResetBow();
             return;
         }
 
@@ -908,6 +916,8 @@ public class Interaction : MonoBehaviour
             out Vector3 lOLeft, out Vector3 lOForward);
         mVRTwoHandBowDraw.Sample(lbTracked, lORight, lOLeft, lOForward,
             UWVRBootstrap.WorldUnitsPerMeter, Time.deltaTime);
+        UWVRCombatHaptics.BowSample(lbTracked && mVRTwoHandBowDraw.IsNocked,
+            mVRTwoHandBowDraw.DrawFraction);
     }
 
     private static bool fIsTouchAttack(InputAction pOAttackButton)
@@ -1677,6 +1687,8 @@ public class Interaction : MonoBehaviour
         mVRMeleeMotion.Reset();
         mVRTwoHandBowDraw.Reset();
         mbVRTwoHandBowXRHold = false;
+        mbVRTwoHandBowShotHapticReady = false;
+        UWVRCombatHaptics.ResetBow();
         mVRBladeSweep.Reset();
         mbPendingVRBladeResolution = false;
         mPendingVRBladeContact = default;
@@ -2782,7 +2794,11 @@ public class Interaction : MonoBehaviour
         // MissileRelease_seg025_9F: the ammunition is taken only when the missile could be
         // placed; blocked, it stays in the pack.
         if (fLaunchPlayerMissile(liAmmunitionId))
+        {
             mInventory.TryConsumeOne(lOAmmunition);
+            if (lOWeapon.ID == BowObjectId && mbVRTwoHandBowShotHapticReady)
+                UWVRCombatHaptics.BowProjectileLaunched();
+        }
 
         // The twang: bow and crossbow only, never the sling - and also when the shot failed
         // for lack of room (both paths of MissileRelease_seg025_9F end in it).
@@ -5779,6 +5795,11 @@ public class Interaction : MonoBehaviour
             mCharacter.SpendMana(miPendingManaCost);
 
         miPendingManaCost = 0;
+        // A haptic cast cue means the ORIGINAL projectile was successfully
+        // created from a currently tracked left Touch, not merely that the
+        // player pressed Cast. Rejected launches never produce this pulse.
+        if (leHandStart == UWVRHandLaunch.Result.Ready)
+            UWVRCombatHaptics.SpellProjectileLaunched();
     }
 
     /// <summary>A spell projectile has hit: hit effect and the eyes at the top

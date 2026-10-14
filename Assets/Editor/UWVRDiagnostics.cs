@@ -95,6 +95,9 @@ public static class UWVRDiagnostics
             "VR hand-origin missiles must never run in a desktop/offline session");
         fRequire(!UWVRTwoHandBowDraw.IsEnabled && !UWVRMagicHandFx.IsEnabled,
             "VR two-hand bow and spell visuals must never run during desktop/offline play");
+        fRequire(!UWVRCombatHaptics.IsEnabled,
+            "Combat haptics must remain disabled outside explicitly opted-in real XR sessions");
+        fTestVRCombatHaptics();
         fTestVRTwoHandBowAndMagic();
         fTestVRHandMuzzle();
         fTestVRBladeSweep();
@@ -624,8 +627,67 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, tracked two-hand bow nock/draw/release with jitter and lost-tracking safeguards, 3D bow/string geometry, left-hand magic orb/ring geometry and fade, original hand-origin missile physics, sword sweep, stereo UI and inventory.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, simulated bow nock/draw/release and milestone haptics, pulse throttle/limits and tracking-loss resets, 3D bow/string and spell FX, original missile physics, sword sweep, stereo UI and inventory.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
+    }
+
+    private static void fTestVRCombatHaptics()
+    {
+        UWVRBowHapticTimeline lOTimeline = new UWVRBowHapticTimeline();
+        fRequire(lOTimeline.Sample(false, 0f) == 0
+            && lOTimeline.Sample(true, 0f) == 1
+            && lOTimeline.Sample(true, 0f) == 0,
+            "Bow nocking must request one cue only, not an impulse on every frame");
+        fRequire(lOTimeline.Sample(true, 0.249f) == 0
+            && lOTimeline.Sample(true, 0.25f) == 2
+            && lOTimeline.Sample(true, 0.50f) == 3
+            && lOTimeline.Sample(true, 0.75f) == 4
+            && lOTimeline.Sample(true, 1.0f) == 5,
+            "Bowstring haptics must advance at distinct 25/50/75/100 percent stages");
+        for (int li = 0; li < 24; li++)
+            fRequire(lOTimeline.Sample(true, 1f) == 0,
+                "Holding a drawn bow must not cause continuous vibration");
+
+        lOTimeline.Reset();
+        fRequire(lOTimeline.Sample(true, 0f) == 1
+            && lOTimeline.Sample(true, 1f) == 5
+            && lOTimeline.Sample(true, 1f) == 0,
+            "One-frame fast drawing must not queue four overlapping impulses");
+        fRequire(lOTimeline.Sample(false, 1f) == 0
+            && !lOTimeline.HasNock
+            && lOTimeline.Sample(true, 0f) == 1,
+            "Losing either tracked hand must cancel and reset bow vibration milestones");
+        fRequire(lOTimeline.Sample(true, float.NaN) == 0
+            && !lOTimeline.HasNock && lOTimeline.Sample(true, 0f) == 1,
+            "Invalid controller draw data must not retain an armed haptic sequence");
+        fRequire(UWVRBowHapticTimeline.DrawMilestone(-1f) == 0
+            && UWVRBowHapticTimeline.DrawMilestone(0.25f) == 1
+            && UWVRBowHapticTimeline.DrawMilestone(0.50f) == 2
+            && UWVRBowHapticTimeline.DrawMilestone(0.75f) == 3
+            && UWVRBowHapticTimeline.DrawMilestone(0.99f) == 4
+            && UWVRBowHapticTimeline.DrawMilestone(float.NaN) == 0,
+            "Bowstring haptic milestone boundaries must be deterministic");
+        for (int li = 1; li <= 5; li++)
+        {
+            float lfAmplitude = UWVRBowHapticTimeline.DrawAmplitude(li);
+            float lfDuration = UWVRBowHapticTimeline.DrawDuration(li);
+            fRequire(lfAmplitude >= 0.12f && lfAmplitude <= 0.36f
+                && lfDuration >= 0.018f && lfDuration <= 0.0461f,
+                "Bow impulses must stay short and below the provisional strength ceiling");
+        }
+        fRequire(UWVRBowHapticTimeline.CanPulse(0f, float.NegativeInfinity)
+            && !UWVRBowHapticTimeline.CanPulse(0.05f, 0f)
+            && UWVRBowHapticTimeline.CanPulse(0.11f, 0f)
+            && !UWVRBowHapticTimeline.CanPulse(float.NaN, 0f),
+            "Per-hand impulse cool-down must throttle duplicate calls without blocking first use");
+
+        // These calls must remain inert in an offline/desktop session without
+        // attempting to use or emulate real XR hardware or force game input.
+        UWVRCombatHaptics.BowSample(true, 1f);
+        UWVRCombatHaptics.BowProjectileLaunched();
+        UWVRCombatHaptics.SpellProjectileLaunched();
+        fRequire(!UWVRCombatHaptics.IsEnabled,
+            "Haptic tests must never activate OpenXR or report physical vibration");
     }
 
     private static void fTestVRTwoHandBowAndMagic()

@@ -86,6 +86,10 @@ public static class UWVRBuild
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow -vr-hand-magic-fx -logFile \"%~dp0VR_BowAndMagic_Test.log\"\r\n");
         File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_AllCombat.bat"),
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-gesture-melee -vr-blade-contact -vr-two-hand-bow -vr-hand-magic-fx -logFile \"%~dp0VR_AllCombat_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BowMagicHaptics.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow -vr-hand-magic-fx -vr-combat-haptics -logFile \"%~dp0VR_BowMagicHaptics_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_AllCombatHaptics.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-gesture-melee -vr-blade-contact -vr-two-hand-bow -vr-hand-magic-fx -vr-combat-haptics -logFile \"%~dp0VR_AllCombatHaptics_Test.log\"\r\n");
 
         string lSGuide = Path.Combine(lSProjectRoot, "Docs", "VR_TEST_JA.txt");
         if (File.Exists(lSGuide))
