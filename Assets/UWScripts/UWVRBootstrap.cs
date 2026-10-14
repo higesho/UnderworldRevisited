@@ -15,6 +15,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private static bool msRequested;
     private static float msWorldUnitsPerMeter = UWVRWorldSpace.DefaultUnitsPerMeter;
     private static float msUiDistanceMeters = UWVRWorldSpace.DefaultUiDistanceMeters;
+    private static float msMenuDistanceMeters = UWVRWorldSpace.DefaultMenuDistanceMeters;
     private static float msInventoryDistanceMeters = UWVRWorldSpace.DefaultInventoryDistanceMeters;
     private static bool msSpatialInventoryRequested;
     private static bool msNearGrabRequested;
@@ -27,6 +28,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private static bool msHandMagicFxRequested;
     private static bool msCombatHapticsRequested;
     private static bool msCombatDiagnosticsRequested;
+    private static bool msLegacyMenuCanvasRequested;
+    private static bool msLeftEyeShiftRequested;
     private static UWVRCombatCalibration.Settings msCombatCalibration = UWVRCombatCalibration.Defaults;
     private static UWVRBootstrap msInstance;
     private bool mbReported;
@@ -35,10 +38,23 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private Camera mMenuCamera;
     private AudioListener mMenuListener;
     private Camera mCurrentVRCamera;
+    private bool mbOriginalRunInBackground;
+    private bool mbReportedCameras;
+
+    private void Awake()
+    {
+        // Virtual Desktop can move the Windows focus to its streamer while
+        // the Quest remains the active XR session. Keep HMD input + menu
+        // updates alive; this applies ONLY to explicitly requested VR mode.
+        mbOriginalRunInBackground = Application.runInBackground;
+        if (msRequested)
+            Application.runInBackground = true;
+    }
 
     public static bool IsRequested => msRequested;
     public static float WorldUnitsPerMeter => msWorldUnitsPerMeter;
     public static float UiDistanceMeters => msUiDistanceMeters;
+    public static float MenuDistanceMeters => msMenuDistanceMeters;
     public static float InventoryDistanceMeters => msInventoryDistanceMeters;
     public static bool SpatialInventoryRequested => msSpatialInventoryRequested;
     public static bool NearGrabRequested => msNearGrabRequested;
@@ -51,6 +67,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
     public static bool HandMagicFxRequested => msHandMagicFxRequested;
     public static bool CombatHapticsRequested => msCombatHapticsRequested;
     public static bool CombatDiagnosticsRequested => msCombatDiagnosticsRequested;
+    public static bool LegacyMenuCanvasRequested => msLegacyMenuCanvasRequested;
+    public static bool LeftEyeShiftRequested => msLeftEyeShiftRequested;
     public static UWVRCombatCalibration.Settings CombatCalibration => msCombatCalibration;
     public static bool HeadRelativeMovement { get; private set; } = true;
     public static bool IsHeadsetActive => msRequested && XRSettings.isDeviceActive;
@@ -65,6 +83,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
 
         msWorldUnitsPerMeter = UWVRWorldSpace.DefaultUnitsPerMeter;
         msUiDistanceMeters = UWVRWorldSpace.DefaultUiDistanceMeters;
+        msMenuDistanceMeters = UWVRWorldSpace.DefaultMenuDistanceMeters;
         msInventoryDistanceMeters = UWVRWorldSpace.DefaultInventoryDistanceMeters;
         msSpatialInventoryRequested = false;
         msNearGrabRequested = false;
@@ -77,6 +96,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
         msHandMagicFxRequested = false;
         msCombatHapticsRequested = false;
         msCombatDiagnosticsRequested = false;
+        msLegacyMenuCanvasRequested = false;
+        msLeftEyeShiftRequested = false;
         msCombatCalibration = UWVRCombatCalibration.Defaults;
         HeadRelativeMovement = true;
 
@@ -85,6 +106,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
 
         msWorldUnitsPerMeter = UWVRWorldSpace.ParseUnitsPerMeter(lOArgs);
         msUiDistanceMeters = UWVRWorldSpace.ParseUiDistanceMeters(lOArgs);
+        msMenuDistanceMeters = UWVRWorldSpace.ParseMenuDistanceMeters(lOArgs);
         msInventoryDistanceMeters = UWVRWorldSpace.ParseInventoryDistanceMeters(lOArgs);
         msSpatialInventoryRequested = Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-spatial-inventory", StringComparison.OrdinalIgnoreCase));
@@ -108,6 +130,10 @@ public sealed class UWVRBootstrap : MonoBehaviour
             pSArg => string.Equals(pSArg, "-vr-combat-haptics", StringComparison.OrdinalIgnoreCase));
         msCombatDiagnosticsRequested = msTwoHandBowRequested && Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-combat-diagnostics", StringComparison.OrdinalIgnoreCase));
+        msLegacyMenuCanvasRequested = Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-legacy-menu-canvas", StringComparison.OrdinalIgnoreCase));
+        msLeftEyeShiftRequested = Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-left-eye-shift", StringComparison.OrdinalIgnoreCase));
         msCombatCalibration = UWVRCombatCalibration.Parse(lOArgs);
         HeadRelativeMovement = !Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-body-relative", StringComparison.OrdinalIgnoreCase));
@@ -115,7 +141,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
         Debug.Log("[UWVR] Spatial calibration: " + msWorldUnitsPerMeter
             + " game units per metre; walking relative to "
             + (HeadRelativeMovement ? "head" : "body") + "; UI distance "
-            + msUiDistanceMeters + " metres; inventory "
+            + msUiDistanceMeters + " metres; 2D menu distance "
+            + msMenuDistanceMeters + " metres; inventory "
             + msInventoryDistanceMeters + " metres; spatial inventory "
             + (msSpatialInventoryRequested ? "enabled" : "off")
             + "; near grab " + (msNearGrabRequested ? "enabled" : "off")
@@ -128,6 +155,12 @@ public sealed class UWVRBootstrap : MonoBehaviour
             + "; hand magic visuals " + (msHandMagicFxRequested ? "enabled" : "off")
             + "; combat haptics " + (msCombatHapticsRequested ? "enabled" : "off")
             + "; combat diagnostics " + (msCombatDiagnosticsRequested ? "enabled" : "off") + ".");
+        Debug.Log("[UWVR-MENU] Title canvas: " + (msLegacyMenuCanvasRequested
+            ? "legacy ScreenSpaceCamera diagnostic comparison"
+            : "single world-space sheet for both XR eyes") + ".");
+        if (msLeftEyeShiftRequested)
+            Debug.Log("[UWVR-EYE-SHIFT] Per-eye framebuffer diagnostic requested; "
+                + "RIGHT unchanged, LEFT horizontal shift only, Left/Right arrows +/-4px, F6=reset.");
         Debug.Log("[UWVR-CAL] bow nock=" + msCombatCalibration.NockRadiusMetres.ToString("0.00")
             + "m; minimum pull=" + msCombatCalibration.MinPullMetres.ToString("0.00")
             + "m; full draw=" + msCombatCalibration.FullPullMetres.ToString("0.00")
@@ -145,6 +178,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
         lOHost.AddComponent<UWVRNearGrab>();
         lOHost.AddComponent<UWVRCanvasBridge>();
         lOHost.AddComponent<UWVRPointerReticle>();
+        if (msLeftEyeShiftRequested)
+            lOHost.AddComponent<UWVRLeftEyeShift>();
     }
 
     private IEnumerator Start()
@@ -190,6 +225,21 @@ public sealed class UWVRBootstrap : MonoBehaviour
             Debug.Log("[UWVR] Eye textures " + XRSettings.eyeTextureWidth + " x "
                 + XRSettings.eyeTextureHeight + "; stereo rendering: " + XRSettings.stereoRenderingMode);
             mbReported = true;
+        }
+
+        if (!mbReportedCameras && UWMainMenu.IsOpen)
+        {
+            mbReportedCameras = true;
+            foreach (Camera lODiagnosticCamera in UnityEngine.Object.FindObjectsByType<Camera>(
+                FindObjectsInactive.Exclude))
+            {
+                if (!lODiagnosticCamera.enabled)
+                    continue;
+                Debug.Log("[UWVR-STEREO] active camera=" + lODiagnosticCamera.name
+                    + "; stereo eye=" + lODiagnosticCamera.stereoTargetEye
+                    + "; depth=" + lODiagnosticCamera.depth
+                    + "; culling=" + lODiagnosticCamera.cullingMask);
+            }
         }
 
         // The player is not necessarily present on the main menu. Attach the
@@ -261,6 +311,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
 
     private void OnDestroy()
     {
+        Application.runInBackground = mbOriginalRunInBackground;
         if (mbStartedSubsystems)
         {
             XRManagerSettings lOManager = XRGeneralSettings.Instance != null

@@ -11,7 +11,21 @@ public static class UWVRBuild
     [MenuItem("Underworld/VR/Build Windows Prototype")]
     public static void BuildWindowsPrototype()
     {
+        BuildWindowsPrototypeTo("Build-vr-prototype");
+    }
+
+    /// <summary>Independent folder: a connected headset may still be using
+    /// the earlier UR.exe; never overwrite its binaries during an experiment.</summary>
+    [MenuItem("Underworld/VR/Build Extended Left-Eye Shift Trial")]
+    public static void BuildExtendedLeftEyeShiftTrial()
+    {
+        BuildWindowsPrototypeTo("Build-vr-left-eye-shift-extended");
+    }
+
+    private static void BuildWindowsPrototypeTo(string psDirectory)
+    {
         UWVRSetup.ConfigureWindowsOpenXR();
+        UWVRLeftEyeShiftSetup.ConfigureRenderer();
         UWVRDiagnostics.RunOfflineChecks();
 
         string[] lOScenes = EditorBuildSettings.scenes
@@ -22,7 +36,7 @@ public static class UWVRBuild
             throw new InvalidOperationException("[UWVR] No enabled scenes in Build Settings.");
 
         string lSProjectRoot = Directory.GetParent(Application.dataPath).FullName;
-        string lSBuildDirectory = Path.Combine(lSProjectRoot, "Build-vr-prototype");
+        string lSBuildDirectory = Path.Combine(lSProjectRoot, psDirectory);
         Directory.CreateDirectory(lSBuildDirectory);
 
         var lOOptions = new BuildPlayerOptions
@@ -44,6 +58,14 @@ public static class UWVRBuild
         // must not depend on files left over from a previous test build.
         File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR.bat"),
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -logFile \"%~dp0VR_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_MenuStereoFix.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -logFile \"%~dp0VR_MenuStereoFix_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_MenuDistance6.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-menu-distance=6.0 -logFile \"%~dp0VR_MenuDistance6_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_LeftEyeShift.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-left-eye-shift -logFile \"%~dp0VR_LeftEyeShift_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_MenuLegacyCompare.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-legacy-menu-canvas -logFile \"%~dp0VR_MenuLegacyCompare_Test.log\"\r\n");
         File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchDesktop.bat"),
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -logFile \"%~dp0Desktop_Test.log\"\r\n");
 

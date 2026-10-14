@@ -243,7 +243,21 @@ public static class UWScreenUi
 
         ((RectTransform)pOImage.transform).GetWorldCorners(lyCorners);
 
-        return Rect.MinMaxRect(lyCorners[0].x, lyCorners[0].y, lyCorners[2].x, lyCorners[2].y);
+        Canvas lOCanvas = pOImage.GetComponentInParent<Canvas>();
+        Camera lOCamera = lOCanvas != null
+            && lOCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? lOCanvas.worldCamera : null;
+        if (lOCamera == null)
+            return Rect.MinMaxRect(lyCorners[0].x, lyCorners[0].y,
+                lyCorners[2].x, lyCorners[2].y);
+
+        // In VR the menu is a physical world-space sheet, not an overlay.
+        // Project WORLD corners through the canvas camera before comparing
+        // against screen-pixel mouse/gamepad pointer positions.
+        Vector2 lOMin = RectTransformUtility.WorldToScreenPoint(lOCamera, lyCorners[0]);
+        Vector2 lOMax = RectTransformUtility.WorldToScreenPoint(lOCamera, lyCorners[2]);
+        return Rect.MinMaxRect(Mathf.Min(lOMin.x, lOMax.x), Mathf.Min(lOMin.y, lOMax.y),
+            Mathf.Max(lOMin.x, lOMax.x), Mathf.Max(lOMin.y, lOMax.y));
     }
 
     /// <summary>The gamepad's B, read on the pad itself - the back of the main menu and the
@@ -265,8 +279,12 @@ public static class UWScreenUi
         if (lOMouse == null)
             return false;
 
+        Canvas lOCanvas = pOImage.GetComponentInParent<Canvas>();
+        Camera lOCamera = lOCanvas != null
+            && lOCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? lOCanvas.worldCamera : null;
         return RectTransformUtility.RectangleContainsScreenPoint((RectTransform)pOImage.transform,
-            lOMouse.position.ReadValue(), null);
+            lOMouse.position.ReadValue(), lOCamera);
     }
 
     public static bool WasLeftClicked()

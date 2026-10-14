@@ -178,7 +178,11 @@ public class UWMainMenu : MonoBehaviour
         AcceptsMenuBar = IsOpen && (meMode == Mode.Buttons || meMode == Mode.SaveList);
 
         // The menu bar, one of its menus or dialogs has the mouse.
-        if (AcceptsMenuBar && UWSetupMenu.IsCapturingInput)
+        // The legacy Windows menu bar depends on the 2D system pointer and
+        // is not a tracked XR panel. It must not swallow *all* inputs on the
+        // Quest main menu just because the desktop cursor was left over it.
+        if (AcceptsMenuBar && UWSetupMenu.IsCapturingInput
+            && !UWVRBootstrap.IsHeadsetActive)
             return;
 
         switch (meMode)
@@ -321,6 +325,10 @@ public class UWMainMenu : MonoBehaviour
 
     private Mode meSteppedMode = Mode.Hidden;
 
+    private readonly UWVRMenuNavigation mVRNavigation = new UWVRMenuNavigation();
+    private Mode meVRNavigationMode = Mode.Hidden;
+    private int miVRSelected;
+
     private void fStepByPad(RawImage[] pyEntries, int piCount)
     {
         mOPadRects.Clear();
@@ -345,6 +353,13 @@ public class UWMainMenu : MonoBehaviour
 
     private void fUpdateButtons()
     {
+        if (UWVRMenuNavigation.IsActive)
+        {
+            fUpdateVRButtons();
+            return;
+        }
+
+        meVRNavigationMode = Mode.Hidden;
         fStepByPad(mOButtons, ButtonCount);
 
         int liHover = -1;
@@ -369,7 +384,46 @@ public class UWMainMenu : MonoBehaviour
         if (miHover < 0 || !UWScreenUi.WasLeftClicked())
             return;
 
-        switch (miHover)
+        fActivateButton(miHover);
+    }
+
+    /// <summary>VR MAIN MENU needs no Windows mouse, screen-space hit test,
+    /// mouse warp, or tracked hand POSE. Direction keys, pad and Touch change
+    /// a visible selection; Enter/A/Touch trigger directly activates it.</summary>
+    private void fUpdateVRButtons()
+    {
+        if (meVRNavigationMode != Mode.Buttons)
+        {
+            meVRNavigationMode = Mode.Buttons;
+            miVRSelected = 0;
+            Debug.Log("[UWVR-MENU] Main menu direct navigation active: keyboard arrows/Enter, "
+                + "gamepad d-pad/A, either Touch thumbstick and trigger/A/X.");
+        }
+
+        UWVRMenuNavigation.Commands lOCommands = mVRNavigation.Poll();
+        if (lOCommands.Step != 0)
+            miVRSelected = UWVRMenuNavigation.WrapSelection(
+                miVRSelected, lOCommands.Step, ButtonCount);
+
+        if (miHover != miVRSelected)
+        {
+            miHover = miVRSelected;
+            for (int liAt = 0; liAt < ButtonCount; liAt++)
+                UWScreenUi.SetTexture(mOButtons[liAt],
+                    liAt == miHover ? mOButtonOn[liAt] : mOButtonOff[liAt]);
+            Debug.Log("[UWVR-MENU] Highlight main menu option " + (miHover + 1));
+        }
+
+        if (lOCommands.Confirm)
+        {
+            Debug.Log("[UWVR-MENU] Activate main menu option " + (miVRSelected + 1));
+            fActivateButton(miVRSelected);
+        }
+    }
+
+    private void fActivateButton(int piButton)
+    {
+        switch (piButton)
         {
             case IntroductionButton:
                 fPlayCutscene(IntroductionCutscene);
@@ -458,6 +512,13 @@ public class UWMainMenu : MonoBehaviour
 
     private void fUpdateSaveList()
     {
+        if (UWVRMenuNavigation.IsActive)
+        {
+            fUpdateVRSaveList();
+            return;
+        }
+
+        meVRNavigationMode = Mode.Hidden;
         Keyboard lOKeyboard = Keyboard.current;
 
         // B as Escape (UWScreenUi.WasPadBackPressed).
@@ -495,12 +556,54 @@ public class UWMainMenu : MonoBehaviour
         if (miHover < 0 || !UWScreenUi.WasLeftClicked())
             return;
 
+        fRestoreSave(miHover);
+    }
+
+    private void fUpdateVRSaveList()
+    {
+        if (meVRNavigationMode != Mode.SaveList)
+        {
+            meVRNavigationMode = Mode.SaveList;
+            miVRSelected = 0;
+            Debug.Log("[UWVR-MENU] Save list navigation: up/down, confirm, back.");
+        }
+
+        UWVRMenuNavigation.Commands lOCommands = mVRNavigation.Poll();
+        if (lOCommands.Back)
+        {
+            fShowButtons();
+            return;
+        }
+
+        if (lOCommands.Step != 0)
+            miVRSelected = UWVRMenuNavigation.WrapSelection(
+                miVRSelected, lOCommands.Step, UWSavegameSlots.SlotCount);
+
+        if (miHover != miVRSelected)
+        {
+            int liOld = miHover;
+            miHover = miVRSelected;
+            if (liOld >= 0)
+                fDrawSaveLabel(liOld, false);
+            fDrawSaveLabel(miHover, true);
+            Debug.Log("[UWVR-MENU] Highlight save slot " + (miHover + 1));
+        }
+
+        if (lOCommands.Confirm)
+        {
+            Debug.Log("[UWVR-MENU] Load save slot " + (miVRSelected + 1));
+            fRestoreSave(miVRSelected);
+        }
+    }
+
+    private void fRestoreSave(int piSlot)
+    {
         string lsRoot = UnderworldRevisited.UWSettings.Instance != null ? UnderworldRevisited.UWSettings.Instance.SavegameRoot : null;
 
         // Time must run again before the restart - otherwise the scene starts frozen.
         UWGameClock.ReleaseAll();
 
-        if (!UWSavegameSlots.Restore(lsRoot, miHover + 1))
+        if (!UWSavegameSlots.Restore(lsRoot, piSlot + 1))
             UWGameClock.Hold(UWGameClock.MainMenuHold);
     }
 

@@ -99,6 +99,8 @@ public static class UWVRDiagnostics
             "Combat haptics must remain disabled outside explicitly opted-in real XR sessions");
         fRequire(!UWVRBootstrap.CombatDiagnosticsRequested,
             "Verbose VR combat telemetry must remain off in desktop/offline sessions");
+        fTestVRLeftEyeShift();
+        fTestVRMenuStereoAndNavigation();
         fTestVRCombatCalibration();
         fTestVRCombatHaptics();
         fTestVRTwoHandBowAndMagic();
@@ -630,8 +632,175 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, calibrated two-hand bow CLI defaults/ranges and world scale, capped haptic gain, tracked bow draw and vibration stages, spell FX, original missile physics, sword sweep, stereo UI and inventory.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, opt-in left-eye-only XR shader + horizontal UV offset and reset bounds, stereo-safe menu sheet, direct XR/keyboard/pad menu, bow and haptics, original projectile physics, sword sweep and inventory.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
+    }
+
+    private static void fTestVRLeftEyeShift()
+    {
+        fRequire(!UWVRLeftEyeShift.IsEnabled,
+            "Left-eye shift must be OFF during desktop and unattended Unity tests");
+        fRequire(UWVRLeftEyeShift.ClampPixels(-1000) == -768
+            && UWVRLeftEyeShift.ClampPixels(1000) == 768
+            && UWVRLeftEyeShift.ClampPixels(576) == 576
+            && UWVRLeftEyeShift.ClampPixels(768) == 768
+            && UWVRLeftEyeShift.ClampPixels(0) == 0
+            && UWVRLeftEyeShift.StepPixels == 4
+            && UWVRLeftEyeShift.FastStepPixels == 32,
+            "Left-eye shift must allow at least three times the former 192px limit, retain 4px precision and 32px fast steps");
+        fRequire(Mathf.Abs(UWVRLeftEyeShift.NormalizedOffset(4, 2688)
+                - 4f / 2688f) < 0.000001f
+            && Mathf.Abs(UWVRLeftEyeShift.NormalizedOffset(-8, 2688)
+                + 8f / 2688f) < 0.000001f
+            && UWVRLeftEyeShift.NormalizedOffset(4, 0) == 0f
+            && UWVRLeftEyeShift.NormalizedOffset(-8, -1) == 0f
+            && UWVRLeftEyeShift.NormalizedOffset(0, 2688) == 0f,
+            "A left-image pixel shift must convert to valid eye-render-target UV, never divide by zero or change the right eye");
+        fRequire(Mathf.Abs(UWVRLeftEyeShift.NormalizedOffset(576, 2688)
+                - 576f / 2688f) < 0.000001f
+            && Mathf.Abs(UWVRLeftEyeShift.NormalizedOffset(768, 2688)
+                - 768f / 2688f) < 0.000001f
+            && Mathf.Abs(UWVRLeftEyeShift.NormalizedOffset(900, 2688)
+                - 768f / 2688f) < 0.000001f,
+            "New extended left-eye range must cover >=576 pixels and clamp after 768 pixels");
+        Matrix4x4 lOLeftEyeView = Matrix4x4.TRS(
+            Vector3.left * 0.032f, Quaternion.identity, Vector3.one).inverse;
+        Matrix4x4 lORightEyeView = Matrix4x4.TRS(
+            Vector3.right * 0.032f, Quaternion.identity, Vector3.one).inverse;
+        fRequire(Mathf.Abs(UWVRLeftEyeShift.SignedEyeBaseline(
+                lOLeftEyeView, lORightEyeView, Vector3.right) - 0.064f) < 0.000001f
+            && Mathf.Abs(UWVRLeftEyeShift.SignedEyeBaseline(
+                lORightEyeView, lOLeftEyeView, Vector3.right) + 0.064f) < 0.000001f,
+            "XR stereo view-matrix audit must flag a deliberately reversed left/right eye baseline");
+
+        UnityEngine.Rendering.Universal.UniversalRendererData lORenderer =
+            AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.Universal.UniversalRendererData>(
+                UWVRLeftEyeShiftSetup.RendererAssetPath);
+        fRequire(lORenderer != null
+            && lORenderer.rendererFeatures.Exists(pOFeature =>
+                pOFeature is UWVRLeftEyeShiftRendererFeature),
+            "URP renderer must contain the opt-in XR eye-shift feature");
+        Material lOMaterial = AssetDatabase.LoadAssetAtPath<Material>(
+            UWVRLeftEyeShiftSetup.MaterialAssetPath);
+        fRequire(lOMaterial != null && lOMaterial.shader != null
+            && lOMaterial.shader.name == UWVRLeftEyeShiftSetup.ShaderName
+            && lOMaterial.shader.isSupported,
+            "URP eye-shift blit shader and persistent material must be build-ready");
+    }
+
+    private static void fTestVRMenuStereoAndNavigation()
+    {
+        fRequire(Mathf.Abs(UWVRWorldSpace.ParseMenuDistanceMeters(null) - 4f) < 0.00001f
+            && Mathf.Abs(UWVRWorldSpace.ParseMenuDistanceMeters(
+                new[] { "-VR-MENU-DISTANCE=6.0" }) - 6f) < 0.00001f
+            && Mathf.Abs(UWVRWorldSpace.ParseMenuDistanceMeters(
+                new[] { "-vr-menu-distance=NaN" }) - 4f) < 0.00001f
+            && Mathf.Abs(UWVRWorldSpace.ParseMenuDistanceMeters(
+                new[] { "-vr-menu-distance=9" }) - 4f) < 0.00001f
+            && Mathf.Abs(UWVRWorldSpace.ParseUiDistanceMeters(null) - 2.25f) < 0.00001f
+            && Mathf.Abs(UWVRWorldSpace.ParseInventoryDistanceMeters(null) - 1.8f) < 0.00001f,
+            "Full-screen 2D menu distance must default to 4m and remain independent of HUD/bag distance");
+        fRequire(Mathf.Abs(UWVRCanvasBridge.PhysicalMenuWidthAtDistance(2.25f) - 2.4f) < 0.00001f
+            && Mathf.Abs(UWVRCanvasBridge.PhysicalMenuWidthAtDistance(4f) - 4.2666667f) < 0.0001f
+            && Mathf.Abs(UWVRCanvasBridge.PhysicalMenuWidthAtDistance(6f) - 6.4f) < 0.0001f,
+            "More distant menus must increase plane width proportionally to preserve apparent size");
+        fRequire(UWVRCanvasBridge.IsStereoMenuCanvas("UW Main Menu")
+            && UWVRCanvasBridge.IsStereoMenuCanvas("UW Intro Canvas")
+            && UWVRCanvasBridge.IsStereoMenuCanvas("UW Character Creation")
+            && UWVRCanvasBridge.IsStereoMenuCanvas("UW Loading Cover")
+            && !UWVRCanvasBridge.IsStereoMenuCanvas("Modern HUD")
+            && !UWVRCanvasBridge.IsStereoMenuCanvas("Modern bags"),
+            "VR stereo-safe full-screen conversion must exclude gameplay and inventory canvases");
+
+        fRequire(UWVRMenuNavigation.WrapSelection(0, -1, 4) == 3
+            && UWVRMenuNavigation.WrapSelection(3, 1, 4) == 0
+            && UWVRMenuNavigation.WrapSelection(1, 1, 4) == 2
+            && UWVRMenuNavigation.WrapSelection(2, 2, 4) == 0
+            && UWVRMenuNavigation.WrapSelection(0, 1, 0) == -1,
+            "Main menu and savegame selection must wrap correctly with no mouse pointer");
+        fRequire(UWVRMenuNavigation.StickDirection(0.85f) == -1
+            && UWVRMenuNavigation.StickDirection(-0.85f) == 1
+            && UWVRMenuNavigation.StickDirection(0.3f) == 0,
+            "Quest thumbsticks must map up/down with a noise-rejecting dead zone");
+
+        GameObject lORoot = new GameObject("VR menu test desktop parent");
+        GameObject lOCameraObject = new GameObject("VR menu test eye", typeof(Camera));
+        GameObject lOCanvasObject = new GameObject("UW Main Menu",
+            typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+        GameObject lOButtonObject = new GameObject("Menu test button",
+            typeof(RectTransform), typeof(RawImage));
+        try
+        {
+            Camera lOCamera = lOCameraObject.GetComponent<Camera>();
+            lOCamera.pixelRect = new Rect(0f, 0f, 800f, 600f);
+            lOCamera.transform.position = new Vector3(3f, 2f, 5f);
+            lOCamera.transform.rotation = Quaternion.Euler(0f, 20f, 0f);
+            lOCamera.nearClipPlane = 0.05f;
+            lOCamera.farClipPlane = 30f;
+            lOCamera.fieldOfView = 90f;
+
+            RectTransform lORect = lOCanvasObject.GetComponent<RectTransform>();
+            lORect.SetParent(lORoot.transform, false);
+            lORect.localPosition = new Vector3(1f, 3f, 2f);
+            Canvas lOCanvas = lOCanvasObject.GetComponent<Canvas>();
+            lOCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            lOCanvas.sortingOrder = 95;
+
+            RectTransform lOButtonRect = lOButtonObject.GetComponent<RectTransform>();
+            lOButtonRect.SetParent(lORect, false);
+            lOButtonRect.anchorMin = lOButtonRect.anchorMax = new Vector2(0.5f, 0.5f);
+            lOButtonRect.sizeDelta = new Vector2(80f, 30f);
+            lOButtonRect.anchoredPosition = Vector2.zero;
+
+            UWVRCanvasBridge.ConfigureStereoMenuCanvas(lOCanvas, lOCamera, 2.25f);
+            fRequire(lOCanvas.renderMode == RenderMode.WorldSpace
+                && lOCanvas.worldCamera == lOCamera
+                && lORect.parent == lOCamera.transform
+                && (lORect.localPosition - Vector3.forward * 2.25f).sqrMagnitude < 0.00001f,
+                "Full-screen VR menu must become exactly one physical sheet attached to head center");
+            fRequire(lORect.sizeDelta == new Vector2(320f, 200f)
+                && Mathf.Abs(lORect.rect.width * lORect.lossyScale.x
+                    - UWVRCanvasBridge.MenuPhysicalWidthMetres) < 0.00001f,
+                "Stereo menu must have a fixed comfortable physical width and logical screen size");
+
+            // Both physical eyes are 32mm left/right of the center camera,
+            // viewing ONE unchanged world-space point. Never create per-eye
+            // UI objects or add another artificial IPD shift in our scripts.
+            Vector3 lOPanelPoint = lORect.TransformPoint(Vector3.zero);
+            Vector3 lOLeftEye = lOCamera.transform.TransformPoint(Vector3.left * 0.032f);
+            Vector3 lORightEye = lOCamera.transform.TransformPoint(Vector3.right * 0.032f);
+            Vector3 lOPanelNormal = lORect.forward;
+            fRequire(Mathf.Abs(Vector3.Dot(lOPanelPoint - lOLeftEye, lOPanelNormal)
+                    - Vector3.Dot(lOPanelPoint - lORightEye, lOPanelNormal)) < 0.00001f,
+                "Menu plane depth must match both XR eyes, not be independently centered per-eye");
+
+            Canvas.ForceUpdateCanvases();
+            Rect lOScreenRect = UWScreenUi.ScreenRectOf(lOButtonObject.GetComponent<RawImage>());
+            fRequire(lOScreenRect.width > 4f && lOScreenRect.height > 2f,
+                "Mouse/gamepad menu hit rectangles must be projected to screen pixels from VR world space");
+
+            // Simulate transition from the title camera to the world camera.
+            UWVRCanvasBridge.ConfigureStereoMenuCanvas(lOCanvas, lOCamera, 1.8f);
+            fRequire(Mathf.Abs(lORect.localPosition.z - 1.8f) < 0.00001f,
+                "The same physical title sheet must be able to follow an XR camera switch");
+
+            UWVRCanvasBridge.ConfigureStereoMenuCanvas(lOCanvas, lOCamera,
+                UWVRWorldSpace.DefaultMenuDistanceMeters);
+            fRequire(Mathf.Abs(lORect.localPosition.z - 4f) < 0.00001f
+                && Mathf.Abs(lORect.rect.width * lORect.lossyScale.x - 4.2666667f) < 0.0001f,
+                "Quest menu must move from 2.25m to the actual 4m default with same visual angle");
+            UWVRCanvasBridge.ConfigureStereoMenuCanvas(lOCanvas, lOCamera, 6f);
+            fRequire(Mathf.Abs(lORect.localPosition.z - 6f) < 0.00001f
+                && Mathf.Abs(lORect.rect.width * lORect.lossyScale.x - 6.4f) < 0.0001f,
+                "6m comparison option must place 2D art farther away without shrinking it");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(lOButtonObject);
+            UnityEngine.Object.DestroyImmediate(lOCanvasObject);
+            UnityEngine.Object.DestroyImmediate(lOCameraObject);
+            UnityEngine.Object.DestroyImmediate(lORoot);
+        }
     }
 
     private static void fTestVRCombatHaptics()

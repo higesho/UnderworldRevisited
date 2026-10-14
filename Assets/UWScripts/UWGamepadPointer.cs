@@ -245,6 +245,16 @@ public class UWGamepadPointer : MonoBehaviour
 
     private void Update()
     {
+        // The initial XR title menu uses DIRECT item selection from both
+        // Touch controllers/keyboard/pad. The same right trigger is also
+        // mapped to PadClick. Do not enqueue a second synthetic mouse-down
+        // after the menu already accepted the direct selection.
+        if (UWVRMenuNavigation.IsActive)
+        {
+            fLetGo();
+            return;
+        }
+
         UWControls lOControls = fControls();
 
         if (lOControls == null)

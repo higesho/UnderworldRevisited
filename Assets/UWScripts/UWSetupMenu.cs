@@ -232,6 +232,20 @@ public partial class UWSetupMenu : MonoBehaviour
     /// main menu whether it may use the mouse.</summary>
     private void fUpdateOverMainMenu()
     {
+        // The setup bar is drawn with desktop IMGUI in raw screen pixels.
+        // It is not a stereo XR plane and may take input merely because the
+        // Windows cursor was left near the top of the mirror window. Do not
+        // let it obscure or capture the directly navigable VR title screen.
+        // Keep the first-run folder-selection dialog available.
+        if (UWVRBootstrap.IsHeadsetActive)
+        {
+            mbBarShown = false;
+            meOpenMenu = MenuEnum.None;
+            IsCapturingInput = false;
+            HasOpenPanel = false;
+            return;
+        }
+
         if (mOEffects != null && mOEffects.IsOpen)
         {
             mOEffects.Update();
@@ -733,6 +747,9 @@ public partial class UWSetupMenu : MonoBehaviour
 
     private void OnGUI()
     {
+        if (UWVRBootstrap.IsHeadsetActive && !mbFirstRun)
+            return;
+
         fEnsureStyles();
 
         float lfScale = Screen.height / ReferenceHeight;

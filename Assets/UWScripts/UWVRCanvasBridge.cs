@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// VR compatibility layer for the existing 2D UGUI canvases. The game's UI
@@ -19,6 +20,13 @@ public sealed class UWVRCanvasBridge : MonoBehaviour
         public RenderMode Mode;
         public Camera WorldCamera;
         public float PlaneDistance;
+        public Transform Parent;
+        public Vector3 LocalPosition;
+        public Quaternion LocalRotation;
+        public Vector3 LocalScale;
+        public Vector2 SizeDelta;
+        public UWFitCanvas Fit;
+        public bool FitEnabled;
     }
 
     private readonly Dictionary<Canvas, OriginalCanvas> mOriginal =
@@ -88,13 +96,27 @@ public sealed class UWVRCanvasBridge : MonoBehaviour
                 {
                     Mode = lOCanvas.renderMode,
                     WorldCamera = lOCanvas.worldCamera,
-                    PlaneDistance = lOCanvas.planeDistance
+                    PlaneDistance = lOCanvas.planeDistance,
+                    Parent = lOCanvas.transform.parent,
+                    LocalPosition = lOCanvas.transform.localPosition,
+                    LocalRotation = lOCanvas.transform.localRotation,
+                    LocalScale = lOCanvas.transform.localScale,
+                    SizeDelta = ((RectTransform)lOCanvas.transform).sizeDelta,
+                    Fit = lOCanvas.GetComponent<UWFitCanvas>(),
+                    FitEnabled = lOCanvas.GetComponent<UWFitCanvas>() != null
+                        && lOCanvas.GetComponent<UWFitCanvas>().enabled
                 });
                 liNew++;
             }
 
             if (!UWVRSpatialInventory.TryConfigureSourceCanvas(lOCanvas))
-                ConfigureCanvas(lOCanvas, lOCamera);
+            {
+                if (!UWVRBootstrap.LegacyMenuCanvasRequested && IsStereoMenuCanvas(lOCanvas.name))
+                    ConfigureStereoMenuCanvas(lOCanvas, lOCamera,
+                        UWVRBootstrap.MenuDistanceMeters);
+                else
+                    ConfigureCanvas(lOCanvas, lOCamera);
+            }
         }
 
         if (liNew > 0)
@@ -133,6 +155,74 @@ public sealed class UWVRCanvasBridge : MonoBehaviour
         pOCanvas.planeDistance = CalculatePlaneDistance(pOCamera, pfDistanceMeters);
     }
 
+    /// <summary>The game's title and character-creation images are fully
+    /// screen-aligned 2D artwork. ScreenSpaceCamera renders them through a
+    /// stereo projection separately for each eye, which can leave the two
+    /// images at different apparent locations under VDXR. Anchor ONE physical
+    /// world-space sheet in front of the HMD instead: both eyes see the same
+    /// actual stereo object at one comfortable distance. Do not change any
+    /// 3D gameplay HUD, inventory camera or desktop canvas.</summary>
+    public static bool IsStereoMenuCanvas(string psName)
+    {
+        return string.Equals(psName, "UW Main Menu", StringComparison.Ordinal)
+            || string.Equals(psName, "UW Intro Canvas", StringComparison.Ordinal)
+            || string.Equals(psName, "UW Character Creation", StringComparison.Ordinal)
+            || string.Equals(psName, "UW Loading Cover", StringComparison.Ordinal);
+    }
+
+    public const float MenuPhysicalWidthMetres = 2.40f;
+    public const float MenuReferenceDistanceMetres = 2.25f;
+
+    /// <summary>Changing eye convergence distance should not also make the
+    /// text unreadably small. Preserve the previous menu's angular width.
+    /// The menu is still ONE physical plane for both XR eyes.</summary>
+    public static float PhysicalMenuWidthAtDistance(float pfDistanceMetres)
+    {
+        return MenuPhysicalWidthMetres
+            * Mathf.Max(0.6f, pfDistanceMetres) / MenuReferenceDistanceMetres;
+    }
+
+    /// <summary>A single centered plane, 320 by 200 logical pixels, attached
+    /// to the tracked XR camera. The physical size/distance is independent of
+    /// dungeon world scale; the XR plugin alone supplies the per-eye offsets.
+    /// No separate eye offsets, projection hacks or one-camera-per-eye.</summary>
+    public static void ConfigureStereoMenuCanvas(Canvas pOCanvas,
+        Camera pOCamera, float pfDistanceMetres)
+    {
+        if (pOCanvas == null || pOCamera == null)
+            return;
+
+        bool lbFirst = pOCanvas.renderMode != RenderMode.WorldSpace;
+        RectTransform lORect = (RectTransform)pOCanvas.transform;
+        if (lORect.parent != pOCamera.transform)
+            lORect.SetParent(pOCamera.transform, false);
+
+        float lfDistance = Mathf.Max(0.6f, pfDistanceMetres);
+        float lfWidth = PhysicalMenuWidthAtDistance(lfDistance);
+        float lfScale = lfWidth / UWScreenUi.ScreenWidth;
+        // The fade/loading cover must remain in front of the menu card.
+        // Different canvas sorting orders previously accomplished this in
+        // ScreenSpaceOverlay; preserve that ordering with small Z offsets.
+        float lfDepthOffset = pOCanvas.name == "UW Loading Cover" ? 0.07f : 0f;
+        lORect.localPosition = new Vector3(0f, 0f, lfDistance - lfDepthOffset);
+        lORect.localRotation = Quaternion.identity;
+        lORect.localScale = Vector3.one * lfScale;
+        lORect.sizeDelta = new Vector2(UWScreenUi.ScreenWidth, UWScreenUi.ScreenHeight);
+
+        UWFitCanvas lOFit = pOCanvas.GetComponent<UWFitCanvas>();
+        if (lOFit != null)
+            lOFit.enabled = false; // screen-height fitting does not apply to a physical card
+
+        pOCanvas.renderMode = RenderMode.WorldSpace;
+        pOCanvas.worldCamera = pOCamera;
+        if (lbFirst)
+            Debug.Log("[UWVR-STEREO] " + pOCanvas.name
+                + " -> centered world-space plane; camera=" + pOCamera.name
+                + "; width=" + lfWidth.ToString("0.00")
+                + "m; distance=" + (lfDistance - lfDepthOffset).ToString("0.00")
+                + "m; both XR eyes share the same UI geometry.");
+    }
+
     /// <summary>
     /// A game unit is not necessarily one metre. Camera and stereo eye
     /// offsets both inherit XR tracking scale, so head-locked UI must be
@@ -161,6 +251,17 @@ public sealed class UWVRCanvasBridge : MonoBehaviour
             lOCanvas.renderMode = lOEntry.Value.Mode;
             lOCanvas.worldCamera = lOEntry.Value.WorldCamera;
             lOCanvas.planeDistance = lOEntry.Value.PlaneDistance;
+            Transform lOParent = lOEntry.Value.Parent;
+            if (lOParent != null)
+            {
+                lOCanvas.transform.SetParent(lOParent, false);
+                lOCanvas.transform.localPosition = lOEntry.Value.LocalPosition;
+                lOCanvas.transform.localRotation = lOEntry.Value.LocalRotation;
+                lOCanvas.transform.localScale = lOEntry.Value.LocalScale;
+                ((RectTransform)lOCanvas.transform).sizeDelta = lOEntry.Value.SizeDelta;
+            }
+            if (lOEntry.Value.Fit != null)
+                lOEntry.Value.Fit.enabled = lOEntry.Value.FitEnabled;
         }
 
         mOriginal.Clear();

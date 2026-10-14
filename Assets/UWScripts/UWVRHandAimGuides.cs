@@ -50,8 +50,12 @@ public sealed class UWVRHandAimGuides : MonoBehaviour
 
         // In the gesture-melee prototype, the 3D weapon takes the place of
         // the right-hand laser. The left magic laser remains available.
-        bool lbRightTracked = !UWVRMeleeMotion.IsEnabled
-            && UpdateGuide(mRight, lOTracking, XRNode.RightHand, lfUnits);
+        // A visible right-hand guide is deliberately disabled in melee mode.
+        // That does NOT mean the right Touch itself lacks a tracked pose.
+        bool lbRightTracked = lOTracking != null
+            && lOTracking.TryGetControllerRay(XRNode.RightHand, out Ray _);
+        if (!UWVRMeleeMotion.IsEnabled)
+            UpdateGuide(mRight, lOTracking, XRNode.RightHand, lfUnits);
         if (UWVRMeleeMotion.IsEnabled && mRight != null)
             mRight.enabled = false;
         bool lbLeftTracked = UpdateGuide(mLeft, lOTracking, XRNode.LeftHand, lfUnits);

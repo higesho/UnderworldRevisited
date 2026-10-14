@@ -45,6 +45,7 @@ sysinfo.txt
 *.app
 /Build-ja-*/
 /Build-vr-prototype/
+/Build-vr-left-eye-shift-extended/
 
 # Crashlytics
 crashlytics-build.properties

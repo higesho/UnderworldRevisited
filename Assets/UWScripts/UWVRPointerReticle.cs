@@ -30,6 +30,16 @@ public sealed class UWVRPointerReticle : MonoBehaviour
             return;
         }
 
+        // A VR main menu has a directly highlighted entry, not a Windows
+        // mouse pointer. Do not draw a second head-locked cursor at a
+        // conflicting apparent depth over its physical stereo menu sheet.
+        if (UWVRMenuNavigation.IsActive)
+        {
+            if (mCanvas != null)
+                mCanvas.enabled = false;
+            return;
+        }
+
         if (mCanvas == null)
             CreateCanvas();
 

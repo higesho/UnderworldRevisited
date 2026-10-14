@@ -1,8 +1,37 @@
 # VR化の検討（日本語化フォーク独自の計画）
 
-状態: Windows向けVR試作ビルドまで作成済み。Unity 6000.6.0f1でC#コンパイル成功、Windows開発ビルド成功（エラー0）。**HMDへの左右眼描画、追跡精度、操作の実機検証は未実施**。
+状態: Windows向けVR試作ビルドまで作成済み。Unity 6000.6.0f1でC#コンパイル成功、Windows開発ビルド成功（エラー0）。**Quest/Virtual Desktopの実機試験開始済み。タイトルメニュー入力は動作確認、キャラクター作成入力と左右眼の立体視は未解決**。
+
+### 右眼を固定して左眼画像だけを左右キーで動かす診断（10月14日）
+
+- 実機で左右画像が融合しない報告が続いたため、ユーザー指定どおり、**右眼の描画結果は固定**し、**左眼だけ水平にずらす**ための隔離された起動モード `-vr -vr-left-eye-shift` と `LaunchVR_LeftEyeShift.bat` を追加。
+- Unity 6 URP 17 / OpenXRのRenderer Featureの最終フルスクリーンパスを利用。`unity_StereoEyeIndex==0` の時に限りサンプリング元UVのXを変更し、右眼（index 1）はUVを変更しない。カメラ自体の位置・向き・眼間距離・投影行列を無理に上書きしない。通常モード・Desktopではこのパスは起動しない。
+- 再接続実機ログ `VR_LeftEyeShift_Reconnect_20261014_222242.log` ではVDXRのOpenXRは正常、`stereoRenderingMode=MultiPass`、`[UWVR-EYE-SHIFT] XR final shader pass ACTIVE` を確認したものの、左右キーで `[UWVR-EYE-SHIFT] left=...` の変化が記録されず。WindowsゲームのキーボードフォーカスがVDに移っても動くよう、診断版だけWindowsの `GetAsyncKeyState` で左右/F6の物理キーも読む。
+- 同ログで **`XRSettings.eyeTextureWidth=0`** と判明。初期実装は4px/0の代わりに4px/1pxを使う危険な換算だった。シフト量の分母をURP XRレンダーターゲットの正確な幅（`cameraTargetDescriptor.width`）へ変更し、幅0ならオフセット0を返す。MultiPassの場合は `xr.multipassId==0` の時にだけフルスクリーンパスを挿入し、**右目の描画パスそのものを実行しない**。見分け用は左眼の水色目印のみで右眼は完全に変更しない。
+- Windowsキーボード左右矢印で左眼を4画素ずつ移動（押し続けると連続）、Shift+矢印で32画素ずつ高速移動、`F6` で0に戻す。左眼だけの目印（水色）と描画下部の補正値、`[UWVR-EYE-SHIFT]` ログを追加。**右眼には目印も補正も加えない**。
+- **実機ログ（`Build-vr-prototype/VR_LeftEyeShift_Reconnect_20261014_222242.log`）では+192pxに到達し、ユーザーから「まったく重ならず、少なくともさらに3倍右へ寄せたい」と報告**。実際のXR眼テクスチャ幅2688pxに対して+192px=+7.14％であり、入力が届かない問題ではなかった。これまでの上下限を4倍の **±768px（+28.57％相当）** に拡張した。
+- 補正は眼別カラー画像の**事後的な一律シフト**であり、VR立体視の実装そのものではない。左右の描画設定が誤っているというユーザーの当初からの指摘を、単純な距離調整・視差の微調整の問題として扱わない。VDXRの描画方式は **MultiPass**、URP Renderer Featureは右眼パスを挿入せず左眼パスだけを補正する実装。さらに `Camera.GetStereoViewMatrix` の左右眼位置をワールド座標へ戻し、カメラ右方向の相対位置の符号と、左右投影行列のm02を `[UWVR-EYE-GEOMETRY]` として出力する検査を追加。**これらの値は実機で収集できるまで確定しない。**
+- `UWVRBuild.BuildExtendedLeftEyeShiftTrial` は旧VRゲームが起動中でも既存ファイルを上書きしないため、`Build-vr-left-eye-shift-extended/` へ別途Windows x64試験版を作成する。この生成先はGit追跡対象外とした。
+- `L:\Games\UlutimaUW\unity-vr-left-eye-shift-768-build-20261014.log`：Unity 6000.6.0f1の自動検査 `[UWVR-OFFLINE] PASS`、Windows x64 `Build result: Succeeded; errors: 0`。4px/32pxの移動、±768pxの制限、左右視点行列の逆転を模擬したテストに合格。ただしHMD実機で視差が正しいかは未確認。
+- 最新版を `Build-vr-left-eye-shift-extended/UR.exe -vr -vr-left-eye-shift` で起動した `VR_LeftEye768_Quest_20261014_224202.log` は、VDXRの `xrGetSystem` が `XR_ERROR_FORM_FACTOR_UNAVAILABLE` を返し、HMDを取得できずにXR描画開始前に失敗した。**±768pxの実機評価、左右のView/Projectionログは未取得。** 失敗ゲームは終了。HMD/Virtual Desktop再接続後に試験を再開する。
+- 直前の`1061982`以降の未コミットVRメニュー表示／入力修正をそのまま保持して作業する。初期メニュー入力の一部は実機成功報告あり、キャラ作成画面の入力は未解決のまま。
 
 ## 2026-10-14 実機試験なしで進めた実装
+
+### Quest / Virtual Desktop初回実機で判明したStereoメニュー表示と操作の問題（10月14日）
+
+- WindowsのOpenXRランタイムはVirtual Desktop OpenXR（VDXR）。統合戦闘試験版（PID7012）は `XR_SESSION_STATE_FOCUSED` まで到達し左右各2688×2880のXR眼テクスチャを確保できていた。実機報告は**左右画像がずれて焦点が合わない、初期メニューでTouch・キーボード・パッド操作が一切できない**。誤った立体視を見続けないようPID7012を安全に終了した。
+- UIは `UWVRCanvasBridge` が全Canvasを `ScreenSpaceCamera` に変更していたが、原作 `UWScreenUi.ScreenRectOf` は `GetWorldCorners` の世界座標をそのまま画面ピクセル扱い、`IsMouseOver` もスクリーン空間のカメラ指定なしだった。これをCanvasに紐づくCamera経由の画面座標投影に修正。
+- タイトル・オープニング・キャラクター作成・読み込みカバーは、両眼で座標を別々に計算した画面ではなく、追跡中のHMDカメラの前方2.25mに物理幅約2.4mの **WorldSpace Canvasを一つだけ**置く方式へ変更。XRランタイムがその同一平面を左右それぞれの目から描く。DesktopのScreenSpaceOverlayとワールドHUD/鞄/キャラUIの旧レンダリングは維持。`-vr-legacy-menu-canvas` で旧画面モードとのA/B比較も可能。
+- `UWVRMenuNavigation` を新設し、VR初期メニュー（4つの項目とセーブ一覧）をTouch左右のスティック/プライマリボタン/トリガー、ゲームパッド十字キー/左スティック/A、キーボード上下/W/S/Enterで直接操作可能にした。マウスWarpや画面内ヒット判定を使わず、選択項目のハイライトと実行を原作メニューに接続。VR初期メニューだけ `UWGamepadPointer` の合成マウスクリックを抑制して2重入力を防止。
+- `UWVRHandAimGuides` の右Touch追跡ログは、従来右手レーザーを意図的に隠した近接攻撃モードで必ず「追跡なし」になっていた不備があった。実際の右手Poseによる判定に変更。`[UWVR-MENU-INPUT]` で左右XRデバイス、キーボード、ゲームパッドの認識状況を別途記録。
+- 原因と修正は**コード上の整合性**が確認できたもので、Questの両眼表示・入力が直ったかどうかは新ビルドでの再確認が必要。
+- 続くHMD実機評価では「2D画像が近すぎる」と指摘された。全画面2Dメニュー（タイトル・オープニング・キャラ作成・ロード）の既定表示距離を **2.25m → 4.0m** に変更。見かけの大きさを維持するため、基準幅2.4m@2.25mから距離に比例した幅4.27m@4.0mへ補正。`-vr-menu-distance=2.0～8.0` で距離を切替可能、`LaunchVR_MenuDistance6.bat` を6mの比較用として追加。HUDの2.25mと鞄の1.8mは変更しない。これは初期の両眼映像自体が立体視になると証明する修正ではない。
+- `L:\Games\UlutimaUW\unity-vr-menu-distance4-offline-20261014.log`：全画面2Dパネルの既定4m、指定6m、不正な起動引数の復帰、距離比例の画面幅、HUD/鞄非変更を含むUnity 6000.6.0f1自動検査 `[UWVR-OFFLINE] PASS`。
+- `L:\Games\UlutimaUW\unity-vr-menu-distance4-build-20261014.log`：Windows x64開発版 `[UWVR] Build result: Succeeded; errors: 0`。
+- ビルド後にVDXRで新たに起動した `Build-vr-prototype/VR_Menu4m_Quest_20261014_213321.log` は `[UWVR] ... 2D menu distance 4 metres` と記録したが、`xrGetSystem: XR_ERROR_FORM_FACTOR_UNAVAILABLE` が発生。**HMDがOpenXRランタイムから取得できず、実機で4mの見え方を検証できなかった**。当該ゲームプロセスは終了させた。Virtual Desktop Streamerプロセスは存在していた。
+- 再配布用ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-menu4m-win64.zip`（**102,069,038バイト／373項目／29起動バッチ**）。Unity実行ファイル、OpenXR関連DLL、6m比較バッチ、日本語ガイドをチェック。旧試験ログ、Unityが同梱不可としたバックアップフォルダ、原作ゲームデータを除外。旧ZIPを上書きしていない。
+- ZIP SHA-256：`6675D410B3BD7553FBB283DF41296FEEFE38AC351B6FF4031F8CE5C594D5940B`。
 
 ### 弓・戦闘振動の物理寸法調整と実機試験ログ（10月14日）
 

@@ -16,6 +16,13 @@ public static class UWVRWorldSpace
     public const string ScaleArgument = "-vr-units-per-meter=";
     public const float DefaultUiDistanceMeters = 2.25f;
     public const string UiDistanceArgument = "-vr-ui-distance=";
+    /// <summary>The old full-screen title/character creation art is separate
+    /// from gameplay HUD and inventory. Its physical plane can be farther away
+    /// without changing the scale of weapon/status UI used inside the dungeon.</summary>
+    public const float DefaultMenuDistanceMeters = 4.0f;
+    public const float MinMenuDistanceMeters = 2.0f;
+    public const float MaxMenuDistanceMeters = 8.0f;
+    public const string MenuDistanceArgument = "-vr-menu-distance=";
     public const float DefaultInventoryDistanceMeters = 1.8f;
     public const string InventoryDistanceArgument = "-vr-inventory-distance=";
 
@@ -65,6 +72,33 @@ public static class UWVRWorldSpace
             }
 
         return DefaultUiDistanceMeters;
+    }
+
+    /// <summary>Full-screen 2D menu/intro/character-generation sheet only.
+    /// Default is farther than the old 2.25m sheet; UI/weapon and bag planes
+    /// intentionally keep their existing defaults. Explicit args use metres.</summary>
+    public static float ParseMenuDistanceMeters(string[] pOArgs)
+    {
+        if (pOArgs != null)
+            foreach (string lsArg in pOArgs)
+            {
+                if (lsArg == null || !lsArg.StartsWith(MenuDistanceArgument,
+                    StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                string lsNumber = lsArg.Substring(MenuDistanceArgument.Length);
+                if (float.TryParse(lsNumber, NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out float lfMeters) && !float.IsNaN(lfMeters)
+                    && !float.IsInfinity(lfMeters)
+                    && lfMeters >= MinMenuDistanceMeters && lfMeters <= MaxMenuDistanceMeters)
+                    return lfMeters;
+
+                Debug.LogWarning("[UWVR] Invalid full-screen menu distance; using "
+                    + DefaultMenuDistanceMeters + " metres: " + lsArg);
+                break;
+            }
+
+        return DefaultMenuDistanceMeters;
     }
 
     /// <summary>
