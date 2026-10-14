@@ -4,6 +4,19 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 両手での弓引きと魔法の左手3D発射演出（10月14日）
+
+- 直前の `53222a7` を `fork/japanese-localization` の最新コミットと照合し、未コミット変更なしから開始。
+- `-vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow` で**弓ID 0x19のみ**両手動作を要求する試験モード。右Touchで弓を保持・照準し、左Touchを最初に右手から約46cm以内へ近づけた後、右手の向きに対して後方20cm以上引く。発射自体は従来の右トリガー解除と原作の最低チャージ判定の両方を通る必要がある。
+- `UWVRTwoHandBowDraw` は両手位置の相対差（XR世界倍率を取り除いた実メートル）と右手の前方向だけから弓を引く動作を測定。右手の位置ジャンプ、左手追跡喪失、弓の急な向き変化、単なる左右横移動、引き不足を拒否。1回のトリガー解除につき1回のみ。**矢の消費・弾道・攻撃値・原作の魔法は変更しない**。クロスボウ、スリング、マウス操作は従来のまま。
+- `UWVRBowVisual` は右Touchの6軸追跡を使う曲線状の木製弓・張られた弦を `LineRenderer` で仮3D描画。左手が弦を引く間は弦の中央と仮のつがえた矢が左Touchに追従。コライダーなし。VRでモデルが確認できる間だけ元の2D武器スプライトを非表示、追跡が切れた場合は復帰。原作の武器姿勢と一致する完成モデルではない。
+- `-vr-hand-magic-fx` は `-vr-hand-origin` と組み合わせた場合のみ有効。`UWVRMagicHandFx` は追跡済み左Touchから魔法弾を狙っている間の小さな3D球、**飛翔体の生成に成功した後だけ**短時間で拡大・減衰する発射リングを描く。ダメージの種類に応じて色を切り替える。ゲームの魔法コスト、着弾、衝突を変更しない。対象指定魔法と原作のアイテム利用は従来処理のまま。
+- 比較起動バッチ：`LaunchVR_TwoHandBow.bat`、`LaunchVR_HandMagicFX.bat`、`LaunchVR_BowAndMagic.bat`、`LaunchVR_AllCombat.bat`。既存 `LaunchVR_HandOrigin.bat` 等は保存。HMDでの指の位置・引き距離・両眼表示・操作性・適切な光の強さは**実機未検証**。
+- `L:\Games\UlutimaUW\unity-vr-twohand-magic-offline-20261014.log`：Unity 6000.6.0f1で `[UWVR-OFFLINE] PASS`。両手の初期位置・後方36cm引き・左右移動のみ・短い引き・追跡喪失・位置ジャンプ・弓の向き急変・XR倍率16・複数回のリリース不可を確認。魔法のオーブ／両面リングの立体メッシュ形状、カラー、約0.42秒で拡大・消滅する式も検査。
+- `L:\Games\UlutimaUW\unity-vr-twohand-magic-build-20261014.log`：上記の非HMD検査PASS、および Windows x64開発版 `[UWVR] Build result: Succeeded; errors: 0`。実機Questでの左右の手・入力と発射の正確さは**依然未検証**。
+- 新ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-bow-magic-win64.zip`（**102,065,043バイト／365項目**）。20種類の起動バッチ、OpenXR用DLL、最新 `Assembly-CSharp.dll`、日本語試験説明と翻訳データをチェック。原作ゲームデータは非同梱。旧ZIPは保持。
+- ZIP SHA-256：`6873CF0317E0661D459F924C579A716DEE94AB991DEE75F4EC5B9200DAED8BA9`。
+
 ### 左右のTouch発射位置を原作の飛翔体処理へ接続（10月14日）
 
 - 前段の `250cad2` はGitHub `fork/japanese-localization` と一致、未コミット変更なしの状態から開始。

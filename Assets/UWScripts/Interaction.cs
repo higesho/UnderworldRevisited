@@ -80,8 +80,15 @@ public class Interaction : MonoBehaviour
     private float mfPendingCharge;
     private readonly UWVRMeleeMotion mVRMeleeMotion = new UWVRMeleeMotion();
     private readonly UWVRBladeSweep mVRBladeSweep = new UWVRBladeSweep();
+    private readonly UWVRTwoHandBowDraw mVRTwoHandBowDraw = new UWVRTwoHandBowDraw();
+    private bool mbVRTwoHandBowXRHold;
     private bool mbPendingVRBladeResolution;
     private UWVRBladeSweep.Contact mPendingVRBladeContact;
+
+    /// <summary>For the optional hand-tracked bow-string model; this never
+    /// changes the original ranged weapon charge or damage calculation.</summary>
+    public bool VRTwoHandBowNocked => mVRTwoHandBowDraw.IsNocked;
+    public float VRTwoHandBowDrawFraction => mVRTwoHandBowDraw.DrawFraction;
 
     private AttackEnum mePendingAttack;
     private UWControlScheme mControlScheme;
@@ -373,6 +380,7 @@ public class Interaction : MonoBehaviour
         // real UWCombat damage, defence, wear, sounds and impact frames stay
         // entirely in the existing game. Ranged weapons keep trigger shooting.
         fSampleVRMelee(lOAttackButton);
+        fSampleVRTwoHandBow(lOAttackButton);
 
         if (IsCombatModeActive && !IsAttacking && !mbAttackPending && mbRightPressInViewport
             && mCharacter != null && mCharacter.CanAttack && lOAttackButton.IsPressed() && !UWPlayerMovement.ConsumesRightClick()
@@ -580,6 +588,26 @@ public class Interaction : MonoBehaviour
             if (fHoldsLauncher())
             {
                 bool lbDrawn = IsRangedTargeting;
+
+                // Only ordinary bows and actual Touch trigger events use the
+                // two-handed trial. The ORIGINAL minimum charge and ammo
+                // requirements are still checked independently. No gesture
+                // means no projectile and no ammunition consumption.
+                if (fUsesVRTwoHandBow()
+                    && (mbVRTwoHandBowXRHold || fIsTouchAttack(lOAttackButton)))
+                {
+                    bool lbReleaseTracked = fIsTouchAttack(lOAttackButton)
+                        && fTryGetVRTwoHandBowPose(out _, out _, out _);
+                    bool lbPulled = mVRTwoHandBowDraw.TryRelease(lbReleaseTracked,
+                        out float lfDrawFraction);
+                    lbDrawn = lbDrawn && lbPulled;
+                    Debug.Log("[UWVR-BOW] release: pulled=" + lbPulled
+                        + "; draw=" + lfDrawFraction.ToString("0.00")
+                        + "; original charged=" + IsRangedTargeting);
+                }
+                else
+                    mVRTwoHandBowDraw.Reset();
+                mbVRTwoHandBowXRHold = false;
 
                 mbAttackPending = false;
 
@@ -807,6 +835,79 @@ public class Interaction : MonoBehaviour
         // mode continue using their existing attack input unchanged.
         return UWVRMeleeMotion.IsEnabled && !fIsOriginalScheme()
             && mCharacter != null && !fHoldsLauncher();
+    }
+
+    private bool fUsesVRTwoHandBow()
+    {
+        if (!UWVRTwoHandBowDraw.IsEnabled || fIsOriginalScheme()
+            || mInventory == null || mCharacter == null || !IsCombatModeActive)
+            return false;
+
+        UWObject lOWeapon = mInventory.GetEquipped(mInventory.MainHandSlot);
+        return lOWeapon != null && lOWeapon.ID == BowObjectId;
+    }
+
+    private static bool fTryGetVRTwoHandBowPose(out Vector3 pORight,
+        out Vector3 pOLeft, out Vector3 pORightForward)
+    {
+        pORight = Vector3.zero;
+        pOLeft = Vector3.zero;
+        pORightForward = Vector3.forward;
+        Camera lOCamera = UWVRBootstrap.CurrentVRCamera;
+        UWVRHeadTracking lOTracking = lOCamera != null
+            ? lOCamera.GetComponent<UWVRHeadTracking>() : null;
+        if (lOTracking == null
+            || !lOTracking.TryGetControllerRay(UnityEngine.XR.XRNode.RightHand, out Ray lORight)
+            || !lOTracking.TryGetControllerRay(UnityEngine.XR.XRNode.LeftHand, out Ray lOLeft))
+            return false;
+
+        pORight = lORight.origin;
+        pOLeft = lOLeft.origin;
+        pORightForward = lORight.direction;
+        return UWVRAim.HasValidDirection(lORight.direction);
+    }
+
+    private void fSampleVRTwoHandBow(InputAction pOAttackButton)
+    {
+        if (!fUsesVRTwoHandBow() || pOAttackButton == null
+            || (mControlScheme != null && mControlScheme.IsWorldInputBlocked)
+            || UWConversationScreen.IsAnyOpen || !Application.isFocused
+            || UWGamepadPointer.Takes(pOAttackButton))
+        {
+            mVRTwoHandBowDraw.Reset();
+            mbVRTwoHandBowXRHold = false;
+            return;
+        }
+
+        // Preserve the last tracked sample until the release path below has
+        // read it. Releasing an untracked hand is explicitly rejected there.
+        if (pOAttackButton.WasReleasedThisFrame())
+            return;
+
+        if (!pOAttackButton.IsPressed() || !IsAttacking)
+        {
+            mVRTwoHandBowDraw.Reset();
+            mbVRTwoHandBowXRHold = false;
+            return;
+        }
+
+        if (!fIsTouchAttack(pOAttackButton))
+        {
+            // When a previously active XR action loses its control while
+            // still held, latch an invalid draw. It must NOT become an
+            // ordinary desktop shot on the next release.
+            if (mbVRTwoHandBowXRHold)
+                mVRTwoHandBowDraw.Sample(false, Vector3.zero, Vector3.zero,
+                    Vector3.forward, UWVRBootstrap.WorldUnitsPerMeter, Time.deltaTime);
+            return;
+        }
+
+        mbVRTwoHandBowXRHold = true;
+
+        bool lbTracked = fTryGetVRTwoHandBowPose(out Vector3 lORight,
+            out Vector3 lOLeft, out Vector3 lOForward);
+        mVRTwoHandBowDraw.Sample(lbTracked, lORight, lOLeft, lOForward,
+            UWVRBootstrap.WorldUnitsPerMeter, Time.deltaTime);
     }
 
     private static bool fIsTouchAttack(InputAction pOAttackButton)
@@ -1574,6 +1675,8 @@ public class Interaction : MonoBehaviour
         IsAttacking = false;
         mbAttackPending = false;
         mVRMeleeMotion.Reset();
+        mVRTwoHandBowDraw.Reset();
+        mbVRTwoHandBowXRHold = false;
         mVRBladeSweep.Reset();
         mbPendingVRBladeResolution = false;
         mPendingVRBladeContact = default;
@@ -5313,6 +5416,10 @@ public class Interaction : MonoBehaviour
     /// clicked OBJECT.</summary>
     public bool IsSpellTargeting => miPendingProjectileId >= 0 || miPendingTargetSpell >= 0;
 
+    /// <summary>Only flying projectile spells receive a visible orb in the
+    /// experimental left-hand VR magic mode. Targeted spells keep the normal UI.</summary>
+    public bool HasPendingProjectileSpell => miPendingProjectileId >= 0;
+
     /// <summary>Is a spell waiting for an object instead of a direction? The cursor is
     /// a different one then - see UWGameUI.</summary>
     public bool IsTargetSpellPending => miPendingTargetSpell >= 0;
@@ -5660,6 +5767,12 @@ public class Interaction : MonoBehaviour
 
             return;
         }
+
+        // The visual has no collider, projectile record, mana cost or damage.
+        // Crucially only a SUCCESSFUL tracked left-Touch launch creates a
+        // flash: blocked spells do not pretend they were released.
+        if (leHandStart == UWVRHandLaunch.Result.Ready)
+            UWVRMagicHandFx.NotifySuccessfulLaunch(lOLeftMuzzle, liDamageType);
 
         // Released: now the rune spell's mana is paid (see miPendingManaCost).
         if (miPendingManaCost > 0 && mCharacter != null)

@@ -661,7 +661,7 @@ public class UWModernHud : MonoBehaviour
         Texture2D lOTexture = mOCharacter.CurrentWeaponTexture;
 
         if (!mOCharacter.DrawWWeapon || lOTexture == null
-            || UWVRHandWeaponVisual.IsModelVisible)
+            || UWVRHandWeaponVisual.IsModelVisible || UWVRBowVisual.IsBowVisible)
         {
             mOWeapon.enabled = false;
             return;

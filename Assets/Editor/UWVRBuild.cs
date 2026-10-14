@@ -78,6 +78,14 @@ public static class UWVRBuild
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-units-per-meter=16 -logFile \"%~dp0VR_HandOrigin_Scale16_Test.log\"\r\n");
         File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BladeAndHandOrigin.bat"),
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-gesture-melee -vr-blade-contact -logFile \"%~dp0VR_BladeAndHandOrigin_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_TwoHandBow.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow -logFile \"%~dp0VR_TwoHandBow_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_HandMagicFX.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-hand-magic-fx -logFile \"%~dp0VR_HandMagicFX_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BowAndMagic.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow -vr-hand-magic-fx -logFile \"%~dp0VR_BowAndMagic_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_AllCombat.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-gesture-melee -vr-blade-contact -vr-two-hand-bow -vr-hand-magic-fx -logFile \"%~dp0VR_AllCombat_Test.log\"\r\n");
 
         string lSGuide = Path.Combine(lSProjectRoot, "Docs", "VR_TEST_JA.txt");
         if (File.Exists(lSGuide))

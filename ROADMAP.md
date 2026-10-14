@@ -215,6 +215,19 @@ of what is built was also read out of the original's executable.
   unchanged legacy launch. Windows x64 build succeeds (2026-10-14, errors 0).
   The separate 361-entry, sixteen-launcher ZIP is checked for original game
   data (none); Quest visual and actual Touch firing tests are still open.
+  Optional two-hand bow trial (right Touch grip/aim, left Touch string pull)
+  requires a measured real-metre backward pull and the original ranged charge
+  before releasing an arrow, with lost-tracking and jump guards. Optional
+  left-hand spell FX uses a tracked preview orb and a short 3D flash ONLY
+  after the existing projectile is successfully spawned. No VR visuals can
+  change underlying missile physics, ammo, mana or damage. Physical bowstring
+  haptics, finished assets and headset playtesting remain open.
+  Unity 6000.6.0f1 offline tests PASS for tracked 2-hand bow pull, lateral
+  false-positive rejection, tracking loss, teleport, scale 1/16, duplicate
+  release, bow stave and spell orb/ring geometry, color and short fade.
+  Windows x64 build succeeded (2026-10-14, 0 errors); the separate
+  365-entry/20-launcher ZIP contains no original game data. HMD validation
+  still required for the real grip, string pull and spell visuals.
   Unity 6000.6.0f1 simulated sword trajectory tests PASS and Windows x64
   development build succeeds (2026-10-14, zero errors). A separately named
   356-entry ZIP with eleven launch scripts passed OpenXR/package/original-data

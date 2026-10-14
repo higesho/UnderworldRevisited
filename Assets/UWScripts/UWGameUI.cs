@@ -662,7 +662,7 @@ public class UWGameUI : MonoBehaviour
         mBackdropBottomRect.sizeDelta = new Vector2(mBackdropBottomRect.sizeDelta.x, lfVerticalMargin);
 
         mWeaponImage.gameObject.SetActive(mCharacter.DrawWWeapon
-            && !UWVRHandWeaponVisual.IsModelVisible);
+            && !UWVRHandWeaponVisual.IsModelVisible && !UWVRBowVisual.IsBowVisible);
 
         if (mCharacter.DrawWWeapon)
         {

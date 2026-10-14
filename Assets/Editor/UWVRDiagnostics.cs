@@ -93,6 +93,9 @@ public static class UWVRDiagnostics
             "VR sword collision must never run outside an explicitly opted-in XR session");
         fRequire(!UWVRHandLaunch.IsEnabled,
             "VR hand-origin missiles must never run in a desktop/offline session");
+        fRequire(!UWVRTwoHandBowDraw.IsEnabled && !UWVRMagicHandFx.IsEnabled,
+            "VR two-hand bow and spell visuals must never run during desktop/offline play");
+        fTestVRTwoHandBowAndMagic();
         fTestVRHandMuzzle();
         fTestVRBladeSweep();
 
@@ -621,8 +624,126 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, dual Touch aim, hand-origin arrow/spell muzzle with scale and occlusion, fine-grained original mobile launch and blocked spawn, tracked sword sweep, stereo UI and inventory.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, tracked two-hand bow nock/draw/release with jitter and lost-tracking safeguards, 3D bow/string geometry, left-hand magic orb/ring geometry and fade, original hand-origin missile physics, sword sweep, stereo UI and inventory.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
+    }
+
+    private static void fTestVRTwoHandBowAndMagic()
+    {
+        Vector3 lORight = new Vector3(1f, 3f, 1f);
+        Vector3 lOLeftNock = lORight + new Vector3(0.24f, 0f, -0.02f);
+        Vector3 lOForward = Vector3.forward;
+
+        UWVRTwoHandBowDraw lODrawn = new UWVRTwoHandBowDraw();
+        lODrawn.Sample(true, lORight, lOLeftNock, lOForward, 1f, 0.011f);
+        fRequire(lODrawn.IsNocked && lODrawn.DrawMeters < 0.001f,
+            "A left Touch near the right bow must nock without accidentally shooting");
+        for (int li = 1; li <= 12; li++)
+            lODrawn.Sample(true, lORight, lOLeftNock + Vector3.back * (0.03f * li),
+                lOForward, 1f, 0.011f);
+        fRequire(lODrawn.IsNocked && lODrawn.DrawMeters > 0.30f
+                && lODrawn.DrawFraction > 0.40f,
+            "A tracked left Touch moving 36cm backward must draw the bowstring");
+        fRequire(lODrawn.TryRelease(true, out float lfDrawFraction)
+                && lfDrawFraction > 0.40f && !lODrawn.TryRelease(true, out _),
+            "One bowstring pull must fire on release at most once");
+
+        // The same physical movement must work at a 16x dungeon scale.
+        UWVRTwoHandBowDraw lOScaled = new UWVRTwoHandBowDraw();
+        lOScaled.Sample(true, lORight * 16f, lOLeftNock * 16f,
+            lOForward, 16f, 0.011f);
+        for (int li = 1; li <= 12; li++)
+            lOScaled.Sample(true, lORight * 16f,
+                (lOLeftNock + Vector3.back * (0.03f * li)) * 16f,
+                lOForward, 16f, 0.011f);
+        fRequire(lOScaled.TryRelease(true, out float lfScaledDraw)
+                && Mathf.Abs(lfScaledDraw - lfDrawFraction) < 0.001f,
+            "Bow draw must measure real metres independently of VR world scale");
+
+        UWVRTwoHandBowDraw lOTooShort = new UWVRTwoHandBowDraw();
+        lOTooShort.Sample(true, lORight, lOLeftNock, lOForward, 1f, 0.011f);
+        lOTooShort.Sample(true, lORight, lOLeftNock + Vector3.back * 0.12f,
+            lOForward, 1f, 0.03f);
+        fRequire(!lOTooShort.TryRelease(true, out _),
+            "A partial 12cm bow draw cannot consume an arrow");
+
+        UWVRTwoHandBowDraw lOLateral = new UWVRTwoHandBowDraw();
+        lOLateral.Sample(true, lORight, lOLeftNock, lOForward, 1f, 0.011f);
+        for (int li = 1; li <= 11; li++)
+            lOLateral.Sample(true, lORight, lOLeftNock + Vector3.right * (0.018f * li),
+                lOForward, 1f, 0.011f);
+        fRequire(!lOLateral.TryRelease(true, out _),
+            "Moving the bowstring sideways without drawing it back cannot fire");
+
+        UWVRTwoHandBowDraw lOTooFar = new UWVRTwoHandBowDraw();
+        lOTooFar.Sample(true, lORight, lORight + Vector3.right * 0.85f,
+            lOForward, 1f, 0.011f);
+        fRequire(!lOTooFar.TryRelease(true, out _),
+            "Hands too far apart at the start must not be considered nocked");
+
+        UWVRTwoHandBowDraw lODropped = new UWVRTwoHandBowDraw();
+        lODropped.Sample(true, lORight, lOLeftNock, lOForward, 1f, 0.011f);
+        for (int li = 1; li <= 10; li++)
+            lODropped.Sample(true, lORight,
+                lOLeftNock + Vector3.back * (0.03f * li),
+                lOForward, 1f, 0.011f);
+        lODropped.Sample(false, Vector3.zero, Vector3.zero,
+            Vector3.forward, 1f, 0.011f);
+        lODropped.Sample(true, lORight,
+            lOLeftNock + Vector3.back * 0.30f, lOForward, 1f, 0.011f);
+        fRequire(!lODropped.TryRelease(true, out _),
+            "Tracking loss while pulling a bow must invalidate the held trigger");
+
+        UWVRTwoHandBowDraw lOTeleport = new UWVRTwoHandBowDraw();
+        lOTeleport.Sample(true, lORight, lOLeftNock, lOForward, 1f, 0.011f);
+        lOTeleport.Sample(true, lORight, lOLeftNock + Vector3.back * 0.85f,
+            lOForward, 1f, 0.011f);
+        fRequire(!lOTeleport.TryRelease(true, out _),
+            "An XR pose teleport must not grant an instant full-draw arrow");
+
+        UWVRTwoHandBowDraw lORotated = new UWVRTwoHandBowDraw();
+        lORotated.Sample(true, lORight, lOLeftNock, lOForward, 1f, 0.011f);
+        lORotated.Sample(true, lORight, lOLeftNock + Vector3.back * 0.30f,
+            Vector3.left, 1f, 0.011f);
+        fRequire(!lORotated.TryRelease(true, out _),
+            "Rotating the bow by 90 degrees must not fake a string draw");
+
+        Ray lORay = new Ray(lORight, lOForward);
+        Vector3 lOTop = UWVRBowVisual.StavePoint(lORay, Vector3.up, 1f, 16f);
+        Vector3 lOBottom = UWVRBowVisual.StavePoint(lORay, Vector3.up, -1f, 16f);
+        Vector3 lOMiddle = UWVRBowVisual.StavePoint(lORay, Vector3.up, 0f, 16f);
+        fRequire(Mathf.Abs(Vector3.Distance(lOTop, lOBottom) - 14.08f) < 0.0001f
+                && lOMiddle.z > lOTop.z
+                && UWVRBowVisual.StringNock(lORay, lOLeftNock, true, 16f) == lOLeftNock,
+            "3D bow stave must curve and scale with tracked metres, while string follows left hand");
+
+        Mesh lOOrbMesh = UWVRMagicHandFx.CreateOrbMesh();
+        Mesh lORingMesh = UWVRMagicHandFx.CreateRingMesh();
+        try
+        {
+            fRequire(lOOrbMesh.vertexCount == 6 && lOOrbMesh.triangles.Length == 24
+                    && lOOrbMesh.bounds.size.x > 1.9f
+                    && lORingMesh.vertexCount >= 32
+                    && lORingMesh.triangles.Length >= 96,
+                "Magic preview must be closed 3D geometry and release ring must be triangulated");
+            fRequire(UWVRMagicHandFx.FlashRadiusMetres(0f) <
+                    UWVRMagicHandFx.FlashRadiusMetres(0.2f)
+                && UWVRMagicHandFx.FlashRadiusMetres(0.8f) <= 0.301f
+                && UWVRMagicHandFx.FlashOpacity(0f) > 0.99f
+                && UWVRMagicHandFx.FlashOpacity(0.2f) < 0.5f
+                && UWVRMagicHandFx.FlashOpacity(1f) == 0f,
+                "Successful-cast flash must expand and disappear instead of persisting over world objects");
+            fRequire(UWVRMagicHandFx.ColorForDamage(UWDamageTypes.Fire)
+                    != UWVRMagicHandFx.ColorForDamage(UWDamageTypes.Cold)
+                && UWVRMagicHandFx.ColorForDamage(UWDamageTypes.Cold)
+                    != UWVRMagicHandFx.ColorForDamage(UWDamageTypes.Magic),
+                "The emitted spell flash must distinguish fire, cold and magic projectiles");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(lOOrbMesh);
+            UnityEngine.Object.DestroyImmediate(lORingMesh);
+        }
     }
 
     private static void fTestVRHandMuzzle()

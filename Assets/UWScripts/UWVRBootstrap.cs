@@ -23,6 +23,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private static bool msGestureMeleeRequested;
     private static bool msBladeContactRequested;
     private static bool msHandOriginRequested;
+    private static bool msTwoHandBowRequested;
+    private static bool msHandMagicFxRequested;
     private static UWVRBootstrap msInstance;
     private bool mbReported;
     private bool mbStartedSubsystems;
@@ -42,6 +44,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
     public static bool GestureMeleeRequested => msGestureMeleeRequested;
     public static bool BladeContactRequested => msBladeContactRequested;
     public static bool HandOriginRequested => msHandOriginRequested;
+    public static bool TwoHandBowRequested => msTwoHandBowRequested;
+    public static bool HandMagicFxRequested => msHandMagicFxRequested;
     public static bool HeadRelativeMovement { get; private set; } = true;
     public static bool IsHeadsetActive => msRequested && XRSettings.isDeviceActive;
     public static Camera CurrentVRCamera => msInstance != null ? msInstance.mCurrentVRCamera : null;
@@ -63,6 +67,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
         msGestureMeleeRequested = false;
         msBladeContactRequested = false;
         msHandOriginRequested = false;
+        msTwoHandBowRequested = false;
+        msHandMagicFxRequested = false;
         HeadRelativeMovement = true;
 
         if (!msRequested || msInstance != null)
@@ -85,6 +91,10 @@ public sealed class UWVRBootstrap : MonoBehaviour
             pSArg => string.Equals(pSArg, "-vr-blade-contact", StringComparison.OrdinalIgnoreCase));
         msHandOriginRequested = msHandAimRequested && Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-hand-origin", StringComparison.OrdinalIgnoreCase));
+        msTwoHandBowRequested = msHandOriginRequested && Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-two-hand-bow", StringComparison.OrdinalIgnoreCase));
+        msHandMagicFxRequested = msHandOriginRequested && Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-hand-magic-fx", StringComparison.OrdinalIgnoreCase));
         HeadRelativeMovement = !Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-body-relative", StringComparison.OrdinalIgnoreCase));
 
@@ -99,13 +109,17 @@ public sealed class UWVRBootstrap : MonoBehaviour
             + "; hand aim " + (msHandAimRequested ? "enabled" : "off")
             + "; gesture melee " + (msGestureMeleeRequested ? "enabled" : "off")
             + "; blade contact " + (msBladeContactRequested ? "enabled" : "off")
-            + "; hand origin " + (msHandOriginRequested ? "enabled" : "off") + ".");
+            + "; hand origin " + (msHandOriginRequested ? "enabled" : "off")
+            + "; two-hand bow " + (msTwoHandBowRequested ? "enabled" : "off")
+            + "; hand magic visuals " + (msHandMagicFxRequested ? "enabled" : "off") + ".");
 
         GameObject lOHost = new GameObject("UW VR Bootstrap");
         DontDestroyOnLoad(lOHost);
         msInstance = lOHost.AddComponent<UWVRBootstrap>();
         lOHost.AddComponent<UWVRHandAimGuides>();
         lOHost.AddComponent<UWVRHandWeaponVisual>();
+        lOHost.AddComponent<UWVRBowVisual>();
+        lOHost.AddComponent<UWVRMagicHandFx>();
         lOHost.AddComponent<UWVRSpatialInventory>();
         lOHost.AddComponent<UWVRInventoryTokens>();
         lOHost.AddComponent<UWVRNearGrab>();
