@@ -268,7 +268,8 @@ public class UWGamepadPointer : MonoBehaviour
         if (IsDriving)
         {
             Vector2 lOStick = lOPlayer.LookStick.ReadValue<Vector2>();
-            if (!fMoveVRSpatialTouch() && !fMoveVRInventorySlot(lOStick, lOPlayer.LookStick))
+            if (!fMoveVRNearGrip() && !fMoveVRSpatialTouch()
+                && !fMoveVRInventorySlot(lOStick, lOPlayer.LookStick))
                 fMove(lOStick);
             fWheel(lOPlayer);
         }
@@ -278,7 +279,16 @@ public class UWGamepadPointer : MonoBehaviour
             mfWheelHeld = -1f;
         }
 
-        fButton(lOPlayer.PadClick, UWOsMouse.ButtonEnum.Left, ref mbLeftDown);
+        // One synthetic mouse button owns both the ordinary trigger and a
+        // near-hand grip. Never generate a second down while either is held.
+        if (UWVRNearGrab.GripStarted && !mbLeftDown)
+        {
+            UWOsMouse.Button(UWOsMouse.ButtonEnum.Left, true);
+            UWGamepad.NoteSyntheticMouse();
+            mbLeftDown = true;
+        }
+        else if (!UWVRNearGrab.GripHeld)
+            fButton(lOPlayer.PadClick, UWOsMouse.ButtonEnum.Left, ref mbLeftDown);
         fButton(lOPlayer.PadContext, UWOsMouse.ButtonEnum.Right, ref mbRightDown);
     }
 
@@ -310,6 +320,22 @@ public class UWGamepadPointer : MonoBehaviour
     private static float msfRightSentAt = -10f;
 
     private static bool msbRightHeld;
+
+    private bool fMoveVRNearGrip()
+    {
+        if (Mouse.current == null || !UWVRNearGrab.TryGetPointer(out Vector2 lOPoint))
+            return false;
+
+        mOAt = lOPoint;
+        Mouse.current.WarpCursorPosition(lOPoint);
+        mOLastWarp = lOPoint;
+        msOPosition = lOPoint;
+        msbPlaced = true;
+        msbPlacePending = false;
+        UWGamepad.NoteSyntheticMouse();
+        mbVRSlotStickHeld = false;
+        return true;
+    }
 
     /// <summary>
     /// Map the Touch's tracked laser hit back into the original mouse pixel

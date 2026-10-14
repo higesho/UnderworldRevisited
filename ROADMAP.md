@@ -153,6 +153,16 @@ of what is built was also read out of the original's executable.
   meshes and tested physical hand grabbing remain future milestones.
   The updated item-token Windows x64 prototype passes offline checks and
   builds with zero errors (2026-10-14); ZIP verified and earlier versions kept.
+  Explicit -vr-near-grab prototype: 0.68m-reachable spatial inventory, right
+  Touch proximity and grip synthesized through the original drag/drop model,
+  conservative off-panel release, optional haptic impulses and fourteen
+  procedurally generated item-form meshes with original icon overlays.
+  Headset UI visibility, actual grip/trigger event timing, haptics, physical
+  ergonomics and real-world item transfers are not yet verified.
+  Unity 6000.6.0f1 offline checks PASS and the updated hand-grab prototype
+  Windows x64 development build succeeds (2026-10-14, zero errors). A new
+  353-entry ZIP with eight launch scripts is validated. HMD behavior still
+  needs user-side evaluation before enabling this mode by default.
   Next: real-HMD validation, UI/controller interaction, stereo correctness and comfort.
   Japanese translation additions remain
   temporarily paused. See `Docs/VR_FEASIBILITY_JA.md`.

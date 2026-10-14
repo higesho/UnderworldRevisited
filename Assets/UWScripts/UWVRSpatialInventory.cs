@@ -19,6 +19,8 @@ using UnityEngine.XR;
 public sealed class UWVRSpatialInventory : MonoBehaviour
 {
     private const float PanelWidthMeters = 1.65f;
+    private const float NearGrabPanelWidthMeters = 0.85f;
+    private const float NearGrabDistanceMeters = 0.68f;
     private const float RayDotMeters = 0.016f;
 
     private static UWVRSpatialInventory msInstance;
@@ -96,6 +98,11 @@ public sealed class UWVRSpatialInventory : MonoBehaviour
         mViewCamera = lOView;
         mbWasOpen = true;
         SetVisible(true);
+
+        // Only the explicit hand-grab mode moves the panel into reach. The
+        // previous 1.8m laser UI and all non-VR interfaces remain unchanged.
+        if (UWVRNearGrab.IsEnabled && !UWModernPointer.IsFree)
+            UWModernPointer.Free();
 
         // This is purely a pointing aid; the real mouse click/drag is still
         // delivered by UWGamepadPointer on its subsequent Update (order 1000).
@@ -193,10 +200,14 @@ public sealed class UWVRSpatialInventory : MonoBehaviour
             lOForward = Vector3.forward;
         lOForward.Normalize();
 
-        mPanel.position = pOCamera.transform.position + lOForward * (UWVRBootstrap.InventoryDistanceMeters * lfUnits);
+        float lfDistance = UWVRNearGrab.IsEnabled
+            ? NearGrabDistanceMeters : UWVRBootstrap.InventoryDistanceMeters;
+        float lfWidth = UWVRNearGrab.IsEnabled
+            ? NearGrabPanelWidthMeters : PanelWidthMeters;
+        mPanel.position = pOCamera.transform.position + lOForward * (lfDistance * lfUnits);
         mPanel.rotation = Quaternion.LookRotation(lOForward, Vector3.up);
-        mPanel.localScale = new Vector3(PanelWidthMeters * lfUnits,
-            PanelWidthMeters * lfUnits * Screen.height / Mathf.Max(1f, Screen.width), 1f);
+        mPanel.localScale = new Vector3(lfWidth * lfUnits,
+            lfWidth * lfUnits * Screen.height / Mathf.Max(1f, Screen.width), 1f);
         Debug.Log("[UWVR] Spatial inventory anchored in world; F8 repositions in front of the headset.");
     }
 

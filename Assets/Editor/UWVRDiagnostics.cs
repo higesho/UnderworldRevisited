@@ -106,6 +106,8 @@ public static class UWVRDiagnostics
             "VR inventory planes must match while the HUD stays at its own distance");
         fRequire(!UWVRSpatialInventory.IsEnabled,
             "Headset-free editor test must not create spatial inventory renderers");
+        fRequire(!UWVRNearGrab.IsEnabled && !UWVRNearGrab.ReservesRightGrip,
+            "Hand proximity and XR grip must never run in desktop mode");
         fRequire(UWVRSpatialInventory.IsInventoryCanvas("Modern bags")
             && UWVRSpatialInventory.IsInventoryCanvas("Modern character panel")
             && !UWVRSpatialInventory.IsInventoryCanvas("Modern HUD"),
@@ -132,6 +134,69 @@ public static class UWVRDiagnostics
         fRequire(UWVRInventoryTokens.CategoryShape(UWObject.ObjectCategoryEnum.Containers).z
                 > UWVRInventoryTokens.CategoryShape(UWObject.ObjectCategoryEnum.BooksAndScrolls).z,
             "VR item tokens must give containers more depth than books");
+
+        // Every supported item group must generate a real triangle mesh, not
+        // a cube with a changed name. These all remain display-only: models
+        // are never inserted into the actual UWInventoryModel or world.
+        foreach (UWVRItemGeometry.Form leForm in Enum.GetValues(typeof(UWVRItemGeometry.Form)))
+        {
+            Mesh lOShapeMesh = UWVRItemGeometry.CreateMesh(leForm);
+            try
+            {
+                fRequire(lOShapeMesh != null && lOShapeMesh.vertexCount >= 8
+                    && lOShapeMesh.triangles.Length >= 12
+                    && lOShapeMesh.bounds.size.x > 0f
+                    && lOShapeMesh.bounds.size.y > 0f
+                    && lOShapeMesh.bounds.size.z > 0f,
+                    "3D inventory item form has an empty mesh: " + leForm);
+            }
+            finally
+            {
+                if (lOShapeMesh != null)
+                    UnityEngine.Object.DestroyImmediate(lOShapeMesh);
+            }
+        }
+
+        fRequire(UWVRItemGeometry.Classify(new UWObject(0)) == UWVRItemGeometry.Form.Blade
+            && UWVRItemGeometry.Classify(new UWObject(18)) == UWVRItemGeometry.Form.Missile
+            && UWVRItemGeometry.Classify(new UWObject(24)) == UWVRItemGeometry.Form.Bow
+            && UWVRItemGeometry.Classify(new UWObject(128)) == UWVRItemGeometry.Form.Chest
+            && UWVRItemGeometry.Classify(new UWObject(257)) == UWVRItemGeometry.Form.Key
+            && UWVRItemGeometry.Classify(new UWObject(315)) == UWVRItemGeometry.Form.Scroll,
+            "Object IDs were assigned to incorrect inventory mesh families");
+
+        // Hand proximity must use physical depth (after XR scale conversion)
+        // and ignore positions outside the panel or behind its plane.
+        Matrix4x4 lONearPanel = Matrix4x4.TRS(new Vector3(2f, 3f, 4f),
+            Quaternion.Euler(0f, 25f, 0f), new Vector3(0.85f * 16f, 0.48f * 16f, 1f));
+        fRequire(UWVRNearGrab.TryProjectHand(
+                lONearPanel.MultiplyPoint3x4(new Vector3(0.2f, -0.1f, -0.08f * 16f)),
+                lONearPanel.inverse, 16f, out Vector2 lONearUV)
+            && (lONearUV - new Vector2(0.7f, 0.4f)).sqrMagnitude < 0.00001f,
+            "Near-hand contact does not compensate for rotated/scaled XR panel");
+        fRequire(!UWVRNearGrab.TryProjectHand(
+                lONearPanel.MultiplyPoint3x4(new Vector3(0.2f, -0.1f, -0.22f * 16f)),
+                lONearPanel.inverse, 16f, out _)
+            && !UWVRNearGrab.TryProjectHand(
+                lONearPanel.MultiplyPoint3x4(new Vector3(0.2f, -0.1f, 0.08f * 16f)),
+                lONearPanel.inverse, 16f, out _)
+            && !UWVRNearGrab.TryProjectHand(
+                lONearPanel.MultiplyPoint3x4(new Vector3(0.7f, -0.1f, -0.08f * 16f)),
+                lONearPanel.inverse, 16f, out _),
+            "Near-hand interaction must ignore distant, rear and off-panel positions");
+
+        fRequire(UWVRNearGrab.CanBeginGrip(true, true, true, true)
+            && !UWVRNearGrab.CanBeginGrip(false, true, true, true)
+            && !UWVRNearGrab.CanBeginGrip(true, false, true, true)
+            && !UWVRNearGrab.CanBeginGrip(true, true, false, true)
+            && !UWVRNearGrab.CanBeginGrip(true, true, true, false),
+            "Hand grab must require a new grip press, reach, occupied slot, and free cursor");
+
+        Vector2 lOOrigin = new Vector2(25f, 30f);
+        Vector2 lOTarget = new Vector2(100f, 90f);
+        fRequire((UWVRNearGrab.ReleasePoint(lOOrigin, lOTarget, false) - lOOrigin).sqrMagnitude < 0.00001f
+            && (UWVRNearGrab.ReleasePoint(lOOrigin, lOTarget, true) - lOTarget).sqrMagnitude < 0.00001f,
+            "Invalid off-panel grip release must return to its original slot");
 
         // A physical inventory quad is anchored in world space. Test the
         // controller-ray to source-screen mapping without any XR runtime or
@@ -367,7 +432,7 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, stereo UI, 11 equipment zones, world inventory ray mapping, raised 3D item slots, held item XR scale, cursor transparency.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, stereo UI, 11 equipment zones, spatial ray, 14 procedural mesh families, near-hand reach and clipping, XR hand scale, cursor safety.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 

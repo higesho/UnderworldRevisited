@@ -771,7 +771,11 @@ public class Interaction : MonoBehaviour
         bool lbPadDraws = !IsCombatModeActive && mInput.ModernAttack.WasPressedThisFrame()
             && UWGamepad.IsFromGamepad(mInput.ModernAttack) && !UWGamepadPointer.Takes(mInput.ModernAttack);
 
-        if (mInput.ModernReady.WasPressedThisFrame() || lbPadDraws)
+        // Right Touch grip is the hand-grab button only while the explicit
+        // near inventory prototype is shown. Do not also draw a weapon in
+        // response to that same grip press; R on the keyboard still works.
+        if ((mInput.ModernReady.WasPressedThisFrame()
+                && !UWVRNearGrab.ReservesRightGrip) || lbPadDraws)
             ToggleCombatMode();
 
         // THE FREE POINTER OVER THE INTERFACE (per user, 2026-10-07): Q looks at the thing in the

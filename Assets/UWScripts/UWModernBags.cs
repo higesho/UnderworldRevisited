@@ -1856,6 +1856,36 @@ public partial class UWModernBags : MonoBehaviour
         }
     }
 
+    /// <summary>Original hit tests, exposed read-only to the nearby Touch
+    /// grabber. Never start a grab from an empty slot or a context dialog.</summary>
+    public bool TryGetVRItemAt(Vector2 pOPoint, out UWObject pOItem)
+    {
+        pOItem = null;
+        if (!fIsShown() || IsMenuOpen || IsSplitting || fPageShown())
+            return false;
+
+        if (fPanelSlotAt(pOPoint, out UWArmorItemMap.BodySlot leEquip))
+        {
+            UWInventory lOInventory = fInventory();
+            pOItem = lOInventory != null ? lOInventory.GetEquipped(leEquip) : null;
+        }
+        else if (mbOpen && fFindSlot(pOPoint, out Window lOWindow, out int liSlot))
+            pOItem = fGetItem(lOWindow, liSlot);
+
+        return pOItem != null;
+    }
+
+    /// <summary>For a hand release, require a real bag/equipment slot under
+    /// the hand. Off-panel gestures must not drop objects into the dungeon.</summary>
+    public bool IsVRDropSlot(Vector2 pOPoint)
+    {
+        if (!fIsShown() || IsMenuOpen || IsSplitting || fPageShown())
+            return false;
+
+        return fPanelSlotAt(pOPoint, out UWArmorItemMap.BodySlot _)
+            || (mbOpen && fFindSlot(pOPoint, out Window _, out int _));
+    }
+
     private bool fFindSlot(Vector2 pOPointer, out Window pOWindow, out int piSlot)
     {
         // The original's page: its eight slots are the backpack's, or the open container's from

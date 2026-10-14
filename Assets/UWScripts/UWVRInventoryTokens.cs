@@ -32,6 +32,7 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
     private sealed class TokenView
     {
         public Transform Root;
+        public MeshFilter BodyMesh;
         public MeshRenderer Body;
         public MeshRenderer Face;
         public Material FaceMaterial;
@@ -40,6 +41,8 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
 
     private readonly List<ItemVisual> mItems = new List<ItemVisual>(64);
     private readonly List<TokenView> mViews = new List<TokenView>(64);
+    private readonly Dictionary<UWVRItemGeometry.Form, Mesh> mShapeMeshes
+        = new Dictionary<UWVRItemGeometry.Form, Mesh>();
     private TokenView mHeldView;
     private Material mBodyMaterial;
     private Mesh mQuad;
@@ -136,6 +139,7 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
             TokenView lOToken = GetToken(liShown++, lOPanel);
             lOToken.Item = lOVisual.Item;
             SetIcon(lOToken, lOVisual.Icon);
+            SetShape(lOToken, UWVRItemGeometry.Classify(lOVisual.Item));
 
             Vector3 lOShape = CategoryShape(lOVisual.Item.GetCategory());
             lOToken.Root.localPosition = new Vector3(lOUV.center.x - 0.5f,
@@ -192,6 +196,7 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
         }
 
         SetIcon(mHeldView, mHeldIcon);
+        SetShape(mHeldView, UWVRItemGeometry.Classify(lOItem));
         Vector3 lOShape = CategoryShape(lOItem.GetCategory());
         mHeldView.Root.position = HeldPosition(lOHandRay, pfUnits);
         // Aim the token icon back towards the wearer, independent of the
@@ -216,18 +221,10 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
 
     private TokenView CreateToken(string psName, Transform pOParent)
     {
-        GameObject lOBody = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        lOBody.name = psName;
+        // A render-only mesh from the beginning; never instantiate a physics
+        // collider that could grab focus away from the original item system.
+        GameObject lOBody = new GameObject(psName, typeof(MeshFilter), typeof(MeshRenderer));
         lOBody.transform.SetParent(pOParent, false);
-        // Tokens exist only for stereo rendering. Physics raycasts and walking
-        // collision must never see or manipulate them.
-        Collider lOCollider = lOBody.GetComponent<Collider>();
-        if (lOCollider != null)
-        {
-            lOCollider.enabled = false;
-            Destroy(lOCollider);
-        }
-
         MeshRenderer lOBodyRenderer = lOBody.GetComponent<MeshRenderer>();
         lOBodyRenderer.sharedMaterial = mBodyMaterial;
         lOBodyRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -245,10 +242,28 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
         return new TokenView
         {
             Root = lOBody.transform,
+            BodyMesh = lOBody.GetComponent<MeshFilter>(),
             Body = lOBodyRenderer,
             Face = lOFaceRenderer,
             FaceMaterial = new Material(mFaceTemplate)
         };
+    }
+
+    private void SetShape(TokenView pOToken, UWVRItemGeometry.Form peForm)
+    {
+        if (!mShapeMeshes.TryGetValue(peForm, out Mesh lOMesh))
+        {
+            lOMesh = UWVRItemGeometry.CreateMesh(peForm);
+            mShapeMeshes.Add(peForm, lOMesh);
+        }
+
+        if (pOToken.BodyMesh.sharedMesh != lOMesh)
+            pOToken.BodyMesh.sharedMesh = lOMesh;
+
+        // Keep the authentic 2D icon visible, but expose the genuine shape's
+        // silhouette all around it; this is not merely a rectangular slab.
+        Vector2 lOIconSize = UWVRItemGeometry.IconFaceScale(peForm);
+        pOToken.Face.transform.localScale = new Vector3(lOIconSize.x, lOIconSize.y, 1f);
     }
 
     private Material mFaceTemplate;
@@ -266,6 +281,10 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
 
         mBodyMaterial = new Material(lOShader) { name = "UW VR item token body" };
         mFaceTemplate = new Material(lOShader) { name = "UW VR item icon material", renderQueue = 3010 };
+        if (mBodyMaterial.HasProperty("_Cull"))
+            mBodyMaterial.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+        if (mFaceTemplate.HasProperty("_Cull"))
+            mFaceTemplate.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
         if (mFaceTemplate.HasProperty("_Surface"))
         {
             mFaceTemplate.SetFloat("_Surface", 1f);
@@ -333,5 +352,9 @@ public sealed class UWVRInventoryTokens : MonoBehaviour
             Destroy(mBodyMaterial);
         if (mQuad != null)
             Destroy(mQuad);
+        foreach (Mesh lOMesh in mShapeMeshes.Values)
+            if (lOMesh != null)
+                Destroy(lOMesh);
+        mShapeMeshes.Clear();
     }
 }
