@@ -72,6 +72,12 @@ public static class UWVRBuild
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-gesture-melee -vr-blade-contact -logFile \"%~dp0VR_BladeContact_Test.log\"\r\n");
         File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BladeContact_Scale16.bat"),
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-gesture-melee -vr-blade-contact -vr-units-per-meter=16 -logFile \"%~dp0VR_BladeContact_Scale16_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_HandOrigin.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -logFile \"%~dp0VR_HandOrigin_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_HandOrigin_Scale16.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-units-per-meter=16 -logFile \"%~dp0VR_HandOrigin_Scale16_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BladeAndHandOrigin.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-gesture-melee -vr-blade-contact -logFile \"%~dp0VR_BladeAndHandOrigin_Test.log\"\r\n");
 
         string lSGuide = Path.Combine(lSProjectRoot, "Docs", "VR_TEST_JA.txt");
         if (File.Exists(lSGuide))

@@ -22,6 +22,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private static bool msHandAimRequested;
     private static bool msGestureMeleeRequested;
     private static bool msBladeContactRequested;
+    private static bool msHandOriginRequested;
     private static UWVRBootstrap msInstance;
     private bool mbReported;
     private bool mbStartedSubsystems;
@@ -40,6 +41,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     public static bool HandAimRequested => msHandAimRequested;
     public static bool GestureMeleeRequested => msGestureMeleeRequested;
     public static bool BladeContactRequested => msBladeContactRequested;
+    public static bool HandOriginRequested => msHandOriginRequested;
     public static bool HeadRelativeMovement { get; private set; } = true;
     public static bool IsHeadsetActive => msRequested && XRSettings.isDeviceActive;
     public static Camera CurrentVRCamera => msInstance != null ? msInstance.mCurrentVRCamera : null;
@@ -60,6 +62,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
         msHandAimRequested = false;
         msGestureMeleeRequested = false;
         msBladeContactRequested = false;
+        msHandOriginRequested = false;
         HeadRelativeMovement = true;
 
         if (!msRequested || msInstance != null)
@@ -80,6 +83,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
             pSArg => string.Equals(pSArg, "-vr-gesture-melee", StringComparison.OrdinalIgnoreCase));
         msBladeContactRequested = msGestureMeleeRequested && Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-blade-contact", StringComparison.OrdinalIgnoreCase));
+        msHandOriginRequested = msHandAimRequested && Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-hand-origin", StringComparison.OrdinalIgnoreCase));
         HeadRelativeMovement = !Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-body-relative", StringComparison.OrdinalIgnoreCase));
 
@@ -93,7 +98,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
             + "; direct grab " + (msDirectGrabRequested ? "enabled" : "off")
             + "; hand aim " + (msHandAimRequested ? "enabled" : "off")
             + "; gesture melee " + (msGestureMeleeRequested ? "enabled" : "off")
-            + "; blade contact " + (msBladeContactRequested ? "enabled" : "off") + ".");
+            + "; blade contact " + (msBladeContactRequested ? "enabled" : "off")
+            + "; hand origin " + (msHandOriginRequested ? "enabled" : "off") + ".");
 
         GameObject lOHost = new GameObject("UW VR Bootstrap");
         DontDestroyOnLoad(lOHost);

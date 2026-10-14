@@ -91,6 +91,9 @@ public static class UWVRDiagnostics
             "A desktop session must not enable gesture strikes or hide the normal weapon sprite");
         fRequire(!UWVRBladeSweep.IsEnabled,
             "VR sword collision must never run outside an explicitly opted-in XR session");
+        fRequire(!UWVRHandLaunch.IsEnabled,
+            "VR hand-origin missiles must never run in a desktop/offline session");
+        fTestVRHandMuzzle();
         fTestVRBladeSweep();
 
         // Run the opt-in sword input through synthetic 90 Hz Touch hand paths.
@@ -618,8 +621,176 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, dual Touch aim, simulated sword motion, swept blade contact, first obstacle/through-wall blocking, no double hit, sword/axe/mace/fist geometry, stereo UI and real inventory take/swap/place.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, dual Touch aim, hand-origin arrow/spell muzzle with scale and occlusion, fine-grained original mobile launch and blocked spawn, tracked sword sweep, stereo UI and inventory.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
+    }
+
+    private static void fTestVRHandMuzzle()
+    {
+        GameObject lORoot = new GameObject("VR hand origin offline test root");
+        GameObject lOAvatar = new GameObject("VR hand origin test avatar");
+        GameObject lOWall = new GameObject("VR hand origin test wall");
+        try
+        {
+            lOAvatar.transform.SetParent(lORoot.transform, false);
+            lOWall.transform.SetParent(lORoot.transform, false);
+            lOAvatar.transform.position = new Vector3(0f, 4f, 1.1f);
+            lOAvatar.AddComponent<BoxCollider>().size = new Vector3(0.5f, 0.5f, 0.3f);
+            lOWall.transform.position = new Vector3(0f, 4f, 10f);
+            BoxCollider lOWallCollider = lOWall.AddComponent<BoxCollider>();
+            lOWallCollider.size = new Vector3(1f, 1f, 0.18f);
+            Physics.SyncTransforms();
+
+            Ray lOTrackedRight = new Ray(new Vector3(0.4f, 4f, 0.3f), Vector3.forward);
+            Ray lOTrackedLeft = new Ray(new Vector3(-0.4f, 4f, 0.3f), Vector3.left);
+            Vector3 lOEye = new Vector3(0f, 4f, 0f);
+            fRequire(UWVRHandLaunch.Validate(lOEye, lOTrackedRight, false,
+                    16f, UWVRHandLaunch.RightMuzzleOffsetMetres,
+                    lOAvatar.transform, out _) == UWVRHandLaunch.Result.Untracked,
+                "No XR tracking must fall back to the existing player-origin missile");
+            fRequire(UWVRHandLaunch.Validate(lOEye,
+                    new Ray(new Vector3(float.NaN, 4f, 0f), Vector3.forward), true,
+                    16f, 0.18f, lOAvatar.transform, out _) == UWVRHandLaunch.Result.Blocked,
+                "Invalid tracked VR pose must not launch a projectile from player feet");
+
+            fRequire(UWVRHandLaunch.Validate(lOEye, lOTrackedRight, true,
+                    1f, UWVRHandLaunch.RightMuzzleOffsetMetres,
+                    lOAvatar.transform, out Ray lORightScale1) == UWVRHandLaunch.Result.Ready
+                && (lORightScale1.origin - new Vector3(0.4f, 4f, 0.48f)).sqrMagnitude < 0.00001f,
+                "Right Touch muzzle must offset only a physical 18cm at world scale 1");
+            fRequire(UWVRHandLaunch.Validate(lOEye, lOTrackedRight, true,
+                    16f, UWVRHandLaunch.RightMuzzleOffsetMetres,
+                    lOAvatar.transform, out Ray lORightScale16) == UWVRHandLaunch.Result.Ready
+                && (lORightScale16.origin - new Vector3(0.4f, 4f, 3.18f)).sqrMagnitude < 0.0001f,
+                "Right Touch muzzle must offset 18 physical cm, not 18 game units, at scale 16");
+            fRequire(UWVRHandLaunch.Validate(lOEye, lOTrackedLeft, true,
+                    16f, UWVRHandLaunch.LeftMuzzleOffsetMetres,
+                    lOAvatar.transform, out Ray lOLeftScale16) == UWVRHandLaunch.Result.Ready
+                && (lOLeftScale16.origin - new Vector3(-2.32f, 4f, 0.3f)).sqrMagnitude < 0.0001f
+                && (lOLeftScale16.direction - Vector3.left).sqrMagnitude < 0.00001f,
+                "Left Touch spell must emit from its own hand and preserve its independent direction");
+
+            UWProjectileWorld.AimFromDirection(lORightScale16.direction, 15,
+                out int liRightHeading, out int liRightPitch);
+            fRequire(UWVRHandLaunch.TryBuildOriginalLauncher(lORightScale16,
+                    liRightHeading, out UWMobileObjectMotion.Launcher lOPlayerMuzzle)
+                && lOPlayerMuzzle.IsPlayer && lOPlayerMuzzle.IsCreature
+                && lOPlayerMuzzle.Index == 1 && lOPlayerMuzzle.HasExplicitStart,
+                "Original player projectile launcher must retain player ownership and explicit hand start");
+            fRequire(lOPlayerMuzzle.ExplicitFineX != (lOPlayerMuzzle.TileX << 8)
+                    + (lOPlayerMuzzle.XPos << 5) + 0xF
+                && (UWViewpoint.OriginalToWorld(
+                        lOPlayerMuzzle.ExplicitFineX, lOPlayerMuzzle.ExplicitFineY,
+                        lOPlayerMuzzle.ExplicitFineZ) - lORightScale16.origin).magnitude < 0.22f,
+                "VR missile start must preserve the fine original-unit hand position, not snap to sub-tile centres");
+            fRequire(!UWVRHandLaunch.TryBuildOriginalLauncher(
+                    new Ray(new Vector3(-1000f, 4f, 0f), Vector3.forward),
+                    liRightHeading, out _),
+                "Controller beyond the mapped dungeon must not launch a missile into an invalid tile");
+
+            // The real, engine-free projectile motion launcher is exercised
+            // without Unity camera, player controller or HMD. Its record must
+            // start at the fine hand position, retain owner=player and use
+            // the original heading/vertical speed/mobile period.
+            VRHandMuzzleTestWorld lOTestWorld = new VRHandMuzzleTestWorld();
+            UWMobileObjectMotion lOMotion = new UWMobileObjectMotion(
+                lOTestWorld, new VRHandMuzzleTestHost(), null);
+            UWMobileRecord lOArrow = new UWMobileRecord
+            {
+                Object = new UWObject(0x11), Index = 1402
+            };
+            fRequire(lOMotion.TryLaunch(lOArrow, lOPlayerMuzzle, true, 0,
+                    liRightPitch, 15),
+                "Core rejected a hand-origin arrow in the test dungeon's empty tile");
+            fRequire(lOArrow.FineX == lOPlayerMuzzle.ExplicitFineX
+                && lOArrow.FineY == lOPlayerMuzzle.ExplicitFineY
+                && lOArrow.FineZ == lOPlayerMuzzle.ExplicitFineZ
+                && lOArrow.Owner == 1 && lOArrow.Index == 1402
+                && lOArrow.HeadingByte == (liRightHeading & 0xFF)
+                && lOArrow.SpeedByte == 15 && lOArrow.Period == 1,
+                "Original mobile flight modified the explicit hand start, owner, heading or speed");
+
+            UWMobileRecord lOLegacyArrow = new UWMobileRecord
+            {
+                Object = new UWObject(0x11), Index = 1403
+            };
+            UWMobileObjectMotion.Launcher lOLegacy = lOPlayerMuzzle;
+            lOLegacy.HasExplicitStart = false;
+            lOLegacy.Height = 0;
+            fRequire(lOMotion.TryLaunch(lOLegacyArrow, lOLegacy, true, 0,
+                    liRightPitch, 15)
+                && lOLegacyArrow.FineX == (lOLegacyArrow.TileX << 8)
+                    + (lOLegacyArrow.XPos << 5) + 0xF,
+                "Legacy non-VR missile launcher must preserve its original sub-tile start");
+
+            lOTestWorld.SolidTiles = true;
+            UWMobileRecord lOBlockedArrow = new UWMobileRecord
+            {
+                Object = new UWObject(0x11), Index = 1404
+            };
+            fRequire(!lOMotion.TryLaunch(lOBlockedArrow, lOPlayerMuzzle, true, 0,
+                    liRightPitch, 15),
+                "Core must refuse a hand-origin projectile embedded in a solid dungeon tile");
+
+            // A controller through a wall is still TRACKED; it must not cause
+            // a legacy body-origin shot. Same for an invisible trigger (ignore).
+            lOWall.transform.position = new Vector3(0.4f, 4f, 1.1f);
+            Physics.SyncTransforms();
+            fRequire(UWVRHandLaunch.Validate(lOEye, lOTrackedRight, true,
+                    16f, UWVRHandLaunch.RightMuzzleOffsetMetres,
+                    lOAvatar.transform, out _) == UWVRHandLaunch.Result.Blocked,
+                "Hand tracking through a solid wall must block the shot, not silently fall back");
+            lOWallCollider.isTrigger = true;
+            Physics.SyncTransforms();
+            fRequire(UWVRHandLaunch.Validate(lOEye, lOTrackedRight, true,
+                    16f, UWVRHandLaunch.RightMuzzleOffsetMetres,
+                    lOAvatar.transform, out _) == UWVRHandLaunch.Result.Ready,
+                "Trigger-only volumes must not obstruct tracked hand projectile starts");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(lORoot);
+        }
+    }
+
+    private sealed class VRHandMuzzleTestWorld : IUWMotionWorld
+    {
+        public bool SolidTiles;
+
+        public bool TryGetTile(int piX, int piY,
+            out int piType, out int piFloor, out int piTerrain)
+        {
+            piType = SolidTiles ? 0 : 1;
+            piFloor = 0;
+            piTerrain = 0;
+            return piX >= 0 && piY >= 0 && piX < 64 && piY < 64;
+        }
+
+        public void GetBodiesInTile(int piX, int piY, List<UWMotionBody> pOInto) { }
+        public int Random() => 0;
+        public void UseOnMover(int piOtherIndex, int piMoverIndex, int piX, int piY) { }
+        public int TriggerMove(int piMoverIndex, int piOtherIndex, int piX, int piY) => 2;
+        public bool MissileHits(int piMoverIndex, int piOtherIndex, int piX, int piY) => false;
+        public void PushObject(int piOtherIndex, int piHeading,
+            int piSpeed, int piVz, int piX, int piY) { }
+        public void PlaySoundAt(int piSound, int piX8, int piY8, int piVolume) { }
+    }
+
+    private sealed class VRHandMuzzleTestHost : IUWMobileObjectHost
+    {
+        public int DungeonLevel => 1;
+        public int ClockPhase => 0;
+        public void MoveToTile(UWMobileRecord pORecord, int piOldTileX,
+            int piOldTileY, int piNewTileX, int piNewTileY) { }
+        public bool DamageSelf(UWMobileRecord pORecord, int piDamage, int piType) => false;
+        public void PlaySoundAtObject(int piSound, UWMobileRecord pORecord, int piVolume) { }
+        public void Splash(UWMobileRecord pORecord) { }
+        public bool TalismanBurns(UWMobileRecord pORecord, int piTileX, int piTileY) => false;
+        public void OnDemoted(UWMobileRecord pORecord) { }
+        public int Detonate(UWMobileRecord pORecord, int piTileX,
+            int piTileY, int piOwner) => 0;
+        public void Remove(UWMobileRecord pORecord) { }
+        public void PlaceAtRest(UWMobileRecord pORecord, int piOctant, int piQuality) { }
     }
 
     private static void fTestVRBladeSweep()

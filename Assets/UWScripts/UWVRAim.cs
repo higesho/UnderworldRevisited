@@ -5,7 +5,7 @@ using UnityEngine;
 /// Desktop and default VR still use their original rays. Explicit
 /// -vr-hand-aim changes ONLY combat/magic rays; look, use and UI remain gaze
 /// or cursor based. The launch position stays at the original camera/player
-/// so existing attack reach, projectiles and their collision rules survive.
+/// except when the separate -vr-hand-origin prototype is explicitly enabled.
 /// </summary>
 public static class UWVRAim
 {

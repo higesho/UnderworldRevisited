@@ -602,6 +602,17 @@ namespace UWDataImport.UWData
 			/// <summary>PLAYER.DAT 0xB9, the swim counter; above 0x50 the player's missile starts at
 			/// the full height less the counter / 8.</summary>
 			public int SwimCounter;
+
+			/// <summary>Opt-in VR launch: start at the controller's precise original-unit
+			/// position instead of applying the player's height and horizontal
+			/// launcher-radius offset. The normal launcher path is untouched.</summary>
+			public bool HasExplicitStart;
+
+			/// <summary>Original fine position (tile * 256 + sub-position);
+			/// vertical coordinate is likewise in original height units.</summary>
+			public int ExplicitFineX;
+			public int ExplicitFineY;
+			public int ExplicitFineZ;
 		}
 
 		/// <summary>
@@ -635,7 +646,16 @@ namespace UWDataImport.UWData
 
 			int liHeight = pOLauncher.Height & 0xFF;
 
-			if (liHeight != 0)
+			if (pOLauncher.HasExplicitStart)
+			{
+				// The hand is not a physical COMOBJ launcher. Still do the same
+				// world collision scan as the normal projectile placement, this
+				// time AT its actual muzzle. Do not move it a player radius ahead.
+				pORecord.ZPos = pOLauncher.ExplicitFineZ >> 3;
+				if (!fTestExplicitPlacement(pORecord, pOLauncher))
+					return false;
+			}
+			else if (liHeight != 0)
 			{
 				pORecord.ZPos = (pOLauncher.ZPos + ((liHeight * 5) / 6) + (2 * piPitch)) & 0x7F;
 
@@ -648,9 +668,12 @@ namespace UWDataImport.UWData
 
 			if (!pORecord.IsCreature)
 			{
-				pORecord.FineX = (pORecord.TileX << 8) + (pORecord.XPos << 5) + 0xF;
-				pORecord.FineY = (pORecord.TileY << 8) + (pORecord.YPos << 5) + 0xF;
-				pORecord.FineZ = pORecord.ZPos << 3;
+				pORecord.FineX = pOLauncher.HasExplicitStart ? pOLauncher.ExplicitFineX
+					: (pORecord.TileX << 8) + (pORecord.XPos << 5) + 0xF;
+				pORecord.FineY = pOLauncher.HasExplicitStart ? pOLauncher.ExplicitFineY
+					: (pORecord.TileY << 8) + (pORecord.YPos << 5) + 0xF;
+				pORecord.FineZ = pOLauncher.HasExplicitStart ? pOLauncher.ExplicitFineZ
+					: pORecord.ZPos << 3;
 
 				int liOwner = 0;
 
@@ -675,6 +698,39 @@ namespace UWDataImport.UWData
 				pORecord.Object.XPos = (ushort)pORecord.XPos;
 				pORecord.Object.YPos = (ushort)pORecord.YPos;
 				pORecord.Object.ZPos = pORecord.ZPos;
+			}
+
+			return true;
+		}
+
+		/// <summary>Core-owned placement check for the exact VR muzzle position.
+		/// The player's own collision body (index 1) is skipped, because a physical
+		/// controller can be held inside the avatar's large original-radius body.
+		/// Walls, doors, creatures and every other obstacle remain checked. Only
+		/// the scratch-placement mover uses index 1; the launched projectile keeps
+		/// its own record Index, Owner=1, future collision and original flight.</summary>
+		private bool fTestExplicitPlacement(UWMobileRecord pORecord, Launcher pOLauncher)
+		{
+			UWCommonObjectProperties.Entry lOEntry = fEntry(pORecord.ItemId);
+			UWMotionCore c = Scratch;
+			int liX = (pOLauncher.TileX * 8) + pOLauncher.XPos;
+			int liY = (pOLauncher.TileY * 8) + pOLauncher.YPos;
+
+			UWMotionBody lOBody = pORecord.ToBody();
+			int liScanIndex = pOLauncher.IsPlayer ? pOLauncher.Index : pORecord.Index;
+			lOBody.Index = liScanIndex;
+			c.Mover = lOBody;
+			c.SetCalc(liX, liY, pORecord.ZPos, lOEntry.Radius & 7,
+				lOEntry.Height, liScanIndex);
+			c.ScanForCollisions(false, true);
+			c.ProcessMotionTileHeights(0);
+			if (((c.Flags | c.AllFlags) & 0x300) != 0)
+				return false;
+			if (c.Count != 0)
+			{
+				c.SortCollisions();
+				if (c.Overlap != 0)
+					return false;
 			}
 
 			return true;

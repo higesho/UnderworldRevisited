@@ -202,6 +202,19 @@ of what is built was also read out of the original's executable.
   physics obstacle, reach and through-wall tests PASS. Windows x64 Unity build
   succeeds with zero errors (2026-10-14). A separate 358-entry ZIP includes
   thirteen launch scripts without copyrighted original game data.
+  Opt-in hand-origin projectiles (-vr-hand-origin with -vr-hand-aim) use right
+  Touch to spawn arrows/sling shots and left Touch to spawn projectile spells.
+  A calibrated muzzle offset in metres is converted to the original game's
+  fine X/Y/Z position. The existing UWMobileObjectMotion collision/flight
+  engine and player-owned damage remain authoritative, while the new start
+  scan ignores only the avatar's own collision body. Occluded or out-of-map
+  tracked hands refuse firing rather than bypassing a wall; lost tracking
+  falls back to legacy origin and gaze. Real headset shooting remains untested.
+  Offline Unity physics and engine-free motion-core tests PASS, including
+  map bounds, occluded hand, scale1/scale16, player projectile ownership and
+  unchanged legacy launch. Windows x64 build succeeds (2026-10-14, errors 0).
+  The separate 361-entry, sixteen-launcher ZIP is checked for original game
+  data (none); Quest visual and actual Touch firing tests are still open.
   Unity 6000.6.0f1 simulated sword trajectory tests PASS and Windows x64
   development build succeeds (2026-10-14, zero errors). A separately named
   356-entry ZIP with eleven launch scripts passed OpenXR/package/original-data

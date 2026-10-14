@@ -233,6 +233,34 @@ public class UWProjectileWorld : MonoBehaviour, IUWMotionWorld, IUWMobileObjectH
             pOInteraction, null, piHp);
     }
 
+    /// <summary>Opt-in VR hand-origin shot/spell. Use the real tracked muzzle
+    /// to construct a player-owned launcher with an explicit fine-position
+    /// start; the SAME engine-free UWMobileObjectMotion still handles room,
+    /// velocity, collisions, gravity, projectile life, damage and settling.
+    /// If the muzzle is outside the dungeon or the core rejects placement,
+    /// do not consume ammo/mana and do not silently fire from the old origin.</summary>
+    public UWProjectileFlight LaunchFromPlayerHand(UWObject pOItem, int piItemId,
+        Ray pOMuzzle, int piHeading, int piPitch, int piSpeedByte,
+        int piDamage, int piDamageType, int piImpactId,
+        Interaction pOInteraction, int piHp)
+    {
+        if (fMotion() == null || !UWVRHandLaunch.TryBuildOriginalLauncher(
+                pOMuzzle, piHeading, out UWMobileObjectMotion.Launcher lOLauncher))
+            return null;
+
+        UWProjectileFlight lOFlight = fLaunch(pOItem, piItemId, lOLauncher, 0,
+            piPitch, piSpeedByte, piDamage, piDamageType, piImpactId,
+            pOInteraction, null, piHp);
+
+        if (lOFlight != null)
+            Debug.Log("[UWVR-MUZZLE] launched player projectile " + piItemId
+                + " at " + WorldPosition(lOFlight.Record)
+                + "; original fine=" + lOLauncher.ExplicitFineX + ","
+                + lOLauncher.ExplicitFineY + "," + lOLauncher.ExplicitFineZ
+                + "; owner=" + lOFlight.Record.Owner + ".");
+        return lOFlight;
+    }
+
     /// <summary>A creature's missile or spell projectile along its facing, at the pitch of its
     /// aim (GetPitchToGTarg). Null when the start has no room - the original makes no missile then.</summary>
     public UWProjectileFlight LaunchFromCreature(UWCritter pOCritter, int piItemId, int piPitch, int piDamage,

@@ -4,6 +4,20 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 左右のTouch発射位置を原作の飛翔体処理へ接続（10月14日）
+
+- 前段の `250cad2` はGitHub `fork/japanese-localization` と一致、未コミット変更なしの状態から開始。
+- `-vr-hand-origin` を、`-vr -vr-hand-aim` と組み合わせた場合だけ有効化。通常のデスクトップ、通常VR、従来の `LaunchVR_HandAim`／`LaunchVR_BladeContact` の発射位置・操作は従来のまま。右Touchの前方18cmから矢（弓・クロスボウ・スリング）、左Touchの前方12cmからルーン系の飛翔魔法を発射する試験経路を新設。
+- `UWVRHandLaunch` が左右独立の6DoF追跡位置・向き、XR世界倍率に基づくメートル距離、HMD眼位置から手元発射点への壁遮蔽、マップ範囲を検査。追跡が取得できない時だけ従来のプレイヤー位置・HMD視線へ戻す。追跡されていて壁や範囲外・不正姿勢の場合は**発射を失敗**させ、弾・魔力を消費せず、体の位置から壁越しに飛ばさない。
+- `UWMobileObjectMotion.Launcher` に任意の原作細座標 `ExplicitFineX/Y/Z` を追加し、XRで計算した実際の手元発射位置を1/8タイル単位ではなく原作の1単位まで保持。`TryLaunch` の新しい開始座標指定時だけ、原作の地形・物体の配置検査を**手元の位置**で実行。大きなプレイヤー当たり判定だけは開始点の検査から除外し、飛翔開始後の本来のプレイヤー衝突・飛翔・重力・命中・落下・消滅は従来のエンジンを維持。
+- 弾道方向は従来の `AimFromDirection`、飛翔体生成は `UWProjectileWorld`、弾消費は `UWInventory.TryConsumeOne`、魔力支払いは `UWCharacter.SpendMana` を使う。弓を物理的に引く／魔法の手のひら効果／落下アイテムの手からの投擲は**この段階では変更しない**。
+- 新しい比較用起動バッチ：`LaunchVR_HandOrigin.bat`、`LaunchVR_HandOrigin_Scale16.bat`、`LaunchVR_BladeAndHandOrigin.bat`。各試験ログには `[UWVR-MUZZLE]` として発射・遮蔽・追跡不足を記録。
+- Unity非HMD検査では、左右の異なる発射点、倍率1と16、原作の細座標とowner、原作の空タイルへの発射成功・壁タイルでの発射失敗、Unity物理での遮蔽／トリガー除外を模擬検証する。**HMD実機で左右手の見え方・実射撃操作が成功したという意味ではない。**
+- 初回のオフライン検証はゲーム時計を持たないテスト用模擬ホストが原因で停止。これは実装コードではなく模擬環境の欠落であり、`IUWMobileObjectHost.ClockPhase` などを補完した後、`L:\Games\UlutimaUW\unity-vr-hand-origin-offline-fixed-20261014.log` で `[UWVR-OFFLINE] PASS` を確認した。
+- `L:\Games\UlutimaUW\unity-vr-hand-origin-build-20261014.log` では同じ自動検査PASSに加え、Unity 6000.6.0f1 の Windows x64開発ビルドが `[UWVR] Build result: Succeeded; errors: 0`。**HMD接続テストではない**。
+- 新しい配布用ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-hand-origin-win64.zip`（**102,056,114バイト／361項目**）。16種類の起動バッチ、OpenXR関連DLL、更新した `Assembly-CSharp.dll`、日本語ガイド・翻訳データを確認。原作ゲームデータなし、既存ZIPの上書きなし。
+- ZIP SHA-256：`9ABA834A701571EB3660AABAC6E6CBF197FD534573B2187E72D5E02C0EEEE4AD`。
+
 ### 物理的な刃軌道・武器ごとの代表形状（10月14日）
 
 - 開始時点で直前の `800b36b` はGitHub `fork/japanese-localization` と一致し、未コミット変更がないことを確認。

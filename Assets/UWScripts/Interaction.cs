@@ -2770,10 +2770,24 @@ public class Interaction : MonoBehaviour
         int liHeading;
         int liPitch;
 
+        // Only the explicit hand-origin comparison mode changes where the
+        // shot starts. Hand tracking missing -> previous player launch path;
+        // a tracked hand BEHIND a wall -> fail rather than shooting through
+        // the wall from the original position.
+        UWVRHandLaunch.Result leHandStart = UWVRHandLaunch.Resolve(
+            Camera.main, UnityEngine.XR.XRNode.RightHand, out Ray lORightMuzzle);
+        if (leHandStart == UWVRHandLaunch.Result.Blocked)
+        {
+            AddGeneralMessage(NoRoomForWeaponMessage);
+            Debug.Log("[UWVR-MUZZLE] right-hand bow muzzle blocked; ammunition retained.");
+            return false;
+        }
+
         // The original's aim from the pointer in the view window; the modern scheme shoots where
         // the free pointer stands on the world, else along the crosshair (per user, 2026-10-04).
-        if (UWVRAim.IsHandAimActive)
-            UWProjectileWorld.AimFromDirection(UWVRAim.Combat(Camera.main).direction,
+        if (leHandStart == UWVRHandLaunch.Result.Ready || UWVRAim.IsHandAimActive)
+            UWProjectileWorld.AimFromDirection(leHandStart == UWVRHandLaunch.Result.Ready
+                ? lORightMuzzle.direction : UWVRAim.Combat(Camera.main).direction,
                 liSpeedByte, out liHeading, out liPitch);
         else if (fIsOriginalScheme() && mGameUi != null)
         {
@@ -2788,9 +2802,19 @@ public class Interaction : MonoBehaviour
         // is the ammunition's quality (MissileRelease copies it from the piece).
         UWObject lOAmmunition = fFindAmmunition(piAmmunitionId);
 
-        UWProjectileFlight lOFlight = UWProjectileWorld.Ensure(mLevelLoader).LaunchFromPlayer(null, piAmmunitionId,
-            liHeading, liPitch, liSpeedByte, fGetMissileDamage(piAmmunitionId, UWCombat.NeutralCharge),
-            UWDamageTypes.Missile, -1, this, lOAmmunition != null ? lOAmmunition.Quality : 0x3F);
+        UWProjectileWorld lOWorld = UWProjectileWorld.Ensure(mLevelLoader);
+        int liDamage = fGetMissileDamage(piAmmunitionId, UWCombat.NeutralCharge);
+        int liHp = lOAmmunition != null ? lOAmmunition.Quality : 0x3F;
+        UWProjectileFlight lOFlight = leHandStart == UWVRHandLaunch.Result.Ready
+            ? lOWorld.LaunchFromPlayerHand(null, piAmmunitionId, lORightMuzzle,
+                liHeading, liPitch, liSpeedByte, liDamage, UWDamageTypes.Missile,
+                -1, this, liHp)
+            : lOWorld.LaunchFromPlayer(null, piAmmunitionId,
+                liHeading, liPitch, liSpeedByte, liDamage, UWDamageTypes.Missile,
+                -1, this, liHp);
+
+        if (UWVRHandLaunch.IsEnabled && leHandStart == UWVRHandLaunch.Result.Untracked)
+            Debug.Log("[UWVR-MUZZLE] right Touch not tracked; normal player start used.");
 
         if (lOFlight == null)
         {
@@ -5591,8 +5615,18 @@ public class Interaction : MonoBehaviour
         int liHeading;
         int liPitch;
 
-        if (UWVRAim.IsHandAimActive)
-            UWProjectileWorld.AimFromDirection(UWVRAim.Magic(Camera.main).direction,
+        UWVRHandLaunch.Result leHandStart = UWVRHandLaunch.Resolve(
+            Camera.main, UnityEngine.XR.XRNode.LeftHand, out Ray lOLeftMuzzle);
+        if (leHandStart == UWVRHandLaunch.Result.Blocked)
+        {
+            AddGeneralMessage(NoRoomForSpellMessage);
+            Debug.Log("[UWVR-MUZZLE] left-hand spell muzzle blocked; mana retained.");
+            return;
+        }
+
+        if (leHandStart == UWVRHandLaunch.Result.Ready || UWVRAim.IsHandAimActive)
+            UWProjectileWorld.AimFromDirection(leHandStart == UWVRHandLaunch.Result.Ready
+                ? lOLeftMuzzle.direction : UWVRAim.Magic(Camera.main).direction,
                 miPendingProjectileSpeedByte, out liHeading, out liPitch);
         else if (fIsOriginalScheme() && mGameUi != null)
         {
@@ -5606,10 +5640,19 @@ public class Interaction : MonoBehaviour
             UWProjectileWorld.AimFromDirection(lORay.direction, miPendingProjectileSpeedByte, out liHeading, out liPitch);
         }
 
-        UWProjectileFlight lOFlight = UWProjectileWorld.Ensure(mLevelLoader).LaunchFromPlayer(null, miPendingProjectileId,
-            liHeading, liPitch, miPendingProjectileSpeedByte, miPendingProjectileDamage,
-            UWRunicMagic.GetProjectileDamageType(miPendingProjectileId), UWRunicMagic.GetProjectileImpactId(miPendingProjectileId),
-            this, 0x3F);
+        UWProjectileWorld lOWorld = UWProjectileWorld.Ensure(mLevelLoader);
+        int liDamageType = UWRunicMagic.GetProjectileDamageType(miPendingProjectileId);
+        int liImpactId = UWRunicMagic.GetProjectileImpactId(miPendingProjectileId);
+        UWProjectileFlight lOFlight = leHandStart == UWVRHandLaunch.Result.Ready
+            ? lOWorld.LaunchFromPlayerHand(null, miPendingProjectileId, lOLeftMuzzle,
+                liHeading, liPitch, miPendingProjectileSpeedByte, miPendingProjectileDamage,
+                liDamageType, liImpactId, this, 0x3F)
+            : lOWorld.LaunchFromPlayer(null, miPendingProjectileId,
+                liHeading, liPitch, miPendingProjectileSpeedByte, miPendingProjectileDamage,
+                liDamageType, liImpactId, this, 0x3F);
+
+        if (UWVRHandLaunch.IsEnabled && leHandStart == UWVRHandLaunch.Result.Untracked)
+            Debug.Log("[UWVR-MUZZLE] left Touch not tracked; normal player start used.");
 
         if (lOFlight == null)
         {
