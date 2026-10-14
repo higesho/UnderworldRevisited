@@ -78,6 +78,7 @@ public class Interaction : MonoBehaviour
     private bool mbAttackFromPad;
 
     private float mfPendingCharge;
+    private readonly UWVRMeleeMotion mVRMeleeMotion = new UWVRMeleeMotion();
 
     private AttackEnum mePendingAttack;
     private UWControlScheme mControlScheme;
@@ -363,6 +364,13 @@ public class Interaction : MonoBehaviour
                 : mGameUi == null || mGameUi.IsScreenPositionInGameArea(Mouse.current.position.ReadValue());
         }
 
+        // Only this opt-in VR route requires a physical hand motion to make
+        // a melee attack count. A trigger holds the original charge, and the
+        // trajectory is sampled relative to the HMD in physical metres. The
+        // real UWCombat damage, defence, wear, sounds and impact frames stay
+        // entirely in the existing game. Ranged weapons keep trigger shooting.
+        fSampleVRMelee(lOAttackButton);
+
         if (IsCombatModeActive && !IsAttacking && !mbAttackPending && mbRightPressInViewport
             && mCharacter != null && mCharacter.CanAttack && lOAttackButton.IsPressed() && !UWPlayerMovement.ConsumesRightClick()
             && (mControlScheme == null || !mControlScheme.IsWorldInputBlocked) && (mbAttackFromPad || fMouseInWorld()))
@@ -492,7 +500,39 @@ public class Interaction : MonoBehaviour
             // factor twice.
             float lfProgress = mAttackMax <= 0f ? 1f : Mathf.Clamp01(mAttackDuration / mAttackMax);
 
-            mfPendingCharge = lfProgress;
+            // The opt-in motion requirement belongs to Touch/controller
+            // attacks only. A desktop mouse still works as before even if an
+            // OpenXR session and a physical sword prototype are enabled.
+            bool lbGestureMelee = fUsesVRGestureMelee() && mbAttackFromPad;
+            bool lbGestureValid = true;
+            float lfGestureCharge = 1f;
+            if (lbGestureMelee)
+            {
+                Camera lOReleaseCamera = UWVRBootstrap.CurrentVRCamera;
+                UWVRHeadTracking lOReleaseTracking = lOReleaseCamera != null
+                    ? lOReleaseCamera.GetComponent<UWVRHeadTracking>() : null;
+                Ray lOReleaseHand = default;
+                bool lbHandStillTracked = lOReleaseTracking != null
+                    && lOReleaseTracking.TryGetControllerRay(UnityEngine.XR.XRNode.RightHand,
+                        out lOReleaseHand)
+                    && UWVRAim.HasValidDirection(lOReleaseHand.direction);
+                lbGestureValid = mVRMeleeMotion.TryFinish(lbHandStillTracked,
+                    out UWVRMeleeMotion.Strike leStrike, out lfGestureCharge);
+                if (lbGestureValid)
+                {
+                    fSetAttackKind(leStrike == UWVRMeleeMotion.Strike.Hack ? AttackTypes.Hack
+                        : leStrike == UWVRMeleeMotion.Strike.Stab ? AttackTypes.Stab
+                        : AttackTypes.Slash);
+                    Debug.Log("[UWVR-MELEE] " + leStrike + " accepted; charge limit="
+                        + lfGestureCharge.ToString("0.00") + "; original charge="
+                        + lfProgress.ToString("0.00"));
+                }
+                else
+                    Debug.Log("[UWVR-MELEE] Trigger released without a fresh tracked swing; hit canceled.");
+            }
+
+            mfPendingCharge = lbGestureMelee && lbGestureValid
+                ? Mathf.Min(lfProgress, lfGestureCharge) : lfProgress;
             mePendingAttack = mCurrentAttack;
 
             // Whether the release becomes a strike depends solely on the windup:
@@ -501,7 +541,8 @@ public class Interaction : MonoBehaviour
             // 2026-09-01). The minimum charge does NOT decide this - it is the
             // lower bound of the damage factor. A strike from a barely charged weapon
             // does happen, but does little.
-            mbAttackPending = mCharacter == null || mCharacter.IsWindupComplete;
+            mbAttackPending = (!lbGestureMelee || lbGestureValid)
+                && (mCharacter == null || mCharacter.IsWindupComplete);
 
             // A LAUNCHER SHOOTS ON RELEASE, not at a hit frame: PlayerCombat_seg022_11BA calls
             // MissileRelease_seg025_9F the moment the button comes up, with the pointer in the
@@ -726,6 +767,54 @@ public class Interaction : MonoBehaviour
     private InputAction fGetAttackButton()
     {
         return fIsOriginalScheme() ? mInput.Interact : mInput.ModernAttack;
+    }
+
+    private bool fUsesVRGestureMelee()
+    {
+        // Original UI, desktop, ranged weapons and the regular VR hand-aim
+        // mode continue using their existing attack input unchanged.
+        return UWVRMeleeMotion.IsEnabled && !fIsOriginalScheme()
+            && mCharacter != null && !fHoldsLauncher();
+    }
+
+    private void fSampleVRMelee(InputAction pOAttackButton)
+    {
+        if (!fUsesVRGestureMelee() || !IsCombatModeActive
+            || (mControlScheme != null && mControlScheme.IsWorldInputBlocked)
+            || UWConversationScreen.IsAnyOpen || !Application.isFocused
+            || !mbAttackFromPad)
+        {
+            mVRMeleeMotion.Reset();
+            return;
+        }
+
+        // The release event is consumed below before the classifier resets.
+        if (pOAttackButton.WasReleasedThisFrame())
+            return;
+
+        if (!pOAttackButton.IsPressed() || !IsAttacking)
+        {
+            mVRMeleeMotion.Reset();
+            return;
+        }
+
+        Camera lOCamera = UWVRBootstrap.CurrentVRCamera;
+        UWVRHeadTracking lOTracking = lOCamera != null
+            ? lOCamera.GetComponent<UWVRHeadTracking>() : null;
+        Ray lORay = default;
+        bool lbTracked = lOTracking != null
+            && lOTracking.TryGetControllerRay(UnityEngine.XR.XRNode.RightHand, out lORay);
+        if (lbTracked)
+        {
+            // InverseTransformPoint removes the player's world travel and the
+            // tracked rig's units-per-metre scale. Hand displacement is then
+            // compared in REAL metres relative to the headset.
+            Vector3 lOMetres = lOCamera.transform.InverseTransformPoint(lORay.origin);
+            Vector3 lOLocalForward = lOCamera.transform.InverseTransformDirection(lORay.direction);
+            mVRMeleeMotion.Sample(true, lOMetres, lOLocalForward, Time.deltaTime);
+        }
+        else
+            mVRMeleeMotion.Sample(false, Vector3.zero, Vector3.forward, Time.deltaTime);
     }
 
     // ------------------------------------------------- The modern scheme's keys
@@ -1422,6 +1511,7 @@ public class Interaction : MonoBehaviour
         mAttackDuration = 0f;
         IsAttacking = false;
         mbAttackPending = false;
+        mVRMeleeMotion.Reset();
     }
 
     private UWPlayerTerrain mOPlayerTerrain;

@@ -31,6 +31,21 @@ public sealed class UWVRHeadTracking : MonoBehaviour
     public bool TryGetControllerRay(XRNode peNode, out Ray pORay)
     {
         pORay = default;
+        if (!TryGetControllerPose(peNode, out Vector3 lOPosition, out Quaternion lORotation))
+            return false;
+
+        pORay = new Ray(lOPosition, lORotation * Vector3.forward);
+        return true;
+    }
+
+    /// <summary>Full six-axis Touch pose in game-world coordinates. Kept
+    /// separate from the aiming ray so visible weapons can follow wrist roll
+    /// instead of guessing their upright direction from the HMD.</summary>
+    public bool TryGetControllerPose(XRNode peNode,
+        out Vector3 pOPosition, out Quaternion pORotation)
+    {
+        pOPosition = Vector3.zero;
+        pORotation = Quaternion.identity;
         if (!UWVRBootstrap.IsHeadsetActive || mTrackingSpace == null || !mbCalibrated)
             return false;
 
@@ -40,9 +55,17 @@ public sealed class UWVRHeadTracking : MonoBehaviour
             || !lOController.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out Quaternion lORotation))
             return false;
 
-        pORay = RayFromTrackedPose(mTrackingSpace, lOPosition,
-            lORotation, mInitialTrackedPosition);
+        pOPosition = mTrackingSpace.TransformPoint(lOPosition - mInitialTrackedPosition);
+        pORotation = WorldControllerRotation(mTrackingSpace, lORotation);
         return true;
+    }
+
+    /// <summary>Controller twist in the exact same room-tracking transform
+    /// as the stereo camera. Pure enough to verify without XR hardware.</summary>
+    public static Quaternion WorldControllerRotation(Transform pOTrackingSpace,
+        Quaternion pOTrackedRotation)
+    {
+        return pOTrackingSpace.rotation * pOTrackedRotation;
     }
 
     /// <summary>Pure conversion reused in headset-free tests.</summary>
@@ -51,7 +74,7 @@ public sealed class UWVRHeadTracking : MonoBehaviour
         Vector3 pOHeadOrigin)
     {
         return new Ray(pOTrackingSpace.TransformPoint(pOControllerPosition - pOHeadOrigin),
-            (pOTrackingSpace.rotation * pOControllerRotation) * Vector3.forward);
+            WorldControllerRotation(pOTrackingSpace, pOControllerRotation) * Vector3.forward);
     }
 
     private void OnEnable()

@@ -20,6 +20,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private static bool msNearGrabRequested;
     private static bool msDirectGrabRequested;
     private static bool msHandAimRequested;
+    private static bool msGestureMeleeRequested;
     private static UWVRBootstrap msInstance;
     private bool mbReported;
     private bool mbStartedSubsystems;
@@ -36,6 +37,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
     public static bool NearGrabRequested => msNearGrabRequested;
     public static bool DirectGrabRequested => msDirectGrabRequested;
     public static bool HandAimRequested => msHandAimRequested;
+    public static bool GestureMeleeRequested => msGestureMeleeRequested;
     public static bool HeadRelativeMovement { get; private set; } = true;
     public static bool IsHeadsetActive => msRequested && XRSettings.isDeviceActive;
     public static Camera CurrentVRCamera => msInstance != null ? msInstance.mCurrentVRCamera : null;
@@ -54,6 +56,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
         msNearGrabRequested = false;
         msDirectGrabRequested = false;
         msHandAimRequested = false;
+        msGestureMeleeRequested = false;
         HeadRelativeMovement = true;
 
         if (!msRequested || msInstance != null)
@@ -70,6 +73,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
             pSArg => string.Equals(pSArg, "-vr-direct-grab", StringComparison.OrdinalIgnoreCase));
         msHandAimRequested = Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-hand-aim", StringComparison.OrdinalIgnoreCase));
+        msGestureMeleeRequested = msHandAimRequested && Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-gesture-melee", StringComparison.OrdinalIgnoreCase));
         HeadRelativeMovement = !Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-body-relative", StringComparison.OrdinalIgnoreCase));
 
@@ -81,12 +86,14 @@ public sealed class UWVRBootstrap : MonoBehaviour
             + (msSpatialInventoryRequested ? "enabled" : "off")
             + "; near grab " + (msNearGrabRequested ? "enabled" : "off")
             + "; direct grab " + (msDirectGrabRequested ? "enabled" : "off")
-            + "; hand aim " + (msHandAimRequested ? "enabled" : "off") + ".");
+            + "; hand aim " + (msHandAimRequested ? "enabled" : "off")
+            + "; gesture melee " + (msGestureMeleeRequested ? "enabled" : "off") + ".");
 
         GameObject lOHost = new GameObject("UW VR Bootstrap");
         DontDestroyOnLoad(lOHost);
         msInstance = lOHost.AddComponent<UWVRBootstrap>();
         lOHost.AddComponent<UWVRHandAimGuides>();
+        lOHost.AddComponent<UWVRHandWeaponVisual>();
         lOHost.AddComponent<UWVRSpatialInventory>();
         lOHost.AddComponent<UWVRInventoryTokens>();
         lOHost.AddComponent<UWVRNearGrab>();

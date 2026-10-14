@@ -48,7 +48,12 @@ public sealed class UWVRHandAimGuides : MonoBehaviour
         float lfUnits = lOCamera.transform.parent != null
             ? Mathf.Max(0.001f, Mathf.Abs(lOCamera.transform.parent.lossyScale.x)) : 1f;
 
-        bool lbRightTracked = UpdateGuide(mRight, lOTracking, XRNode.RightHand, lfUnits);
+        // In the gesture-melee prototype, the 3D weapon takes the place of
+        // the right-hand laser. The left magic laser remains available.
+        bool lbRightTracked = !UWVRMeleeMotion.IsEnabled
+            && UpdateGuide(mRight, lOTracking, XRNode.RightHand, lfUnits);
+        if (UWVRMeleeMotion.IsEnabled && mRight != null)
+            mRight.enabled = false;
         bool lbLeftTracked = UpdateGuide(mLeft, lOTracking, XRNode.LeftHand, lfUnits);
         if (!mbReportedTracking || lbRightTracked != mbRightTracked || lbLeftTracked != mbLeftTracked)
         {

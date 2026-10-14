@@ -181,6 +181,18 @@ of what is built was also read out of the original's executable.
   combat/projectile origin, the pose fallback uses gaze, and short colored
   hand lines aid headset diagnostics; physical sword swings, arrow nocking,
   hand-origin projectiles and Quest visual validation remain future work.
+  Additional opt-in -vr-gesture-melee prototype: a procedural right-Touch
+  sword/fist display replaces the legacy 2D weapon sprite when tracked.
+  While holding the trigger, headset-relative hand trajectories classify
+  slash, overhead hack or forward thrust. Release permits original melee
+  animation/hit only for a recent valid swing, with the original combat
+  charge/damage/equipment-wear model unchanged; bow/sling shots unchanged.
+  Simulated motion checks cover jitter, tracking jumps and lost tracking.
+  Blade contact collision and per-item authored weapon models remain future.
+  Unity 6000.6.0f1 simulated sword trajectory tests PASS and Windows x64
+  development build succeeds (2026-10-14, zero errors). A separately named
+  356-entry ZIP with eleven launch scripts passed OpenXR/package/original-data
+  checks; real Quest trigger timing, wrist fit and blade feel remain untested.
   Unity 6000.6.0f1 offline tests PASS, and the Windows x64 -vr-hand-aim
   development build succeeds (2026-10-14, zero errors). The separately named
   355-entry test ZIP includes ten launch scripts and no original game data.

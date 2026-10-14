@@ -87,6 +87,66 @@ public static class UWVRDiagnostics
         fRequire(!UWVRBootstrap.IsHeadsetActive, "Offline checks require no active XR session");
         fRequire(!UWVRAim.IsHandAimActive,
             "VR hand-aim must never activate in a desktop or offline session");
+        fRequire(!UWVRMeleeMotion.IsEnabled && !UWVRHandWeaponVisual.IsModelVisible,
+            "A desktop session must not enable gesture strikes or hide the normal weapon sprite");
+
+        // Run the opt-in sword input through synthetic 90 Hz Touch hand paths.
+        // All thresholds are physical metres/second and must not vary when
+        // the original's arbitrary dungeon units-per-metre is changed.
+        fTestVRStroke(UWVRMeleeMotion.Strike.Slash, new Vector3(0.25f, 0f, 0f));
+        fTestVRStroke(UWVRMeleeMotion.Strike.Hack, new Vector3(0f, -0.25f, 0f));
+        fTestVRStroke(UWVRMeleeMotion.Strike.Stab, new Vector3(0f, 0f, 0.25f));
+        UWVRMeleeMotion lOStationary = new UWVRMeleeMotion();
+        for (int li = 0; li < 80; li++)
+            lOStationary.Sample(true, new Vector3(li % 2 == 0 ? 0.004f : -0.004f, 0f, 0f),
+                Vector3.forward, 0.011f);
+        fRequire(!lOStationary.TryFinish(true, out _, out _),
+            "Small, repeated right-hand controller jitter must not count as a strike");
+        UWVRMeleeMotion lOTeleport = new UWVRMeleeMotion();
+        lOTeleport.Sample(true, Vector3.zero, Vector3.forward, 0.02f);
+        lOTeleport.Sample(true, Vector3.right * 0.8f, Vector3.forward, 0.02f);
+        fRequire(!lOTeleport.TryFinish(true, out _, out _),
+            "Tracking jump must not produce an instant damaging swing");
+        UWVRMeleeMotion lODropped = new UWVRMeleeMotion();
+        lODropped.Sample(true, Vector3.zero, Vector3.forward, 0.02f);
+        for (int li = 1; li <= 10; li++)
+            lODropped.Sample(true, Vector3.right * (0.025f * li), Vector3.forward, 0.02f);
+        lODropped.Sample(false, Vector3.zero, Vector3.forward, 0.02f);
+        fRequire(!lODropped.TryFinish(true, out _, out _),
+            "Tracking loss after a swing must cancel its pending hit");
+        UWVRMeleeMotion lOStale = new UWVRMeleeMotion();
+        lOStale.Sample(true, Vector3.zero, Vector3.forward, 0.02f);
+        for (int li = 1; li <= 10; li++)
+            lOStale.Sample(true, Vector3.right * (0.025f * li), Vector3.forward, 0.02f);
+        for (int li = 0; li < 35; li++)
+            lOStale.Sample(true, Vector3.right * 0.25f, Vector3.forward, 0.02f);
+        fRequire(!lOStale.TryFinish(true, out _, out _),
+            "An old sword movement must expire instead of scoring a later attack");
+        UWVRMeleeMotion lOSlow = new UWVRMeleeMotion();
+        for (int li = 0; li < 100; li++)
+            lOSlow.Sample(true, Vector3.right * (li * 0.003f), Vector3.forward, 0.02f);
+        fRequire(!lOSlow.TryFinish(true, out _, out _),
+            "Slow controller drift must not become a melee strike");
+
+        Mesh lOBladeMesh = UWVRHandWeaponVisual.CreateBladeMesh();
+        Mesh lOGripMesh = UWVRHandWeaponVisual.CreateCubeMesh();
+        try
+        {
+            fRequire(lOBladeMesh.vertexCount >= 13
+                && lOBladeMesh.triangles.Length >= 48
+                && lOBladeMesh.bounds.size.z > 0.65f
+                && lOBladeMesh.bounds.size.x > 0.06f
+                && lOGripMesh.vertexCount >= 8 && lOGripMesh.triangles.Length >= 36,
+                "VR tracked weapon placeholder meshes must have complete three-dimensional geometry");
+            fRequire((UWVRHandWeaponVisual.GripOrigin(new Ray(Vector3.zero, Vector3.forward), 16f)
+                    - Vector3.back * 0.96f).sqrMagnitude < 0.00001f,
+                "Right Touch grip attachment must respect scaled physical metres");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(lOBladeMesh);
+            UnityEngine.Object.DestroyImmediate(lOGripMesh);
+        }
 
         // Simulated Touch poses: right and left can point independently from
         // the HMD gaze. Keep the original eye origin to preserve existing
@@ -341,6 +401,13 @@ public static class UWVRDiagnostics
             fRequire((lOTrackedRay.origin - lOExpected).sqrMagnitude < 0.00001f
                 && (lOTrackedRay.direction - Vector3.right).sqrMagnitude < 0.00001f,
                 "XR Touch controller ray ignores tracking origin, yaw or world scale");
+            Quaternion lOWristTwist = Quaternion.AngleAxis(90f, Vector3.forward);
+            Quaternion lOExpectedTwist = lOTestTracking.transform.rotation * lOWristTwist;
+            Quaternion lOActualTwist = UWVRHeadTracking.WorldControllerRotation(
+                lOTestTracking.transform, lOWristTwist);
+            fRequire(Quaternion.Angle(lOExpectedTwist, lOActualTwist) < 0.001f
+                && (lOActualTwist * Vector3.up - lOExpectedTwist * Vector3.up).sqrMagnitude < 0.00001f,
+                "Full right-hand 6DoF pose must retain wrist roll after world rotation and scale");
             fRequire((UWVRInventoryTokens.HeldPosition(lOTrackedRay, 16f)
                 - (lOTrackedRay.origin + Vector3.right * 2.4f)).sqrMagnitude < 0.00001f,
                 "VR held item preview does not preserve a physical hand offset with XR scale");
@@ -531,8 +598,30 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, independent right/left Touch aim, gaze fallback, combat pitch/projectile heading, stereo UI, 11 equipment zones, 14 item mesh families and real inventory take/swap/place.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, dual Touch aim, simulated slash/hack/stab, motion jitter/teleport/lost-tracking safeguards, scaled weapon meshes, stereo UI and real inventory take/swap/place.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
+    }
+
+    private static void fTestVRStroke(UWVRMeleeMotion.Strike peExpected, Vector3 pOTravel)
+    {
+        UWVRMeleeMotion lOClassifier = new UWVRMeleeMotion();
+        lOClassifier.Sample(true, Vector3.zero, Vector3.forward, 0.02f);
+        for (int li = 1; li <= 10; li++)
+            lOClassifier.Sample(true, pOTravel * (li / 10f), Vector3.forward, 0.02f);
+
+        UWVRMeleeMotion lOUntrackedRelease = new UWVRMeleeMotion();
+        lOUntrackedRelease.Sample(true, Vector3.zero, Vector3.forward, 0.02f);
+        for (int li = 1; li <= 10; li++)
+            lOUntrackedRelease.Sample(true, pOTravel * (li / 10f), Vector3.forward, 0.02f);
+        fRequire(!lOUntrackedRelease.TryFinish(false, out _, out _),
+            "Losing the physical Touch controller exactly on release must cancel an otherwise valid swing");
+
+        fRequire(lOClassifier.TryFinish(true, out UWVRMeleeMotion.Strike leActual,
+                out float lfChargeLimit)
+            && leActual == peExpected && lfChargeLimit >= 0.4f && lfChargeLimit <= 1f,
+            "Synthetic right Touch movement did not classify " + peExpected);
+        fRequire(!lOClassifier.TryFinish(true, out _, out _),
+            "One VR gesture must not resolve into a second attack");
     }
 
     private static bool fRayMatches(Ray pOA, Ray pOB)

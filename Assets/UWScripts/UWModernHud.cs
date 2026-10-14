@@ -660,7 +660,8 @@ public class UWModernHud : MonoBehaviour
     {
         Texture2D lOTexture = mOCharacter.CurrentWeaponTexture;
 
-        if (!mOCharacter.DrawWWeapon || lOTexture == null)
+        if (!mOCharacter.DrawWWeapon || lOTexture == null
+            || UWVRHandWeaponVisual.IsModelVisible)
         {
             mOWeapon.enabled = false;
             return;
