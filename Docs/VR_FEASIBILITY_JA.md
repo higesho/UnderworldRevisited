@@ -4,6 +4,18 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 弓・戦闘振動の物理寸法調整と実機試験ログ（10月14日）
+
+- 直前コミット `7733214` が `fork/japanese-localization` と一致し、作業ツリーがcleanの状態から開始。HMD実機は今回も使用できないため、既定の動作を変えず**比較用の設定と診断手段**を追加する。
+- `UWVRCombatCalibration` は起動引数 `-vr-bow-nock-radius`（0.20～0.70m、既定0.46m）、`-vr-bow-min-pull`（0.10～0.32m、既定0.20m）、`-vr-bow-full-pull`（0.35～0.75m、既定0.48m）、`-vr-haptic-scale`（0～1.25、既定1）を取得。どれも不正値・NaN・Infinityは既定に戻す。最大引き距離と最低引き距離は8cm以上離す。Haptic Impulseの最大振幅は0.60までに制限。
+- `UWVRTwoHandBowDraw` の弓つがえ許容距離・最低引き距離・引き量表示の上限を実メートルで調整。Unityのステージ倍率1／16でも同じ身体動作なら同じ結果になる。通常のデスクトップ入力・原作の武器最低チャージ・飛翔体衝突・弾数消費は変更しない。
+- `-vr-combat-diagnostics` は `-vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow` と併用時のみ詳細ログを出す。右トリガーを握っている間のつがえ待ち・つがえ・追跡喪失・無効ジェスチャー、左右Touch間隔・実引き距離・引き比率を抑制付きで記録。トリガー解除時の原作チャージ・手の追跡・弓判定も記録。未指定時は以前どおり通常のログのみ。
+- 比較バッチを4種類追加：`LaunchVR_BowCal_Default.bat`、`LaunchVR_BowCal_EasyReach.bat`、`LaunchVR_BowCal_Compact.bat`、`LaunchVR_BowCal_Silent.bat`。新方式が使いにくければ以前の `LaunchVR_BowMagicHaptics.bat` や `LaunchVR_HandOrigin.bat` で比較できる。
+- 最初の自動検査では追加テストのローカル変数初期化漏れをUnityが `CS0165` として検出。テストコードの初期化を修正し、`L:\Games\UlutimaUW\unity-vr-bow-calibration-offline-fixed-20261014.log` に `[UWVR-OFFLINE] PASS` を確認。旧設定を保つテストに加え、66cmのつがえ範囲・12cmの最低引き・振動倍率0.25・不正な数値の既定復帰・上下限・16倍スケールでも同一判定を確認した。
+- `L:\Games\UlutimaUW\unity-vr-bow-calibration-build-20261014.log`：Unity 6000.6.0f1のHMD不要検査PASS、Windows x64開発ビルド `[UWVR] Build result: Succeeded; errors: 0`。接続したQuestでの実際の引き心地・振動・見え方は依然未確認。
+- 比較用ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-bow-calibration-win64.zip`（**102,072,312バイト、371項目、起動バッチ26種類**）。新旧起動方法、最新の `Assembly-CSharp.dll`、OpenXR関連DLL、日本語試験ガイド・翻訳データを検査済み。原作ゲームデータは含まず、以前のZIPは維持。
+- ZIP SHA-256：`CCAC10EC5CA67CB6FD94D98B6BD64C05C23E52717EC0626FE5EB465373F6ABFA`。
+
 ### 両手弓・左手魔法のXR振動要求（10月14日）
 
 - 直前 `514cd7a` のGitHubへのプッシュと未コミット変更なしを確認してから開始。

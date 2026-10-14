@@ -232,6 +232,17 @@ of what is built was also read out of the original's executable.
   succeeds (2026-10-14, 0 errors). Separate 367-entry/22-launcher ZIP has
   OpenXR DLLs and Japanese guide, with no original game data; no physical
   Touch vibration tests were possible without a connected headset.
+  Trial bow calibration CLI can change nock radius (default 46cm), minimum
+  draw (20cm), full draw (48cm), and combat haptic amplitude multiplier while
+  retaining the previously shipped defaults. Optional throttled bow tracing
+  records tracked hand separation/draw distance and rejection state for Quest
+  test reports. Four isolated comparison launchers, including one with zero
+  combat vibration, are included; physical evaluation remains pending.
+  The CLI calibration parser, default compatibility, custom 12cm draw,
+  invalid-value fallback, haptic cap and world-scale 16x checks PASS using
+  Unity 6000.6.0f1 without HMD. Windows x64 development build succeeded with
+  zero errors (2026-10-14). The separate 371-entry, 26-launcher ZIP contains
+  no original game data; real Quest calibration/comfort is not yet evaluated.
   Unity 6000.6.0f1 offline tests PASS for tracked 2-hand bow pull, lateral
   false-positive rejection, tracking loss, teleport, scale 1/16, duplicate
   release, bow stave and spell orb/ring geometry, color and short fade.

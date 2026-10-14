@@ -26,6 +26,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
     private static bool msTwoHandBowRequested;
     private static bool msHandMagicFxRequested;
     private static bool msCombatHapticsRequested;
+    private static bool msCombatDiagnosticsRequested;
+    private static UWVRCombatCalibration.Settings msCombatCalibration = UWVRCombatCalibration.Defaults;
     private static UWVRBootstrap msInstance;
     private bool mbReported;
     private bool mbStartedSubsystems;
@@ -48,6 +50,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
     public static bool TwoHandBowRequested => msTwoHandBowRequested;
     public static bool HandMagicFxRequested => msHandMagicFxRequested;
     public static bool CombatHapticsRequested => msCombatHapticsRequested;
+    public static bool CombatDiagnosticsRequested => msCombatDiagnosticsRequested;
+    public static UWVRCombatCalibration.Settings CombatCalibration => msCombatCalibration;
     public static bool HeadRelativeMovement { get; private set; } = true;
     public static bool IsHeadsetActive => msRequested && XRSettings.isDeviceActive;
     public static Camera CurrentVRCamera => msInstance != null ? msInstance.mCurrentVRCamera : null;
@@ -72,6 +76,8 @@ public sealed class UWVRBootstrap : MonoBehaviour
         msTwoHandBowRequested = false;
         msHandMagicFxRequested = false;
         msCombatHapticsRequested = false;
+        msCombatDiagnosticsRequested = false;
+        msCombatCalibration = UWVRCombatCalibration.Defaults;
         HeadRelativeMovement = true;
 
         if (!msRequested || msInstance != null)
@@ -100,6 +106,9 @@ public sealed class UWVRBootstrap : MonoBehaviour
             pSArg => string.Equals(pSArg, "-vr-hand-magic-fx", StringComparison.OrdinalIgnoreCase));
         msCombatHapticsRequested = msHandOriginRequested && Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-combat-haptics", StringComparison.OrdinalIgnoreCase));
+        msCombatDiagnosticsRequested = msTwoHandBowRequested && Array.Exists(lOArgs,
+            pSArg => string.Equals(pSArg, "-vr-combat-diagnostics", StringComparison.OrdinalIgnoreCase));
+        msCombatCalibration = UWVRCombatCalibration.Parse(lOArgs);
         HeadRelativeMovement = !Array.Exists(lOArgs,
             pSArg => string.Equals(pSArg, "-vr-body-relative", StringComparison.OrdinalIgnoreCase));
 
@@ -117,7 +126,12 @@ public sealed class UWVRBootstrap : MonoBehaviour
             + "; hand origin " + (msHandOriginRequested ? "enabled" : "off")
             + "; two-hand bow " + (msTwoHandBowRequested ? "enabled" : "off")
             + "; hand magic visuals " + (msHandMagicFxRequested ? "enabled" : "off")
-            + "; combat haptics " + (msCombatHapticsRequested ? "enabled" : "off") + ".");
+            + "; combat haptics " + (msCombatHapticsRequested ? "enabled" : "off")
+            + "; combat diagnostics " + (msCombatDiagnosticsRequested ? "enabled" : "off") + ".");
+        Debug.Log("[UWVR-CAL] bow nock=" + msCombatCalibration.NockRadiusMetres.ToString("0.00")
+            + "m; minimum pull=" + msCombatCalibration.MinPullMetres.ToString("0.00")
+            + "m; full draw=" + msCombatCalibration.FullPullMetres.ToString("0.00")
+            + "m; haptic multiplier=" + msCombatCalibration.HapticScale.ToString("0.00") + ".");
 
         GameObject lOHost = new GameObject("UW VR Bootstrap");
         DontDestroyOnLoad(lOHost);

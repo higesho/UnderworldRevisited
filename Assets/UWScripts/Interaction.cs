@@ -80,9 +80,12 @@ public class Interaction : MonoBehaviour
     private float mfPendingCharge;
     private readonly UWVRMeleeMotion mVRMeleeMotion = new UWVRMeleeMotion();
     private readonly UWVRBladeSweep mVRBladeSweep = new UWVRBladeSweep();
-    private readonly UWVRTwoHandBowDraw mVRTwoHandBowDraw = new UWVRTwoHandBowDraw();
+    private readonly UWVRTwoHandBowDraw mVRTwoHandBowDraw =
+        new UWVRTwoHandBowDraw(UWVRBootstrap.CombatCalibration);
     private bool mbVRTwoHandBowXRHold;
     private bool mbVRTwoHandBowShotHapticReady;
+    private float mfLastVRBowDiagnosticAt = -100f;
+    private int miLastVRBowDiagnosticState = -1;
     private bool mbPendingVRBladeResolution;
     private UWVRBladeSweep.Contact mPendingVRBladeContact;
 
@@ -607,6 +610,11 @@ public class Interaction : MonoBehaviour
                     Debug.Log("[UWVR-BOW] release: pulled=" + lbPulled
                         + "; draw=" + lfDrawFraction.ToString("0.00")
                         + "; original charged=" + IsRangedTargeting);
+                    if (UWVRBootstrap.CombatDiagnosticsRequested)
+                        Debug.Log("[UWVR-BOW-CAL] release XR tracked=" + lbReleaseTracked
+                            + "; bow gesture=" + lbPulled
+                            + "; original charge=" + IsRangedTargeting
+                            + "; draw fraction=" + lfDrawFraction.ToString("0.00"));
                 }
                 else
                     mVRTwoHandBowDraw.Reset();
@@ -918,6 +926,38 @@ public class Interaction : MonoBehaviour
             UWVRBootstrap.WorldUnitsPerMeter, Time.deltaTime);
         UWVRCombatHaptics.BowSample(lbTracked && mVRTwoHandBowDraw.IsNocked,
             mVRTwoHandBowDraw.DrawFraction);
+        fLogVRBowCalibration(lbTracked, lORight, lOLeft);
+    }
+
+    /// <summary>Explicit opt-in diagnostic: no more than five readings a
+    /// second. Includes the actual controller separation in PHYSICAL metres,
+    /// independently of the dungeon unit scale. Logs only while holding the
+    /// right XR trigger and not while entering an inventory/menu.</summary>
+    private void fLogVRBowCalibration(bool pbTracked, Vector3 pORight, Vector3 pOLeft)
+    {
+        if (!UWVRBootstrap.CombatDiagnosticsRequested)
+            return;
+
+        int liState = !pbTracked ? 0 : mVRTwoHandBowDraw.WasRejected ? 1
+            : mVRTwoHandBowDraw.IsNocked ? 3 : 2;
+        float lfNow = Time.unscaledTime;
+        if (lfNow - mfLastVRBowDiagnosticAt < 0.20f)
+            return;
+        if (liState == miLastVRBowDiagnosticState
+            && lfNow - mfLastVRBowDiagnosticAt < 0.65f)
+            return;
+
+        mfLastVRBowDiagnosticAt = lfNow;
+        miLastVRBowDiagnosticState = liState;
+        float lfSeparation = pbTracked
+            ? Vector3.Distance(pORight, pOLeft)
+                / Mathf.Max(0.001f, UWVRBootstrap.WorldUnitsPerMeter) : -1f;
+        Debug.Log("[UWVR-BOW-CAL] state=" + (liState == 0 ? "tracking_lost"
+                : liState == 1 ? "invalid_gesture"
+                : liState == 2 ? "waiting_for_nock" : "nocked")
+            + "; separation_m=" + lfSeparation.ToString("0.000")
+            + "; pull_m=" + mVRTwoHandBowDraw.DrawMeters.ToString("0.000")
+            + "; pull_fraction=" + mVRTwoHandBowDraw.DrawFraction.ToString("0.00"));
     }
 
     private static bool fIsTouchAttack(InputAction pOAttackButton)
@@ -1688,6 +1728,7 @@ public class Interaction : MonoBehaviour
         mVRTwoHandBowDraw.Reset();
         mbVRTwoHandBowXRHold = false;
         mbVRTwoHandBowShotHapticReady = false;
+        miLastVRBowDiagnosticState = -1;
         UWVRCombatHaptics.ResetBow();
         mVRBladeSweep.Reset();
         mbPendingVRBladeResolution = false;

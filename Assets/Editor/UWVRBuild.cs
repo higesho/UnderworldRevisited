@@ -90,6 +90,14 @@ public static class UWVRBuild
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow -vr-hand-magic-fx -vr-combat-haptics -logFile \"%~dp0VR_BowMagicHaptics_Test.log\"\r\n");
         File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_AllCombatHaptics.bat"),
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-gesture-melee -vr-blade-contact -vr-two-hand-bow -vr-hand-magic-fx -vr-combat-haptics -logFile \"%~dp0VR_AllCombatHaptics_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BowCal_Default.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow -vr-hand-magic-fx -vr-combat-haptics -vr-combat-diagnostics -logFile \"%~dp0VR_BowCal_Default.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BowCal_EasyReach.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow -vr-hand-magic-fx -vr-combat-haptics -vr-combat-diagnostics -vr-bow-nock-radius=0.60 -vr-bow-min-pull=0.14 -vr-bow-full-pull=0.42 -vr-haptic-scale=0.65 -logFile \"%~dp0VR_BowCal_EasyReach.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BowCal_Compact.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow -vr-hand-magic-fx -vr-combat-haptics -vr-combat-diagnostics -vr-bow-nock-radius=0.32 -vr-bow-min-pull=0.18 -vr-bow-full-pull=0.40 -vr-haptic-scale=0.35 -logFile \"%~dp0VR_BowCal_Compact.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_BowCal_Silent.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -vr-hand-origin -vr-two-hand-bow -vr-hand-magic-fx -vr-combat-haptics -vr-combat-diagnostics -vr-haptic-scale=0 -logFile \"%~dp0VR_BowCal_Silent.log\"\r\n");
 
         string lSGuide = Path.Combine(lSProjectRoot, "Docs", "VR_TEST_JA.txt");
         if (File.Exists(lSGuide))

@@ -79,6 +79,11 @@ public static class UWVRCombatHaptics
         if (!IsEnabled || !CanPlayInWorld())
             return false;
 
+        float lfAmplitude = UWVRCombatCalibration.ScaleAmplitude(pfAmplitude,
+            UWVRBootstrap.CombatCalibration.HapticScale);
+        if (lfAmplitude <= 0f)
+            return false;
+
         Camera lOCamera = UWVRBootstrap.CurrentVRCamera;
         UWVRHeadTracking lOTracking = lOCamera != null
             ? lOCamera.GetComponent<UWVRHeadTracking>() : null;
@@ -97,7 +102,7 @@ public static class UWVRCombatHaptics
             return false;
 
         bool lbSent = lODevice.SendHapticImpulse(0,
-            Mathf.Clamp01(pfAmplitude), Mathf.Clamp(pfSeconds, 0.01f, 0.085f));
+            lfAmplitude, Mathf.Clamp(pfSeconds, 0.01f, 0.085f));
         if (!lbSent)
             return false;
 

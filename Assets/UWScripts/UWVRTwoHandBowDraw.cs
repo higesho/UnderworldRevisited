@@ -10,9 +10,9 @@ using UnityEngine;
 /// </summary>
 public sealed class UWVRTwoHandBowDraw
 {
-    public const float NockRadiusMeters = 0.46f;
-    public const float MinPullMeters = 0.20f;
-    public const float FullPullMeters = 0.48f;
+    public const float NockRadiusMeters = UWVRCombatCalibration.DefaultNockRadius;
+    public const float MinPullMeters = UWVRCombatCalibration.DefaultMinPull;
+    public const float FullPullMeters = UWVRCombatCalibration.DefaultFullPull;
     public const float MaxLateralMeters = 0.48f;
     public const float MaxFrameJumpMeters = 0.34f;
     private const float MaxSampleSeconds = 0.11f;
@@ -26,14 +26,23 @@ public sealed class UWVRTwoHandBowDraw
     private Vector3 mForwardOnNock;
     private float mfDepthAtNock;
     private float mfDrawMeters;
+    private readonly UWVRCombatCalibration.Settings mSettings;
+
+    public UWVRTwoHandBowDraw() : this(UWVRCombatCalibration.Defaults) { }
+
+    public UWVRTwoHandBowDraw(UWVRCombatCalibration.Settings pOSettings)
+    {
+        mSettings = pOSettings;
+    }
 
     public static bool IsEnabled => UWVRBootstrap.IsHeadsetActive
         && UWVRBootstrap.TwoHandBowRequested && UWVRHandLaunch.IsEnabled;
 
     public bool IsNocked => mbNocked && !mbRejected;
+    public bool WasRejected => mbRejected;
     public float DrawMeters => IsNocked ? mfDrawMeters : 0f;
-    public float DrawFraction => Mathf.InverseLerp(MinPullMeters,
-        FullPullMeters, DrawMeters);
+    public float DrawFraction => Mathf.InverseLerp(mSettings.MinPullMetres,
+        mSettings.FullPullMetres, DrawMeters);
 
     public void Reset()
     {
@@ -77,7 +86,7 @@ public sealed class UWVRTwoHandBowDraw
             // Looking for an initial nocking position is permitted only
             // before we ever see a valid nock. Once tracked and armed, any
             // pose loss or unrealistic jump rejects the entire trigger hold.
-            if (lfDistance > NockRadiusMeters || lfLateral > MaxLateralMeters
+            if (lfDistance > mSettings.NockRadiusMetres
                 || Mathf.Abs(lfDepth) > 0.17f)
                 return;
 
@@ -94,7 +103,8 @@ public sealed class UWVRTwoHandBowDraw
         if (!mbHasPrevious || Vector3.Dot(mForwardOnNock, lOForward) < MinForwardAlignment
             || (pORight - mPreviousRight).magnitude / pfUnitsPerMetre > MaxFrameJumpMeters
             || (pOLeft - mPreviousLeft).magnitude / pfUnitsPerMetre > MaxFrameJumpMeters
-            || lfLateral > MaxLateralMeters || lfDistance > 1.1f)
+            || lfLateral > Mathf.Max(MaxLateralMeters, mSettings.NockRadiusMetres)
+            || lfDistance > 1.1f)
         {
             Invalidate();
             return;
@@ -109,7 +119,7 @@ public sealed class UWVRTwoHandBowDraw
     {
         pfDrawFraction = DrawFraction;
         bool lbReady = pbBothStillTracked && !mbRejected && mbNocked
-            && mfDrawMeters >= MinPullMeters;
+            && mfDrawMeters >= mSettings.MinPullMetres;
         Reset();
         return lbReady;
     }

@@ -97,6 +97,9 @@ public static class UWVRDiagnostics
             "VR two-hand bow and spell visuals must never run during desktop/offline play");
         fRequire(!UWVRCombatHaptics.IsEnabled,
             "Combat haptics must remain disabled outside explicitly opted-in real XR sessions");
+        fRequire(!UWVRBootstrap.CombatDiagnosticsRequested,
+            "Verbose VR combat telemetry must remain off in desktop/offline sessions");
+        fTestVRCombatCalibration();
         fTestVRCombatHaptics();
         fTestVRTwoHandBowAndMagic();
         fTestVRHandMuzzle();
@@ -627,7 +630,7 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, simulated bow nock/draw/release and milestone haptics, pulse throttle/limits and tracking-loss resets, 3D bow/string and spell FX, original missile physics, sword sweep, stereo UI and inventory.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, calibrated two-hand bow CLI defaults/ranges and world scale, capped haptic gain, tracked bow draw and vibration stages, spell FX, original missile physics, sword sweep, stereo UI and inventory.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 
@@ -688,6 +691,95 @@ public static class UWVRDiagnostics
         UWVRCombatHaptics.SpellProjectileLaunched();
         fRequire(!UWVRCombatHaptics.IsEnabled,
             "Haptic tests must never activate OpenXR or report physical vibration");
+    }
+
+    private static void fTestVRCombatCalibration()
+    {
+        UWVRCombatCalibration.Settings lODefault = UWVRCombatCalibration.Parse(null, false);
+        fRequire(Mathf.Abs(lODefault.NockRadiusMetres - UWVRTwoHandBowDraw.NockRadiusMeters) < 0.00001f
+            && Mathf.Abs(lODefault.MinPullMetres - UWVRTwoHandBowDraw.MinPullMeters) < 0.00001f
+            && Mathf.Abs(lODefault.FullPullMetres - UWVRTwoHandBowDraw.FullPullMeters) < 0.00001f
+            && Mathf.Abs(lODefault.HapticScale - 1f) < 0.00001f,
+            "Combat calibration defaults must exactly preserve the previously shipped VR bow behavior");
+
+        UWVRCombatCalibration.Settings lOCustom = UWVRCombatCalibration.Parse(new[]
+        {
+            "-VR-BOW-NOCK-RADIUS=0.66", "-vr-bow-min-pull=0.12",
+            "-vr-bow-full-pull=0.38", "-vr-haptic-scale=0.25"
+        }, false);
+        fRequire(Mathf.Abs(lOCustom.NockRadiusMetres - 0.66f) < 0.00001f
+            && Mathf.Abs(lOCustom.MinPullMetres - 0.12f) < 0.00001f
+            && Mathf.Abs(lOCustom.FullPullMetres - 0.38f) < 0.00001f
+            && Mathf.Abs(lOCustom.HapticScale - 0.25f) < 0.00001f,
+            "Explicit calibration options must parse invariant decimals and case-insensitive option names");
+
+        UWVRCombatCalibration.Settings lOInvalid = UWVRCombatCalibration.Parse(new[]
+        {
+            "-vr-bow-nock-radius=NaN", "-vr-bow-min-pull=0",
+            "-vr-bow-full-pull=Infinity", "-vr-haptic-scale=100"
+        }, false);
+        fRequire(Mathf.Abs(lOInvalid.NockRadiusMetres - lODefault.NockRadiusMetres) < 0.00001f
+            && Mathf.Abs(lOInvalid.MinPullMetres - lODefault.MinPullMetres) < 0.00001f
+            && Mathf.Abs(lOInvalid.FullPullMetres - lODefault.FullPullMetres) < 0.00001f
+            && Mathf.Abs(lOInvalid.HapticScale - lODefault.HapticScale) < 0.00001f,
+            "Malformed, NaN, infinite and out-of-bounds options must never replace safe defaults");
+
+        UWVRCombatCalibration.Settings lONarrow = UWVRCombatCalibration.Parse(new[]
+        {
+            "-vr-bow-min-pull=0.32", "-vr-bow-full-pull=0.35"
+        }, false);
+        fRequire(Mathf.Abs(lONarrow.MinPullMetres - 0.32f) < 0.00001f
+            && Mathf.Abs(lONarrow.FullPullMetres - lODefault.FullPullMetres) < 0.00001f,
+            "Full bow draw must remain at least 8cm greater than the minimum shot threshold");
+
+        fRequire(UWVRCombatCalibration.ScaleAmplitude(0.46f, 0f) == 0f
+            && Mathf.Abs(UWVRCombatCalibration.ScaleAmplitude(0.46f, 0.25f) - 0.115f) < 0.00001f
+            && Mathf.Abs(UWVRCombatCalibration.ScaleAmplitude(0.46f, 1f) - 0.46f) < 0.00001f
+            && UWVRCombatCalibration.ScaleAmplitude(0.46f, 1.25f) < 0.60f
+            && UWVRCombatCalibration.ScaleAmplitude(0.90f, 1.25f) <= 0.60f
+            && UWVRCombatCalibration.ScaleAmplitude(0.46f, float.NaN) == 0f,
+            "Haptic multiplier zero/quarter/default/upper limit must remain capped even with bad data");
+
+        Vector3 lORight = new Vector3(1f, 3f, 1f);
+        Vector3 lOLeft = lORight + Vector3.right * 0.55f;
+        UWVRTwoHandBowDraw lODefaultBow = new UWVRTwoHandBowDraw();
+        lODefaultBow.Sample(true, lORight, lOLeft, Vector3.forward, 1f, 0.011f);
+        fRequire(!lODefaultBow.IsNocked,
+            "A 55cm-separated hand must not nock the original default 46cm bow");
+
+        UWVRTwoHandBowDraw lOCustomBow = new UWVRTwoHandBowDraw(lOCustom);
+        lOCustomBow.Sample(true, lORight, lOLeft, Vector3.forward, 1f, 0.011f);
+        fRequire(lOCustomBow.IsNocked,
+            "Configurable nock radius must allow real 55cm hand separation when set to 66cm");
+        for (int li = 1; li <= 5; li++)
+            lOCustomBow.Sample(true, lORight, lOLeft + Vector3.back * (0.03f * li),
+                Vector3.forward, 1f, 0.011f);
+        float lfDrawFraction = 0f;
+        fRequire(lOCustomBow.IsNocked
+            && lOCustomBow.TryRelease(true, out lfDrawFraction)
+            && lfDrawFraction > 0.11f && lfDrawFraction < 0.13f,
+            "A calibrated 12cm minimum pull must accept 15cm without bypassing the configured full draw");
+
+        UWVRTwoHandBowDraw lODefaultTooShort = new UWVRTwoHandBowDraw();
+        Vector3 lODefaultLeft = lORight + Vector3.right * 0.24f;
+        lODefaultTooShort.Sample(true, lORight, lODefaultLeft, Vector3.forward, 1f, 0.011f);
+        for (int li = 1; li <= 5; li++)
+            lODefaultTooShort.Sample(true, lORight,
+                lODefaultLeft + Vector3.back * (0.03f * li),
+                Vector3.forward, 1f, 0.011f);
+        fRequire(!lODefaultTooShort.TryRelease(true, out _),
+            "The unchanged 20cm minimum pull must reject the same 15cm partial draw");
+
+        UWVRTwoHandBowDraw lOScaledCustom = new UWVRTwoHandBowDraw(lOCustom);
+        lOScaledCustom.Sample(true, lORight * 16f, lOLeft * 16f,
+            Vector3.forward, 16f, 0.011f);
+        for (int li = 1; li <= 5; li++)
+            lOScaledCustom.Sample(true, lORight * 16f,
+                (lOLeft + Vector3.back * (0.03f * li)) * 16f,
+                Vector3.forward, 16f, 0.011f);
+        fRequire(lOScaledCustom.TryRelease(true, out float lfScaledFraction)
+            && Mathf.Abs(lfScaledFraction - lfDrawFraction) < 0.001f,
+            "Calibrated bow distances must stay in physical metres under the 16x VR world scale");
     }
 
     private static void fTestVRTwoHandBowAndMagic()
