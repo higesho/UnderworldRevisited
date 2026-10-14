@@ -4,13 +4,23 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### Unity Hub認証経由でのビルド復旧（10月14日）
+
+- Microsoft Store版Unity Hub 3.22.3では、Hub本体のプロジェクト登録先と、通常環境から呼ぶUnity CLIの登録先が異なっていた。Hub本体側に既存プロジェクト `L:\Games\UlutimaUW\UnderworldRevisited` を登録し、Unity 6000.6.0f1を通常起動できることを確認した。
+- 以前の直接 `Unity.exe -batchmode` 実行はライセンスエラー198で終了したが、**Unity HubのCLIによる `projects open` にバッチ実行引数を渡した場合は認証が通り、ビルドが成功**した。既に起動中のEditorが同じプロジェクトを開かないよう、GUIのない残存プロセスを終了してから実行した。
+- `UWVRDiagnostics.RunOfflineChecks`: **PASS**（OpenXR設定、Quest Touch入力、頭の向き基準の移動、頭部追跡空間と倍率、UIの物理距離、カーソルの入力透過性）。
+- `UWVRBuild.BuildWindowsPrototype`: Unity 6000.6.0f1のWindows 64bit開発ビルドが **Succeeded / errors: 0**。Unityログ: `L:\Games\UlutimaUW\unity-vr-hub-batch-20261014.log`。
+- 配布ZIP: `Release/UnderworldRevisited-vr-prototype-20261014-worldscale-win64.zip`（102,015,823バイト）。`UR_Data/Managed/Assembly-CSharp.dll` は2026-10-14の更新版。OpenXR用DLL、既存の日本語訳、5種類の起動バッチ、日本語の試験説明書を同梱。原作ゲームデータは含めていない。以前の試験版ZIPは保持。
+- ZIPのSHA-256: `7BD8089AA3B59327869FE39968AB42DECFE18671B6F7A20FCE673CF1B8948699`。
+- **HMDでの左右眼描画、移動の自然さ、Quest Touchの実際の認識、UIの読みやすさは未試験**。日本語訳の追加作業も一時停止のまま。
+
 ### 最新ソースの検証とUnityライセンスの障害（10月14日）
 
 - `UWVRHeadTracking` に頭部追跡空間を導入した版は、Unity 6000.6.0f1の非HMD自動検査で **PASS** を確認（`unity-vr-worldspace-offline2.log`）。カメラの元位置保持、倍率16での位置差分、終了後の階層復帰、HMD方向の歩行を検査した。
-- その後に追加した **UI距離の倍率補正** と `-vr-ui-distance=` の検査は、Editor実行前にライセンス認証の問題が発生したため、**Unityでのテスト未実行**。新しいテストはソースに追加済み。
+- その後に追加した **UI距離の倍率補正** と `-vr-ui-distance=` の検査は、当初ライセンス問題で実行できなかったが、上記のHub経由で再実行し、**PASSを確認**した。
 - Unity 6000.6.0f1のバッチ起動で **終了コード198**、`No valid Unity Editor license found. Please activate your license.` および `com.unity.editor.headless was not found` を記録。`-nographics` を外しても同じエラー。ゲームのコードエラーではない。
 - 代替としてUnity同梱の.NET SDK / Roslynと既存のUnityコンパイル応答ファイルを使い、現在のソースから **Assembly-CSharp.dll と Assembly-CSharp-Editor.dll をそれぞれエラー0でコンパイル**。既存コードに関する警告は残る。これはC#コンパイルの確認であり、Unityのアセット・シェーダー・Windows Playerビルドの代替ではない。
-- **更新版Windows実行ファイルとZIPは未作成。** 前回の成功した配布物（`UnderworldRevisited-vr-prototype-20261014-touch-ui-win64.zip`）を上書きしない。Unity Hub側のライセンスが有効になった後、`UWVRBuild.BuildWindowsPrototype` を実行して再検証・ZIP更新すること。
+- ライセンス問題が発生した時点では新しいWindows実行ファイルとZIPは未作成だった。その後、Hub経由のビルドで**更新版の作成と検証を完了**した（上記参照）。以前の配布物（`UnderworldRevisited-vr-prototype-20261014-touch-ui-win64.zip`）は上書きしていない。
 - HMD実機試験はユーザーの希望により引き続き保留。日本語訳の追加も停止中。
 
 ### VR世界尺度・視点位置・移動の実装（10月14日）

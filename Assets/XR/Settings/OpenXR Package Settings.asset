@@ -428,26 +428,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.OpenXRSettings
   features:
   - {fileID: 2403702476380370580}
-  - {fileID: 500925803120065909}
+  - {fileID: -4601475639297816406}
   - {fileID: -3437305792288224208}
   - {fileID: -7174649540025307698}
-  - {fileID: 8360824038501990918}
+  - {fileID: -4390560068351480249}
   - {fileID: -8481479562068667821}
   - {fileID: -5175326016144159773}
-  - {fileID: 7974842468608818243}
-  - {fileID: 1684280837527076558}
+  - {fileID: -5266065821162501241}
+  - {fileID: 621431586371898312}
   - {fileID: -6805298908266069707}
-  - {fileID: -937539316700287733}
-  - {fileID: -2183169989468496562}
-  - {fileID: 2927237629600675351}
+  - {fileID: -4524385987742770559}
+  - {fileID: -6285104913789940148}
+  - {fileID: -8907070477086082406}
   - {fileID: 4011280059794629939}
   - {fileID: -8196218317672187659}
-  - {fileID: 586501412034464970}
-  - {fileID: 1313102230513139517}
-  - {fileID: 8612275452020319585}
-  - {fileID: 8133515563347939143}
-  - {fileID: -4343501976245343521}
-  - {fileID: 8896363679062761178}
+  - {fileID: -8727081584988134386}
+  - {fileID: -1080374587097134170}
+  - {fileID: 7686119563672438581}
+  - {fileID: 7991186285400216201}
+  - {fileID: -8173049417071271032}
+  - {fileID: -7636984197280633182}
   customLoaderName: 
   m_renderMode: 1
   m_latencyOptimization: 0
@@ -682,7 +682,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: feeef8d85de8db242bdda70cc7ff5acd, type: 3}
   m_Name: OculusTouchControllerProfile Standalone
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.OculusTouchControllerProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Oculus Touch Controller Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.oculustouch
