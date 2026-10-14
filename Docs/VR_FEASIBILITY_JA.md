@@ -4,6 +4,18 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 空間インベントリの個別立体トークン表示（10月14日）
+
+- `UWVRInventoryTokens` を追加。`-vr-spatial-inventory` が有効で、世界固定パネルが表示されているときだけ生成する。**個別の所持品・装備を薄い立体トークンとして表示**し、原作のアイコン画像を手前の面に貼る。武器・防具・容器・巻物などで厚み・縦横比を少し変える初期試作であり、個々の物品形状に合わせた本格的なメッシュはまだない。
+- `UWModernBags.AppendVRItemVisuals` は表示中の実アイテム、表示済みアイコン、画面内の枠座標を**読み取り専用**で渡す。`UWModernPanel.AppendVRItemVisuals` は原作の11装備領域を照合し、実際にクリックできる位置から装備アイコンを渡す。アイテムの新規作成・消滅・装備判定の差し替えは行わない。
+- Unityの3Dトークンは表示専用でColliderを無効化している。操作は旧 `UWGamepadPointer` の右Touchクリック／Ray座標と `UWModernBags` のドラッグ・合成・配置ルールに引き続き従う。
+- `UWScene.Inventory.CursorItem` に所持品があるとき、原作のアイコンから別のプレビューを生成し、右Touchコントローラーの約15cm前に追従させる。**トリガーを押しただけで3Dアイテムを生成・移動するわけではなく、元の所持品モデルの取得状態が唯一の正規状態**。
+- 立体札の前面より照準が手前に出るように、Touchのヒット点マーカー位置を補正。RenderTexture／GPU上の立体表示・正しいTouchの位置・取得後の見え方・配置操作はHMD実機での未確認事項として残る。
+- UnityエディターをHMDなしで起動した自動検査では、枠座標からのUV変換、部分的に画面外の枠のクリップ、画面外の完全除外、分類による厚みの区別、16倍のXR追跡スケールでも保持中の表示位置が15cmを維持する計算が**PASS**。
+- Unity Hub経由の `UWVRBuild.BuildWindowsPrototype` を実行し、`L:\Games\UlutimaUW\unity-vr-itemmodels-build-20261014.log` で `[UWVR-OFFLINE] PASS`、`[UWVR] Build result: Succeeded; errors: 0` を確認。HMD実機試験は未実施。
+- ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-item-tokens-win64.zip`（102,028,528バイト、352項目）。更新した `Assembly-CSharp.dll`、OpenXR関連DLL、日本語説明書、通常／空間インベントリの起動バッチを検証。原作ゲームデータは含まれず、旧ZIPは保持。
+- ZIPのSHA-256：`9D95A8A846193F0E25ACAE7DBF8FB669FC1C166B3CCD5053BD6315CBCFE99D20`。
+
 ### 空間固定インベントリと右手TouchのRay操作（10月14日）
 
 - `-vr-spatial-inventory` を明示したVR起動に限り、`UWVRSpatialInventory` が既存のバッグ・キャラクター画面のCanvasを専用カメラと透明RenderTextureに向け、プレイヤーの前方に**世界座標で固定された平面パネル**として表示する試験経路を追加。通常VRモードとデスクトップモードの表示は変更しない。

@@ -111,6 +111,28 @@ public static class UWVRDiagnostics
             && !UWVRSpatialInventory.IsInventoryCanvas("Modern HUD"),
             "Spatial inventory must redirect only bags and character panels");
 
+        // The 3D tokens project each original item rectangle on exactly the
+        // same 2D UI surface. They are visual-only: no new inventory or
+        // collider/physics logic may be needed for taking and dropping them.
+        fRequire(UWVRInventoryTokens.TryGetSlotUV(new Rect(160f, 45f, 64f, 36f),
+                320f, 180f, out Rect lOTokenUV)
+            && (lOTokenUV.center - new Vector2(0.6f, 0.35f)).sqrMagnitude < 0.00001f
+            && Mathf.Abs(lOTokenUV.width - 0.2f) < 0.00001f,
+            "3D item token does not align with the original clickable item slot");
+        fRequire(UWVRInventoryTokens.TryGetSlotUV(new Rect(-30f, 100f, 60f, 60f),
+                320f, 180f, out lOTokenUV)
+            && Mathf.Abs(lOTokenUV.xMin) < 0.00001f
+            && Mathf.Abs(lOTokenUV.width - (30f / 320f)) < 0.00001f,
+            "3D token must clip slots partly outside the game display");
+        fRequire(!UWVRInventoryTokens.TryGetSlotUV(new Rect(400f, 40f, 10f, 10f),
+                320f, 180f, out _)
+            && !UWVRInventoryTokens.TryGetSlotUV(new Rect(10f, 10f, 0f, 10f),
+                320f, 180f, out _),
+            "Invisible or empty inventory slots must not spawn token models");
+        fRequire(UWVRInventoryTokens.CategoryShape(UWObject.ObjectCategoryEnum.Containers).z
+                > UWVRInventoryTokens.CategoryShape(UWObject.ObjectCategoryEnum.BooksAndScrolls).z,
+            "VR item tokens must give containers more depth than books");
+
         // A physical inventory quad is anchored in world space. Test the
         // controller-ray to source-screen mapping without any XR runtime or
         // renderer. Rotated/nonuniformly scaled panels must map precisely.
@@ -155,6 +177,9 @@ public static class UWVRDiagnostics
             fRequire((lOTrackedRay.origin - lOExpected).sqrMagnitude < 0.00001f
                 && (lOTrackedRay.direction - Vector3.right).sqrMagnitude < 0.00001f,
                 "XR Touch controller ray ignores tracking origin, yaw or world scale");
+            fRequire((UWVRInventoryTokens.HeldPosition(lOTrackedRay, 16f)
+                - (lOTrackedRay.origin + Vector3.right * 2.4f)).sqrMagnitude < 0.00001f,
+                "VR held item preview does not preserve a physical hand offset with XR scale");
         }
         finally
         {
@@ -342,7 +367,7 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, headset movement, stereo UI, 11 equipment zones, world-anchored inventory ray mapping, XR hand calibration, cursor transparency.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, stereo UI, 11 equipment zones, world inventory ray mapping, raised 3D item slots, held item XR scale, cursor transparency.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 

@@ -146,6 +146,13 @@ of what is built was also read out of the original's executable.
   Offline Ray/space tests PASS; the new Windows x64 spatial-inventory prototype
   builds with zero errors (2026-10-14), and its ZIP is validated. The normal
   VR mode remains the fallback until real-headset testing proves the new path.
+  Spatial inventory now has individual shallow extruded item-icon tokens in
+  real backpack/equipment hit areas, plus a separate 6DoF right-hand visual
+  for the authoritative CursorItem carried by the game's drag logic. The
+  tokens have no colliders and do not replace inventory rules. Item-specific
+  meshes and tested physical hand grabbing remain future milestones.
+  The updated item-token Windows x64 prototype passes offline checks and
+  builds with zero errors (2026-10-14); ZIP verified and earlier versions kept.
   Next: real-HMD validation, UI/controller interaction, stereo correctness and comfort.
   Japanese translation additions remain
   temporarily paused. See `Docs/VR_FEASIBILITY_JA.md`.

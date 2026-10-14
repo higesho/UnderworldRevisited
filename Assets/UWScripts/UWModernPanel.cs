@@ -477,6 +477,40 @@ public class UWModernPanel : MonoBehaviour
                 pOCentres.Add(lOCentre);
     }
 
+    /// <summary>Read-only equipment snapshot, in the same clickable original
+    /// hit zones as the VR pointer. The actual character and equipment are
+    /// neither copied nor changed by rendering a 3D preview.</summary>
+    public void AppendVRItemVisuals(List<UWVRInventoryTokens.ItemVisual> pOVisuals)
+    {
+        if (!HasVREquipmentSlots || pOVisuals == null || mOUi == null
+            || mOUi.mOInventory == null)
+            return;
+
+        UWInventory lOInventory = mOUi.mOInventory;
+        foreach (UWClickRules.InventorySpot leSpot in msVREquipmentSpots)
+        {
+            UWArmorItemMap.BodySlot? leEquip = UWHudInventory.GetSlotOfSpot(leSpot);
+            if (!leEquip.HasValue || !UWVRInventoryNavigation.TryGetEquipmentCentre(
+                    leSpot, mOPageRect, mOViewRect, miScale, out Vector2 lOPoint))
+                continue;
+
+            UWObject lOItem = lOInventory.GetEquipped(leEquip.Value);
+            UWTexture lOIcon = lOItem != null ? lOItem.Icon ?? lOItem.Texture : null;
+            if (lOIcon == null || !UWClickRules.TryGetInventorySpotArea(leSpot, out UWClickRules.Area lOArea))
+                continue;
+
+            float lfWidth = Mathf.Max(2f, (lOArea.X1 - lOArea.X0 + 1) * miScale);
+            float lfHeight = Mathf.Max(2f, (lOArea.Y1 - lOArea.Y0 + 1) * miScale);
+            // A token must stay inside its actual original hit zone. A big
+            // picture over a smaller ring or hand would appear selectable
+            // where the original game considers a different equipment slot.
+            Rect lORect = new Rect(lOPoint.x - lfWidth * 0.5f,
+                lOPoint.y - lfHeight * 0.5f, lfWidth, lfHeight);
+            pOVisuals.Add(new UWVRInventoryTokens.ItemVisual(lOItem,
+                fGetIcon(lOIcon), lORect));
+        }
+    }
+
     // ------------------------------------------------- Opening and closing
 
     public void Open(TabEnum peTab)

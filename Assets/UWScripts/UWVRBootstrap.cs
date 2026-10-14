@@ -69,6 +69,7 @@ public sealed class UWVRBootstrap : MonoBehaviour
         DontDestroyOnLoad(lOHost);
         msInstance = lOHost.AddComponent<UWVRBootstrap>();
         lOHost.AddComponent<UWVRSpatialInventory>();
+        lOHost.AddComponent<UWVRInventoryTokens>();
         lOHost.AddComponent<UWVRCanvasBridge>();
         lOHost.AddComponent<UWVRPointerReticle>();
     }

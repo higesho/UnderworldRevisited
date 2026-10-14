@@ -39,6 +39,9 @@ public sealed class UWVRSpatialInventory : MonoBehaviour
 
     public static bool IsEnabled => UWVRBootstrap.SpatialInventoryRequested && UWVRBootstrap.IsHeadsetActive;
     public static bool HasTouchHit => msInstance != null && msInstance.mbTouchHit;
+    public static Transform VisiblePanel => IsEnabled && msInstance != null
+        && msInstance.mPanelRenderer != null && msInstance.mPanelRenderer.enabled
+        ? msInstance.mPanel : null;
 
     private void Awake()
     {
@@ -105,7 +108,10 @@ public sealed class UWVRSpatialInventory : MonoBehaviour
             mRayLine.SetPosition(0, lORay.origin);
             mRayLine.SetPosition(1, lOHit);
             mRayLine.enabled = true;
-            mRayDot.position = lOHit - (mPanel.forward * (0.01f * lfUnits));
+            // The raised 3D item faces sit up to ~0.045 m in front of the
+            // background texture. Put the laser marker above them, otherwise
+            // a pointed-at item would hide the very mark used to select it.
+            mRayDot.position = lOHit - (mPanel.forward * (0.06f * lfUnits));
             mRayDot.rotation = mPanel.rotation;
             mRayDot.localScale = Vector3.one * (RayDotMeters * lfUnits);
             mRayDotRenderer.enabled = true;

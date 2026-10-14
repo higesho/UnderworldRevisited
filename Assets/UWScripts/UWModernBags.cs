@@ -1826,6 +1826,36 @@ public partial class UWModernBags : MonoBehaviour
             pOPointer, pODirection, lbOnSlot, out pOCentre);
     }
 
+    /// <summary>
+    /// Read-only snapshot of already drawn bag items for the experimental VR
+    /// 3D tokens. Each token keeps its existing clickable screen rectangle;
+    /// no inventory objects are spawned, cloned, moved or consumed here.
+    /// </summary>
+    public void AppendVRItemVisuals(List<UWVRInventoryTokens.ItemVisual> pOVisuals)
+    {
+        if (pOVisuals == null || !mbOpen || !fIsShown() || fPageShown())
+            return;
+
+        foreach (Window lOWindow in mOWindows)
+        {
+            if (lOWindow.Root == null || !lOWindow.Root.gameObject.activeInHierarchy)
+                continue;
+
+            for (int liSlot = 0; liSlot < lOWindow.SlotCount; liSlot++)
+            {
+                Slot lOSlot = lOWindow.Slots[liSlot];
+                if (!lOSlot.Icon.enabled || lOSlot.Icon.texture == null
+                    || lOSlot.ScreenRect.width <= 0f || lOSlot.ScreenRect.height <= 0f)
+                    continue;
+
+                UWObject lOItem = fGetItem(lOWindow, liSlot);
+                if (lOItem != null)
+                    pOVisuals.Add(new UWVRInventoryTokens.ItemVisual(lOItem,
+                        lOSlot.Icon.texture, lOSlot.ScreenRect));
+            }
+        }
+    }
+
     private bool fFindSlot(Vector2 pOPointer, out Window pOWindow, out int piSlot)
     {
         // The original's page: its eight slots are the backpack's, or the open container's from
