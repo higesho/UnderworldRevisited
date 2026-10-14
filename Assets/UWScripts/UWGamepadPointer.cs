@@ -75,6 +75,16 @@ public class UWGamepadPointer : MonoBehaviour
 
     private float mfWheelNext;
 
+    // In VR, an open bag's slots can be selected discretely with the right
+    // stick. Other UI uses the normal analogue pointer, and holding a click
+    // returns to analogue movement for item dragging.
+    private bool mbVRSlotStickHeld;
+    private float mfNextVRSlotRepeat;
+    private const float VRSlotThreshold = 0.7f;
+    private const float VRSlotRelease = 0.3f;
+    private const float VRSlotFirstRepeat = 0.38f;
+    private const float VRSlotRepeat = 0.14f;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void fCreate()
     {
@@ -257,11 +267,14 @@ public class UWGamepadPointer : MonoBehaviour
 
         if (IsDriving)
         {
-            fMove(lOPlayer.LookStick.ReadValue<Vector2>());
+            Vector2 lOStick = lOPlayer.LookStick.ReadValue<Vector2>();
+            if (!fMoveVRInventorySlot(lOStick, lOPlayer.LookStick))
+                fMove(lOStick);
             fWheel(lOPlayer);
         }
         else
         {
+            mbVRSlotStickHeld = false;
             mfWheelHeld = -1f;
         }
 
@@ -297,6 +310,59 @@ public class UWGamepadPointer : MonoBehaviour
     private static float msfRightSentAt = -10f;
 
     private static bool msbRightHeld;
+
+    /// <summary>
+    /// Snap only while actively navigating bag slots with a gamepad or Touch
+    /// thumbstick in VR. Slot centres are computed by UWModernBags from its
+    /// real screen rects, so clicking and drag/drop use unchanged hit tests.
+    /// </summary>
+    private bool fMoveVRInventorySlot(Vector2 pOStick, InputAction pOAction)
+    {
+        UWModernBags lOBags = UWModernBags.Instance;
+        if (!UWVRBootstrap.IsHeadsetActive || lOBags == null || !lOBags.IsOpen
+            || UWModernBags.IsMenuOpen || UWModernBags.IsSplitting
+            || !UWGamepad.IsFromGamepad(pOAction) || Mouse.current == null
+            || mbLeftDown || mbRightDown)
+        {
+            mbVRSlotStickHeld = false;
+            return false;
+        }
+
+        if (pOStick.magnitude < VRSlotRelease)
+        {
+            mbVRSlotStickHeld = false;
+            return true;
+        }
+
+        // Do not drift off the slot during small stick movements.
+        if (pOStick.magnitude < VRSlotThreshold)
+            return true;
+
+        float lfTime = Time.unscaledTime;
+        if (mbVRSlotStickHeld && lfTime < mfNextVRSlotRepeat)
+            return true;
+
+        if (!mbVRSlotStickHeld)
+        {
+            mbVRSlotStickHeld = true;
+            mfNextVRSlotRepeat = lfTime + VRSlotFirstRepeat;
+        }
+        else
+            mfNextVRSlotRepeat = lfTime + VRSlotRepeat;
+
+        Vector2 lOPointer = msbPlaced ? msOPosition : Mouse.current.position.ReadValue();
+        if (!lOBags.TryGetNextVRSlot(lOPointer, pOStick, out Vector2 lONext))
+            return true;
+
+        mOAt = lONext;
+        Mouse.current.WarpCursorPosition(lONext);
+        mOLastWarp = lONext;
+        msOPosition = lONext;
+        msbPlaced = true;
+        msbPlacePending = false;
+        UWGamepad.NoteSyntheticMouse();
+        return true;
+    }
 
     /// <summary>The right mouse button now down or just pressed is the pad's: the modern pointer
     /// does not switch on it (UWModernPointer.Tick) - R3 does that for the pad.</summary>

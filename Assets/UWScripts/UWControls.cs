@@ -584,7 +584,12 @@ public class UWControls : System.IDisposable
         lMenu.AddBinding("<Keyboard>/escape");
         lMenu.AddBinding("<Gamepad>/start");
 
-        lMap.AddAction("ModernBags", InputActionType.Button).AddBinding("<Keyboard>/#(b)");
+        InputAction lModernBags = lMap.AddAction("ModernBags", InputActionType.Button);
+        lModernBags.AddBinding("<Keyboard>/#(b)");
+        // The left Touch thumbstick click opens/closes bags without requiring
+        // a physical keyboard. This is distinct from the X/character panel
+        // and the right thumbstick click used for pointer lock.
+        lModernBags.AddBinding("<XRController>{LeftHand}/thumbstickClicked");
 
         InputAction lModernLook = lMap.AddAction("ModernLook", InputActionType.Button);
         lModernLook.AddBinding("<Keyboard>/#(q)");

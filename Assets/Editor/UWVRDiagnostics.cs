@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEditor.XR.Management;
@@ -74,6 +75,8 @@ public static class UWVRDiagnostics
                 "Quest menu context click binding missing");
             fRequire(fHasBinding(lOControls.Player.PadPointer, "<XRController>{RightHand}/thumbstickClicked"),
                 "Quest pointer toggle binding missing");
+            fRequire(fHasBinding(lOControls.Player.ModernBags, "<XRController>{LeftHand}/thumbstickClicked"),
+                "Quest backpack toggle binding missing");
         }
         finally
         {
@@ -102,6 +105,37 @@ public static class UWVRDiagnostics
             Quaternion.Euler(0f, 90f, 0f), Quaternion.Euler(25f, 90f, 0f) * Vector3.forward);
         fRequire((lORelative - Vector2.up).sqrMagnitude < 0.0001f,
             "Head-relative locomotion does not ignore head pitch or body yaw");
+
+        // XR inventory navigation uses the *actual 2D slot centres*, without
+        // changing the game's click, drag and equipment hit-test coordinates.
+        List<Vector2> lOVRSlots = new List<Vector2>
+        {
+            new Vector2(20f, 20f), new Vector2(60f, 20f),
+            new Vector2(20f, 60f), new Vector2(60f, 60f)
+        };
+
+        fRequire(UWVRInventoryNavigation.TryChooseNext(lOVRSlots,
+                new Vector2(20f, 20f), Vector2.right, true, out Vector2 lOChosen)
+            && (lOChosen - new Vector2(60f, 20f)).sqrMagnitude < 0.0001f,
+            "VR inventory right-stick horizontal step is incorrect");
+
+        fRequire(UWVRInventoryNavigation.TryChooseNext(lOVRSlots,
+                new Vector2(20f, 20f), Vector2.up, true, out lOChosen)
+            && (lOChosen - new Vector2(20f, 60f)).sqrMagnitude < 0.0001f,
+            "VR inventory right-stick vertical step is incorrect");
+
+        fRequire(UWVRInventoryNavigation.TryChooseNext(lOVRSlots,
+                new Vector2(5f, 5f), Vector2.right, false, out lOChosen)
+            && (lOChosen - new Vector2(20f, 20f)).sqrMagnitude < 0.0001f,
+            "VR inventory initial focus must select the nearest slot");
+
+        fRequire(!UWVRInventoryNavigation.TryChooseNext(lOVRSlots,
+                new Vector2(60f, 20f), Vector2.right, true, out lOChosen),
+            "VR inventory navigation should stop at the last column");
+
+        fRequire(!UWVRInventoryNavigation.TryChooseNext(lOVRSlots,
+                new Vector2(20f, 20f), Vector2.zero, true, out lOChosen),
+            "VR inventory navigation must ignore neutral stick input");
 
         GameObject lOCameraObject = new GameObject("VR offline ray check", typeof(Camera));
         GameObject lOCanvasObject = new GameObject("VR offline canvas check", typeof(RectTransform), typeof(Canvas));
@@ -195,7 +229,7 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR setup, Touch, head-relative walking, XR scale/rig restoration, UI physical distance, stereo UI and cursor input pass-through.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR setup, Touch, head-relative walking, XR scale/rig restoration, UI distance, stereo UI, cursor transparency, inventory slot navigation.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 

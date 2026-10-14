@@ -1776,6 +1776,45 @@ public partial class UWModernBags : MonoBehaviour
         return false;
     }
 
+    private readonly List<Vector2> mOVrSlotCentres = new List<Vector2>(64);
+
+    /// <summary>
+    /// The VR controller can step between the actual inventory slots rather
+    /// than slowly moving a cursor pixel by pixel. Only bag windows already
+    /// laid out on screen participate: no new slot coordinates are invented.
+    /// No input is injected here so it is also safe to use during testing.
+    /// </summary>
+    public bool TryGetNextVRSlot(Vector2 pOPointer, Vector2 pODirection, out Vector2 pOCentre)
+    {
+        pOCentre = Vector2.zero;
+        if (!mbOpen || !fIsShown() || IsMenuOpen || IsSplitting || fPageShown())
+            return false;
+
+        mOVrSlotCentres.Clear();
+        bool lbOnSlot = false;
+
+        foreach (Window lOWindow in mOWindows)
+        {
+            if (lOWindow.Root == null || !lOWindow.Root.gameObject.activeInHierarchy)
+                continue;
+
+            for (int liSlot = 0; liSlot < lOWindow.SlotCount; liSlot++)
+            {
+                Rect lORect = lOWindow.Slots[liSlot].ScreenRect;
+                if (lORect.width <= 0f || lORect.height <= 0f)
+                    continue;
+
+                if (lORect.Contains(pOPointer))
+                    lbOnSlot = true;
+
+                mOVrSlotCentres.Add(lORect.center);
+            }
+        }
+
+        return UWVRInventoryNavigation.TryChooseNext(mOVrSlotCentres,
+            pOPointer, pODirection, lbOnSlot, out pOCentre);
+    }
+
     private bool fFindSlot(Vector2 pOPointer, out Window pOWindow, out int piSlot)
     {
         // The original's page: its eight slots are the backpack's, or the open container's from

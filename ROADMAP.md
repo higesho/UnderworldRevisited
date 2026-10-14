@@ -126,6 +126,11 @@ of what is built was also read out of the original's executable.
   validation passes. Head-relative movement, adjustable tracking scale and physically
   spaced menu/inventory canvases are included in a newly verified Windows 64-bit
   development build (2026-10-14, errors: 0), using Unity Hub-mediated licensing.
+  VR-only inventory slot-to-slot thumbstick navigation and direct Touch bag
+  toggling are implemented without replacing original drag/drop hit tests;
+  their offline checks and a new Windows prototype build pass (2026-10-14,
+  errors: 0). The character paperdoll, controller behavior in a real headset,
+  and hand-tracked interaction still require further work.
   Next: real-HMD validation, UI/controller interaction, stereo correctness and comfort.
   Japanese translation additions remain
   temporarily paused. See `Docs/VR_FEASIBILITY_JA.md`.
