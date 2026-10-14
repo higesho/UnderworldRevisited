@@ -1887,7 +1887,8 @@ public class Interaction : MonoBehaviour
 
         // CLASSIC SCHEME: as in the original a hit area in front of the character, not the
         // ray to the mouse cursor - see fFindClassicMeleeTarget.
-        bool lbFound = mControlScheme == null || mControlScheme.Current == UWControlScheme.SchemeEnum.Original
+        bool lbFound = !UWVRAim.IsHandAimActive
+            && (mControlScheme == null || mControlScheme.Current == UWControlScheme.SchemeEnum.Original)
             ? fFindClassicMeleeTarget(lbLog, out lOHitCollider, out lOHitPoint, out lfHitDistance)
             : fFindModernMeleeTarget(lbLog, out lOHitCollider, out lOHitPoint, out lfHitDistance);
 
@@ -1946,7 +1947,9 @@ public class Interaction : MonoBehaviour
 
         RaycastHit lOHit;
 
-        bool lbHit = Physics.Raycast(fGetInteractionRay(), out lOHit, mfAttackRange);
+        Ray lOCombatRay = UWVRAim.IsHandAimActive
+            ? UWVRAim.Combat(Camera.main) : fGetInteractionRay();
+        bool lbHit = Physics.Raycast(lOCombatRay, out lOHit, mfAttackRange);
 
         // If the enemy stands very close, the camera point lies INSIDE its
         // collider - for a creature that is square in plan and therefore
@@ -1954,7 +1957,7 @@ public class Interaction : MonoBehaviour
         // body reports no hit, and the strike went nowhere (per user,
         // 2026-08-30). So on a miss, check once more with a sphere.
         if (!lbHit)
-            lbHit = Physics.SphereCast(fGetInteractionRay(), CloseCombatRadius, out lOHit, mfAttackRange);
+            lbHit = Physics.SphereCast(lOCombatRay, CloseCombatRadius, out lOHit, mfAttackRange);
 
         if (!lbHit)
         {
@@ -1962,7 +1965,7 @@ public class Interaction : MonoBehaviour
             {
                 // Check again without a range limit: so the log shows what lies THERE and how
                 // far away it is. That distinguishes "nothing hit" from "just too far".
-                if (Physics.Raycast(fGetInteractionRay(), out RaycastHit lOFar, LookRayRange))
+                if (Physics.Raycast(lOCombatRay, out RaycastHit lOFar, LookRayRange))
                     Debug.Log(string.Format("[Attack] nothing within range {0}. Nearest target: {1} at {2:0.0}.",
                         mfAttackRange, lOFar.collider.name, lOFar.distance));
                 else
@@ -2568,7 +2571,10 @@ public class Interaction : MonoBehaviour
 
         // The original's aim from the pointer in the view window; the modern scheme shoots where
         // the free pointer stands on the world, else along the crosshair (per user, 2026-10-04).
-        if (fIsOriginalScheme() && mGameUi != null)
+        if (UWVRAim.IsHandAimActive)
+            UWProjectileWorld.AimFromDirection(UWVRAim.Combat(Camera.main).direction,
+                liSpeedByte, out liHeading, out liPitch);
+        else if (fIsOriginalScheme() && mGameUi != null)
         {
             UWPlayerThrow.GetPointerInView(mGameUi, Mouse.current.position.ReadValue(), out int liX, out int liY);
             UWPlayerThrow.GetMissileAim(liX, liY, Camera.main.transform, out liHeading, out liPitch);
@@ -2757,7 +2763,7 @@ public class Interaction : MonoBehaviour
         //
         // WITH THE POINTER FREE the original's thirds again, of the screen - the modern view fills
         // it (per user, 2026-10-04): upper third an overhead bash, lower a thrust, between a slash.
-        if (!fIsOriginalScheme() && fIsPointerFree() && Mouse.current != null)
+        if (!UWVRAim.IsHandAimActive && !fIsOriginalScheme() && fIsPointerFree() && Mouse.current != null)
         {
             float lfAt = Mouse.current.position.ReadValue().y / Mathf.Max(1f, Screen.height);
 
@@ -2771,9 +2777,11 @@ public class Interaction : MonoBehaviour
             return;
         }
 
-        if (!fIsOriginalScheme())
+        if (!fIsOriginalScheme() || UWVRAim.IsHandAimActive)
         {
-            float lfPitch = fGetViewPitchUp();
+            float lfPitch = UWVRAim.IsHandAimActive
+                ? UWVRAim.PitchUpDegrees(UWVRAim.Combat(Camera.main).direction)
+                : fGetViewPitchUp();
 
             if (lfPitch >= ModernSwingPitch)
                 fSetAttackKind(AttackTypes.Hack);
@@ -5135,7 +5143,7 @@ public class Interaction : MonoBehaviour
         if (fIsOriginalScheme() || !IsSpellTargeting)
             return;
 
-        if (IsTargetSpellPending || fIsPointerFree())
+        if (IsTargetSpellPending || (fIsPointerFree() && !UWVRAim.IsHandAimActive))
             AddMessage("Choose the target with the left button.");
         else
             FirePendingSpell();
@@ -5234,12 +5242,16 @@ public class Interaction : MonoBehaviour
         miPendingTargetSpell = -1;
         miPendingTargetSpellMajor = -1;
 
-        UWEntityInfo lOTarget = TryGetPickupTargetAt(pOAt);
+        UWEntityInfo lOTarget = UWVRAim.IsHandAimActive
+            ? TryGetPickupTarget(UWVRAim.Magic(Camera.main))
+            : TryGetPickupTargetAt(pOAt);
 
         // TryGetPickupTargetAt only returns pickable things - creatures and doors are
         // not among them. Hence a separate ray here that takes whatever it hits.
+        Ray lOTargetRay = UWVRAim.IsHandAimActive
+            ? UWVRAim.Magic(Camera.main) : UWVRAim.ScreenPoint(Camera.main, pOAt);
         if (lOTarget == null && Camera.main != null
-            && fRaycastPastEffects(UWVRAim.ScreenPoint(Camera.main, pOAt), LookRayRange, out RaycastHit lOHit))
+            && fRaycastPastEffects(lOTargetRay, LookRayRange, out RaycastHit lOHit))
             lOTarget = lOHit.collider.GetComponentInParent<UWEntityInfo>();
 
         bool lbDone = liMajor == UWMiscSpell.MajorClass
@@ -5378,7 +5390,10 @@ public class Interaction : MonoBehaviour
         int liHeading;
         int liPitch;
 
-        if (fIsOriginalScheme() && mGameUi != null)
+        if (UWVRAim.IsHandAimActive)
+            UWProjectileWorld.AimFromDirection(UWVRAim.Magic(Camera.main).direction,
+                miPendingProjectileSpeedByte, out liHeading, out liPitch);
+        else if (fIsOriginalScheme() && mGameUi != null)
         {
             UWPlayerThrow.GetPointerInView(mGameUi, Mouse.current.position.ReadValue(), out int liX, out int liY);
             UWPlayerThrow.GetMissileAim(liX, liY, Camera.main.transform, out liHeading, out liPitch);

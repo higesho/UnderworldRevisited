@@ -85,6 +85,39 @@ public static class UWVRDiagnostics
         }
 
         fRequire(!UWVRBootstrap.IsHeadsetActive, "Offline checks require no active XR session");
+        fRequire(!UWVRAim.IsHandAimActive,
+            "VR hand-aim must never activate in a desktop or offline session");
+
+        // Simulated Touch poses: right and left can point independently from
+        // the HMD gaze. Keep the original eye origin to preserve existing
+        // combat reach and world-projectile spawn rules in this first phase.
+        Ray lOGazeCombat = new Ray(new Vector3(3f, 4f, 5f), Vector3.forward);
+        Ray lORightHandRay = new Ray(new Vector3(7f, 8f, 9f), Vector3.right);
+        Ray lOLeftHandRay = new Ray(new Vector3(-2f, 1f, 4f), Vector3.left);
+        Ray lOCombatAim = UWVRAim.WithHandDirection(lOGazeCombat, lORightHandRay, true);
+        Ray lOMagicAim = UWVRAim.WithHandDirection(lOGazeCombat, lOLeftHandRay, true);
+        fRequire((lOCombatAim.origin - lOGazeCombat.origin).sqrMagnitude < 0.00001f
+            && (lOMagicAim.origin - lOGazeCombat.origin).sqrMagnitude < 0.00001f
+            && (lOCombatAim.direction - Vector3.right).sqrMagnitude < 0.00001f
+            && (lOMagicAim.direction - Vector3.left).sqrMagnitude < 0.00001f,
+            "Hand-aim must distinguish two controllers while preserving the game attack origin");
+        fRequire((UWVRAim.WithHandDirection(lOGazeCombat, lORightHandRay, false).direction
+                - lOGazeCombat.direction).sqrMagnitude < 0.00001f
+            && (UWVRAim.WithHandDirection(lOGazeCombat, new Ray(Vector3.zero,
+                    new Vector3(float.NaN, 1f, 1f)), true).direction
+                - lOGazeCombat.direction).sqrMagnitude < 0.00001f,
+            "A missing or invalid Touch pose must fall back to head/gaze aim");
+        fRequire(Mathf.Abs(UWVRAim.PitchUpDegrees(Vector3.forward)) < 0.001f
+            && UWVRAim.PitchUpDegrees(new Vector3(0f, 1f, 2f)) > 12f
+            && UWVRAim.PitchUpDegrees(new Vector3(0f, -1f, 2f)) < -12f,
+            "Melee attack selection should use the right Touch pitch in hand-aim mode");
+        UWProjectileWorld.AimFromDirection(lOCombatAim.direction, 15, out int liRightHeading, out int _);
+        UWProjectileWorld.AimFromDirection(lOMagicAim.direction, 15, out int liLeftHeading, out int _);
+        fRequire(liRightHeading == 64 && liLeftHeading == 192,
+            "Hand-aim projectile and spell headings must follow different Touch hands");
+        fRequire((UWVRHandAimGuides.GuideEnd(lORightHandRay, 16f)
+                - (lORightHandRay.origin + Vector3.right * 28.8f)).sqrMagnitude < 0.00001f,
+            "Touch aim guide must preserve its physical length when world units per metre change");
 
         fRequire(UWVRWorldSpace.ParseUnitsPerMeter(null) == 1f,
             "VR default scale changed unexpectedly");
@@ -498,7 +531,7 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, Touch, stereo UI, 11 equipment zones, spatial ray, 14 item mesh families, direct inventory take/swap/carry/replace with object-identity checks, physical grip edge and cursor safety.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, independent right/left Touch aim, gaze fallback, combat pitch/projectile heading, stereo UI, 11 equipment zones, 14 item mesh families and real inventory take/swap/place.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
     }
 

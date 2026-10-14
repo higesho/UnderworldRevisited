@@ -64,6 +64,8 @@ public static class UWVRBuild
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-spatial-inventory -vr-near-grab -logFile \"%~dp0VR_HandGrab_Test.log\"\r\n");
         File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_DirectGrab.bat"),
             "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-spatial-inventory -vr-near-grab -vr-direct-grab -logFile \"%~dp0VR_DirectGrab_Test.log\"\r\n");
+        File.WriteAllText(Path.Combine(lSBuildDirectory, "LaunchVR_HandAim.bat"),
+            "@echo off\r\ncd /d \"%~dp0\"\r\nstart \"\" \"%~dp0UR.exe\" -vr -vr-hand-aim -logFile \"%~dp0VR_HandAim_Test.log\"\r\n");
 
         string lSGuide = Path.Combine(lSProjectRoot, "Docs", "VR_TEST_JA.txt");
         if (File.Exists(lSGuide))

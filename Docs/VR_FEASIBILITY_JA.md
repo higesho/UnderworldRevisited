@@ -4,6 +4,18 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 左右Touchの独立照準（10月14日、任意の試験モード）
+
+- 前の状態 `3da9845` はGitHubの `fork/japanese-localization` と一致し、作業ツリーに未コミット変更なしを確認してから開発を開始した。
+- `-vr-hand-aim` を追加。**右Touchは近接攻撃・弓やクロスボウの射出方向、左Touchは魔法の飛翔体と対象指定**に割り当てる試作。デスクトップ起動および通常の `-vr` 起動には影響させない。
+- `UWVRAim.Combat` / `Magic` はXR追跡スペースで変換済みの左右コントローラーRayを利用し、その**方向のみ**従来の視線Rayへ適用する。射程判定の起点と弓・魔法の発生位置は従来のプレイヤー側に残す。実際の手元・武器先端から攻撃判定や飛翔体を発生させる段階ではない。
+- `Interaction` の近接Raycast/SphereCast、弓・クロスボウ・スリングの方向、斬撃種類の上下角度、魔法の飛翔体方向と世界対象指定に左右Touch照準を接続。世界の「調べる」操作、バッグ、ルーンUIのクリック経路は従来のまま。ルーンからの飛翔魔法は手元照準モードではUIカーソルが自由でも詠唱後に射出する（対象指定魔法は従来どおり対象の選択が必要）。
+- Touch追跡が取得できないときはHMDの視線Rayへ復帰。`UWVRHandAimGuides` は右手に橙、左手に水色の約1.8m方向確認線を表示。いずれもコライダーを持たない描画用で、実際の命中位置を示す照準器ではない。
+- `LaunchVR_HandAim.bat` を比較用に追加し、通常の `LaunchVR.bat` や既存のインベントリ操作起動バッチは保持する。実際の手の追跡、両眼表示、遠距離と近接の照準ずれ、快適性は**HMD実機未検証**。
+- Unity 6000.6.0f1のバッチ実行で新しい照準の模擬方向・左右独立Ray・追跡喪失時の復帰・投射方向・表示線の縮尺を検査し、**`[UWVR-OFFLINE] PASS`**。Windows x64開発版も **`[UWVR] Build result: Succeeded; errors: 0`**。検証ログ：`L:\Games\UlutimaUW\unity-vr-hand-aim-build-20261014.log`。
+- 試験ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-hand-aim-win64.zip`（102,042,280バイト、355項目）。`LaunchVR_HandAim.bat` を含む10種類の起動スクリプト、最新 `Assembly-CSharp.dll`、OpenXR DLL、日本語の試験手順を確認済み。原作ゲームデータは含めず旧ZIPは残す。
+- ZIP SHA-256：`E8437CB405D4CA94863C99FE202D1853FA7971828BF14BE80EF9B00F3D5EB601`。
+
 ### 直接呼び出しによる近接グリップ操作の別経路（10月14日）
 
 - 既存の `LaunchVR_HandGrab.bat` はWindowsのOS合成マウスを経由するため、Unity Input Systemへの非同期入力とバッグの更新順序に依存する。比較用に旧方式は保持し、別の起動オプション `-vr-direct-grab` を**必ず `-vr -vr-spatial-inventory -vr-near-grab` と同時に指定した場合だけ**有効にした。

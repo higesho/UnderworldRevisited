@@ -174,6 +174,16 @@ of what is built was also read out of the original's executable.
   off-panel items to their source and carry the displaced item after swaps.
   Headset-free tests exercise real UWInventoryModel take/swap/place transitions;
   runtime HMD input and visual alignment still require actual Quest testing.
+  Independent optional -vr-hand-aim testing path: use right Touch orientation
+  for melee swing pitch, melee hit rays and bow/sling shot direction, and left
+  Touch orientation for magic projectiles and world-target spells. Look/use/UI
+  continue using gaze or their original pointer. The eye/player remains the
+  combat/projectile origin, the pose fallback uses gaze, and short colored
+  hand lines aid headset diagnostics; physical sword swings, arrow nocking,
+  hand-origin projectiles and Quest visual validation remain future work.
+  Unity 6000.6.0f1 offline tests PASS, and the Windows x64 -vr-hand-aim
+  development build succeeds (2026-10-14, zero errors). The separately named
+  355-entry test ZIP includes ten launch scripts and no original game data.
   The direct-inventory Windows x64 development build passes its HMD-free checks
   and succeeds with zero errors (2026-10-14). Its separate 354-entry ZIP has
   been checked for OpenXR, both grab launchers and absent original game files.
