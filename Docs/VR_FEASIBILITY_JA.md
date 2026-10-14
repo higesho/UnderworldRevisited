@@ -4,6 +4,21 @@
 
 ## 2026-10-14 実機試験なしで進めた実装
 
+### 物理的な刃軌道・武器ごとの代表形状（10月14日）
+
+- 開始時点で直前の `800b36b` はGitHub `fork/japanese-localization` と一致し、未コミット変更がないことを確認。
+- `-vr-blade-contact` を追加。`-vr -vr-hand-aim -vr-gesture-melee` と併用した時だけ有効。従来の `LaunchVR_GestureMelee.bat` を残し、`LaunchVR_BladeContact.bat` と物理尺度を比較する `LaunchVR_BladeContact_Scale16.bat` を追加。
+- `UWVRWeaponShape` は原作 `UWCombat.GetWeaponTypeForWeapon` と同じ系統（剣・斧・棍棒・素手）で分類し、右手の仮メッシュと物理接触長／太さを統一。個別のアイテムIDごとの精密モデルではなく4種類の代表形状。右手の6DoF追跡・手首の捻りも引き続き適用。
+- `UWVRBladeSweep` は右トリガーで武器を溜めている間だけ5点の刃軌跡を継続的なSphereCastで検査。最初に触れた実コライダーを使い、プレイヤー自身・トリガー・Ignore Raycastのコライダーを除外。`UWEntityInfo` を通じて本来の `UWDamageable` の対象だけを保持し、壁などに遮られた場合を拒否。
+- 連続フレームの手元移動が十分速く、かつジェスチャー判定を通った場合にのみ最新0.35秒以内の接触候補を採用。追跡喪失や飛び移りは候補を破棄し、一攻撃につき候補を1つだけ保持。対象の消滅・移動・遮蔽・原作の射程超過は、**原作アニメーション命中フレームで再検査**する。
+- **命中時の既存原作処理 `fApplyMeleeHit` / `UWPlayerAttack` / 武器消耗は変更しない**。ヒットフレームまでダメージを与えず、接触がない場合は従来の視線Rayへフォールバックしない。壁越しの攻撃を防ぐ。物理的な刃停止・敵ノックバック・手の触覚はまだ未実装。
+- 重要な制約：ワールドのゲーム座標とVRのメートル縮尺は実機では未調整。尺度1と16の試験バッチで比較可能だが、どちらが実際に快適かは未検証。また、敵や扉での本番命中成功はHMD実機未確認。
+- 検証では最初、Unityの `SphereCast` が初期接触で原点座標を返すケースによって、**原作の攻撃射程外でも接触可能と誤判定**する問題を検出。距離・遮蔽判定を実コライダーの `ClosestPoint` に基づく位置へ修正し、同じテストで再確認した。
+- `L:\Games\UlutimaUW\unity-vr-blade-contact-offline-fixed-20261014.log`：Unity 6000.6.0f1、`[UWVR-OFFLINE] PASS`。模擬敵＋壁に実際のUnityコライダーを付け、最初に当たる障害物、眼からの遮蔽、トリガー無視、同一ストロークの二重消費、追跡喪失、攻撃射程外の拒否、4種類の武器形状を確認。
+- `L:\Games\UlutimaUW\unity-vr-blade-contact-build-20261014.log`：同じ非HMD検査PASS、Windows x64開発ビルド `[UWVR] Build result: Succeeded; errors: 0`。原作戦闘処理を使う統合部分までQuest実機で成功したという意味ではない。
+- 新ZIP：`Release/UnderworldRevisited-vr-prototype-20261014-blade-contact-win64.zip`（**102,052,088バイト・358項目**）。13種類の起動バッチ、OpenXR DLL、更新したゲームコード、日本語試験ガイド・翻訳データを確認。原作ゲームデータは含まず、旧ZIPは保持。
+- ZIP SHA-256：`F7E5272AD438C5DB9AACDC243313A6A46A0C3D80CFC1BE70720C5861A6C7C71A`。
+
 ### 右手武器プロトタイプ・移動軌道からの攻撃分類（10月14日）
 
 - 前回 `f07ba51` までは `fork/japanese-localization` にコミット済みかつ作業ツリーはclean。今回追加の試験フラグは `-vr -vr-hand-aim -vr-gesture-melee` をすべて指定した場合に限り有効。`LaunchVR_GestureMelee.bat` を追加。デスクトップ・従来VR・HandAimの動作を変更しない。

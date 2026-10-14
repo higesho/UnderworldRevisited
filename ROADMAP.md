@@ -188,7 +188,20 @@ of what is built was also read out of the original's executable.
   animation/hit only for a recent valid swing, with the original combat
   charge/damage/equipment-wear model unchanged; bow/sling shots unchanged.
   Simulated motion checks cover jitter, tracking jumps and lost tracking.
-  Blade contact collision and per-item authored weapon models remain future.
+  True rigidbody blade stopping, contact haptics and per-item authored weapon
+  models remain future work; the new prototype samples swept contact only.
+  Optional -vr-blade-contact (with hand-aim + gesture-melee) now samples the
+  physical sweep of a tracked sword, axe, mace or fist, records one fresh
+  damageable contact and filters solid walls, player colliders and attacks
+  beyond original range. Original animation hit frame and damage/wear rules
+  still decide if the strike connects. Existing GestureMelee remains an A/B
+  fallback, while hand-origin projectiles and authored per-item meshes are
+  future work. Real headset world-scale, grip and contact are unverified.
+  The first offline run caught a false hit outside attack reach from Unity's
+  sphere-cast overlap point. Fixed by validating Collider.ClosestPoint, then
+  physics obstacle, reach and through-wall tests PASS. Windows x64 Unity build
+  succeeds with zero errors (2026-10-14). A separate 358-entry ZIP includes
+  thirteen launch scripts without copyrighted original game data.
   Unity 6000.6.0f1 simulated sword trajectory tests PASS and Windows x64
   development build succeeds (2026-10-14, zero errors). A separately named
   356-entry ZIP with eleven launch scripts passed OpenXR/package/original-data

@@ -79,6 +79,9 @@ public class Interaction : MonoBehaviour
 
     private float mfPendingCharge;
     private readonly UWVRMeleeMotion mVRMeleeMotion = new UWVRMeleeMotion();
+    private readonly UWVRBladeSweep mVRBladeSweep = new UWVRBladeSweep();
+    private bool mbPendingVRBladeResolution;
+    private UWVRBladeSweep.Contact mPendingVRBladeContact;
 
     private AttackEnum mePendingAttack;
     private UWControlScheme mControlScheme;
@@ -503,7 +506,7 @@ public class Interaction : MonoBehaviour
             // The opt-in motion requirement belongs to Touch/controller
             // attacks only. A desktop mouse still works as before even if an
             // OpenXR session and a physical sword prototype are enabled.
-            bool lbGestureMelee = fUsesVRGestureMelee() && mbAttackFromPad;
+            bool lbGestureMelee = fUsesVRGestureMelee() && fIsTouchAttack(lOAttackButton);
             bool lbGestureValid = true;
             float lfGestureCharge = 1f;
             if (lbGestureMelee)
@@ -529,6 +532,29 @@ public class Interaction : MonoBehaviour
                 }
                 else
                     Debug.Log("[UWVR-MELEE] Trigger released without a fresh tracked swing; hit canceled.");
+
+                // Contact is only evidence for the original, later attack
+                // hit frame. No health or durability is changed here.
+                if (UWVRBladeSweep.IsEnabled)
+                {
+                    bool lbTouched = mVRBladeSweep.TryFinish(out mPendingVRBladeContact);
+                    mbPendingVRBladeResolution = lbGestureValid;
+                    Debug.Log("[UWVR-BLADE] release: gesture=" + lbGestureValid
+                        + "; physical contact=" + lbTouched
+                        + "; collider=" + (lbTouched
+                            ? mPendingVRBladeContact.Collider.name : "none"));
+                }
+                else
+                {
+                    mbPendingVRBladeResolution = false;
+                    mPendingVRBladeContact = default;
+                }
+            }
+            else
+            {
+                mbPendingVRBladeResolution = false;
+                mPendingVRBladeContact = default;
+                mVRBladeSweep.Reset();
             }
 
             mfPendingCharge = lbGestureMelee && lbGestureValid
@@ -559,6 +585,12 @@ public class Interaction : MonoBehaviour
 
                 if (lbDrawn)
                     fResolveAttack();
+            }
+
+            if (!mbAttackPending)
+            {
+                mbPendingVRBladeResolution = false;
+                mPendingVRBladeContact = default;
             }
 
             // The character only learns THAT the button was released. Whether that becomes a retraction
@@ -777,14 +809,21 @@ public class Interaction : MonoBehaviour
             && mCharacter != null && !fHoldsLauncher();
     }
 
+    private static bool fIsTouchAttack(InputAction pOAttackButton)
+    {
+        return pOAttackButton != null && pOAttackButton.activeControl != null
+            && pOAttackButton.activeControl.device is UnityEngine.InputSystem.XR.XRController;
+    }
+
     private void fSampleVRMelee(InputAction pOAttackButton)
     {
         if (!fUsesVRGestureMelee() || !IsCombatModeActive
             || (mControlScheme != null && mControlScheme.IsWorldInputBlocked)
             || UWConversationScreen.IsAnyOpen || !Application.isFocused
-            || !mbAttackFromPad)
+            || !fIsTouchAttack(pOAttackButton) || UWGamepadPointer.Takes(pOAttackButton))
         {
             mVRMeleeMotion.Reset();
+            mVRBladeSweep.Reset();
             return;
         }
 
@@ -795,6 +834,7 @@ public class Interaction : MonoBehaviour
         if (!pOAttackButton.IsPressed() || !IsAttacking)
         {
             mVRMeleeMotion.Reset();
+            mVRBladeSweep.Reset();
             return;
         }
 
@@ -812,9 +852,31 @@ public class Interaction : MonoBehaviour
             Vector3 lOMetres = lOCamera.transform.InverseTransformPoint(lORay.origin);
             Vector3 lOLocalForward = lOCamera.transform.InverseTransformDirection(lORay.direction);
             mVRMeleeMotion.Sample(true, lOMetres, lOLocalForward, Time.deltaTime);
+
+            if (UWVRBladeSweep.IsEnabled)
+            {
+                Quaternion lOHandRotation = Quaternion.identity;
+                Vector3 lOHandPosition = Vector3.zero;
+                bool lbPose = lOTracking.TryGetControllerPose(UnityEngine.XR.XRNode.RightHand,
+                    out lOHandPosition, out lOHandRotation);
+                UWCharacter lOCharacter = mCharacter;
+                UWVRWeaponShape.Kind leKind = mInventory != null
+                    && mInventory.GetEquipped(mInventory.MainHandSlot) != null
+                    && lOCharacter != null
+                    ? UWVRWeaponShape.Classify(lOCharacter.CurrentWeaponType)
+                    : UWVRWeaponShape.Kind.Fist;
+                mVRBladeSweep.Sample(lbPose, lOHandPosition, lOHandRotation,
+                    UWVRWeaponShape.Get(leKind), UWVRBootstrap.WorldUnitsPerMeter,
+                    lOCamera.transform.position, mfAttackRange,
+                    UWScene.Player != null ? UWScene.Player.transform : null,
+                    Time.deltaTime);
+            }
         }
         else
+        {
             mVRMeleeMotion.Sample(false, Vector3.zero, Vector3.forward, Time.deltaTime);
+            mVRBladeSweep.Reset();
+        }
     }
 
     // ------------------------------------------------- The modern scheme's keys
@@ -1512,6 +1574,9 @@ public class Interaction : MonoBehaviour
         IsAttacking = false;
         mbAttackPending = false;
         mVRMeleeMotion.Reset();
+        mVRBladeSweep.Reset();
+        mbPendingVRBladeResolution = false;
+        mPendingVRBladeContact = default;
     }
 
     private UWPlayerTerrain mOPlayerTerrain;
@@ -1975,9 +2040,20 @@ public class Interaction : MonoBehaviour
         Vector3 lOHitPoint;
         float lfHitDistance;
 
+        // One trigger gesture yields at most ONE physical collision target,
+        // resolved only when the original sword animation reaches its hit
+        // frame. Missing the enemy with the blade cannot fall back to the
+        // old gaze ray and accidentally strike through walls.
+        bool lbBladeContactMode = mbPendingVRBladeResolution;
+        UWVRBladeSweep.Contact lOBladeEvidence = mPendingVRBladeContact;
+        mbPendingVRBladeResolution = false;
+        mPendingVRBladeContact = default;
+
         // CLASSIC SCHEME: as in the original a hit area in front of the character, not the
         // ray to the mouse cursor - see fFindClassicMeleeTarget.
-        bool lbFound = !UWVRAim.IsHandAimActive
+        bool lbFound = lbBladeContactMode
+            ? fFindVRBladeContact(lOBladeEvidence, out lOHitCollider, out lOHitPoint, out lfHitDistance)
+            : !UWVRAim.IsHandAimActive
             && (mControlScheme == null || mControlScheme.Current == UWControlScheme.SchemeEnum.Original)
             ? fFindClassicMeleeTarget(lbLog, out lOHitCollider, out lOHitPoint, out lfHitDistance)
             : fFindModernMeleeTarget(lbLog, out lOHitCollider, out lOHitPoint, out lfHitDistance);
@@ -1988,7 +2064,8 @@ public class Interaction : MonoBehaviour
         // user, 2026-09-15.
         if (!lbFound)
         {
-            fTryWallImpact();
+            if (!lbBladeContactMode)
+                fTryWallImpact();
             UWSoundEffects.PlayAtAvatar(UWSoundEffects.Miss);
             return;
         }
@@ -2025,6 +2102,40 @@ public class Interaction : MonoBehaviour
                 lODamageable != null));
 
         fApplyMeleeHit(lOTarget, lODamageable, lOHitPoint);
+    }
+
+    /// <summary>The physics-swept right Touch weapon is deliberately separate
+    /// from the HMD gaze ray. At the original game's animation impact frame,
+    /// reconfirm the recorded collider is still present, within the original
+    /// reach and not newly obstructed. No double-hit from multiple blade
+    /// samples, and no gaze fallback if a genuine sword gesture missed.</summary>
+    private bool fFindVRBladeContact(UWVRBladeSweep.Contact pOEvidence,
+        out Collider pOCollider, out Vector3 pOPoint, out float pfDistance)
+    {
+        pOCollider = null;
+        pOPoint = Vector3.zero;
+        pfDistance = 0f;
+        Collider lOHit = pOEvidence.Collider;
+        Camera lOCamera = UWVRBootstrap.CurrentVRCamera;
+        if (lOHit == null || !lOHit.enabled || !lOHit.gameObject.activeInHierarchy
+            || lOCamera == null)
+            return false;
+
+        Vector3 lOClosest = lOHit.ClosestPoint(pOEvidence.Point);
+        float lfUnits = Mathf.Max(0.001f, UWVRBootstrap.WorldUnitsPerMeter);
+        if (Vector3.Distance(lOClosest, pOEvidence.Point) > 0.22f * lfUnits)
+            return false; // The target moved away after the controller hit it.
+
+        float lfDistance = Vector3.Distance(lOCamera.transform.position, lOClosest);
+        if (lfDistance > mfAttackRange || !UWVRBladeSweep.HasClearPath(
+            lOCamera.transform.position, lOClosest, lOHit,
+            UWScene.Player != null ? UWScene.Player.transform : null))
+            return false;
+
+        pOCollider = lOHit;
+        pOPoint = lOClosest;
+        pfDistance = lfDistance;
+        return true;
     }
 
     /// <summary>Modern scheme: the ray from the camera through the screen centre, as before.

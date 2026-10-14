@@ -5,7 +5,8 @@ using UWDataImport.UWData;
 
 /// <summary>
 /// Visual-only prototype melee weapon attached to the right Touch controller.
-/// This is a generic silhouette, not a model of the exact equipped sword/axe.
+/// This maps the ORIGINAL game's weapon animation family to sword/axe/mace/
+/// fist silhouettes, not a separate authored mesh for each object ID.
 /// It has NO colliders or rigidbodies and cannot damage enemies on contact.
 /// The original UWCharacter animation remains the authority for combat hits.
 /// Shown only with -vr -vr-hand-aim -vr-gesture-melee in an active world.
@@ -15,15 +16,19 @@ public sealed class UWVRHandWeaponVisual : MonoBehaviour
 {
     private Transform mRoot;
     private MeshRenderer mBlade;
+    private MeshFilter mBladeFilter;
     private MeshRenderer mGuard;
     private MeshRenderer mGrip;
     private MeshRenderer mFist;
     private Mesh mBladeMesh;
+    private Mesh mAxeMesh;
+    private Mesh mMaceMesh;
     private Mesh mCubeMesh;
     private Material mSteelMaterial;
     private Material mGuardMaterial;
     private Material mGripMaterial;
     private bool mbReported;
+    private UWVRWeaponShape.Kind meShownForm = (UWVRWeaponShape.Kind)(-1);
 
     /// <summary>VR UI can hide the old 2D weapon sprite only when the
     /// replacement mesh is actually following a tracked hand.</summary>
@@ -59,6 +64,43 @@ public sealed class UWVRHandWeaponVisual : MonoBehaviour
         AddTri(lOTriangles, liStart + 3, liStart, liStart + 4);
 
         return MakeMesh("UW VR generic melee blade", lOVertices, lOTriangles);
+    }
+
+    /// <summary>Staff and distinct heavy crescent-shaped single blade.</summary>
+    public static Mesh CreateAxeMesh()
+    {
+        var lOVertices = new List<Vector3>(36);
+        var lOTriangles = new List<int>(120);
+        AppendBox(lOVertices, lOTriangles,
+            new Vector3(-0.023f, -0.023f, -0.09f),
+            new Vector3(0.023f, 0.023f, 0.76f));
+        AppendBox(lOVertices, lOTriangles,
+            new Vector3(-0.18f, -0.043f, 0.57f),
+            new Vector3(0.075f, 0.043f, 0.75f));
+        AppendBox(lOVertices, lOTriangles,
+            new Vector3(-0.22f, -0.018f, 0.59f),
+            new Vector3(-0.17f, 0.018f, 0.72f));
+        return MakeMesh("UW VR generic axe", lOVertices, lOTriangles);
+    }
+
+    /// <summary>Blunt club head, with a short haft and raised studs.</summary>
+    public static Mesh CreateMaceMesh()
+    {
+        var lOVertices = new List<Vector3>(56);
+        var lOTriangles = new List<int>(220);
+        AppendBox(lOVertices, lOTriangles,
+            new Vector3(-0.022f, -0.022f, -0.09f),
+            new Vector3(0.022f, 0.022f, 0.68f));
+        AppendBox(lOVertices, lOTriangles,
+            new Vector3(-0.081f, -0.081f, 0.56f),
+            new Vector3(0.081f, 0.081f, 0.73f));
+        AppendBox(lOVertices, lOTriangles,
+            new Vector3(-0.105f, -0.024f, 0.61f),
+            new Vector3(0.105f, 0.024f, 0.67f));
+        AppendBox(lOVertices, lOTriangles,
+            new Vector3(-0.024f, -0.105f, 0.61f),
+            new Vector3(0.024f, 0.105f, 0.67f));
+        return MakeMesh("UW VR generic mace", lOVertices, lOTriangles);
     }
 
     public static Mesh CreateCubeMesh()
@@ -164,10 +206,20 @@ public sealed class UWVRHandWeaponVisual : MonoBehaviour
         mRoot.localScale = Vector3.one * lfUnits;
 
         UWObject lOWeapon = lOInventory.GetEquipped(lOInventory.MainHandSlot);
-        bool lbFist = lOWeapon == null;
+        UWVRWeaponShape.Kind leForm = lOWeapon == null || lOCharacter == null
+            ? UWVRWeaponShape.Kind.Fist
+            : UWVRWeaponShape.Classify(lOCharacter.CurrentWeaponType);
+        bool lbFist = leForm == UWVRWeaponShape.Kind.Fist;
+        if (meShownForm != leForm)
+        {
+            meShownForm = leForm;
+            mBladeFilter.sharedMesh = leForm == UWVRWeaponShape.Kind.Axe
+                ? mAxeMesh : leForm == UWVRWeaponShape.Kind.Mace ? mMaceMesh : mBladeMesh;
+            Debug.Log("[UWVR-BLADE] displayed family=" + leForm);
+        }
         mBlade.enabled = !lbFist;
-        mGuard.enabled = !lbFist;
-        mGrip.enabled = !lbFist;
+        mGuard.enabled = leForm == UWVRWeaponShape.Kind.Sword;
+        mGrip.enabled = leForm == UWVRWeaponShape.Kind.Sword;
         mFist.enabled = lbFist;
         IsModelVisible = true;
         if (!mbReported)
@@ -196,12 +248,15 @@ public sealed class UWVRHandWeaponVisual : MonoBehaviour
         mGuardMaterial = MakeMaterial(lOShader, new Color(0.70f, 0.54f, 0.25f));
         mGripMaterial = MakeMaterial(lOShader, new Color(0.32f, 0.17f, 0.09f));
         mBladeMesh = CreateBladeMesh();
+        mAxeMesh = CreateAxeMesh();
+        mMaceMesh = CreateMaceMesh();
         mCubeMesh = CreateCubeMesh();
         mRoot = new GameObject("UW VR Tracked Main Hand Weapon").transform;
         mRoot.SetParent(transform, false);
 
         mBlade = MakePart("Metal blade", mBladeMesh, mSteelMaterial,
             Vector3.zero, Vector3.one);
+        mBladeFilter = mBlade.GetComponent<MeshFilter>();
         mGuard = MakePart("Crossguard", mCubeMesh, mGuardMaterial,
             new Vector3(0f, 0f, 0.13f), new Vector3(0.24f, 0.032f, 0.044f));
         mGrip = MakePart("Hilt", mCubeMesh, mGripMaterial,
@@ -251,6 +306,8 @@ public sealed class UWVRHandWeaponVisual : MonoBehaviour
     {
         SetVisible(false);
         if (mBladeMesh != null) Destroy(mBladeMesh);
+        if (mAxeMesh != null) Destroy(mAxeMesh);
+        if (mMaceMesh != null) Destroy(mMaceMesh);
         if (mCubeMesh != null) Destroy(mCubeMesh);
         if (mSteelMaterial != null) Destroy(mSteelMaterial);
         if (mGuardMaterial != null) Destroy(mGuardMaterial);

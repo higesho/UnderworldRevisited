@@ -89,6 +89,9 @@ public static class UWVRDiagnostics
             "VR hand-aim must never activate in a desktop or offline session");
         fRequire(!UWVRMeleeMotion.IsEnabled && !UWVRHandWeaponVisual.IsModelVisible,
             "A desktop session must not enable gesture strikes or hide the normal weapon sprite");
+        fRequire(!UWVRBladeSweep.IsEnabled,
+            "VR sword collision must never run outside an explicitly opted-in XR session");
+        fTestVRBladeSweep();
 
         // Run the opt-in sword input through synthetic 90 Hz Touch hand paths.
         // All thresholds are physical metres/second and must not vary when
@@ -129,6 +132,8 @@ public static class UWVRDiagnostics
             "Slow controller drift must not become a melee strike");
 
         Mesh lOBladeMesh = UWVRHandWeaponVisual.CreateBladeMesh();
+        Mesh lOAxeMesh = UWVRHandWeaponVisual.CreateAxeMesh();
+        Mesh lOMaceMesh = UWVRHandWeaponVisual.CreateMaceMesh();
         Mesh lOGripMesh = UWVRHandWeaponVisual.CreateCubeMesh();
         try
         {
@@ -138,6 +143,19 @@ public static class UWVRDiagnostics
                 && lOBladeMesh.bounds.size.x > 0.06f
                 && lOGripMesh.vertexCount >= 8 && lOGripMesh.triangles.Length >= 36,
                 "VR tracked weapon placeholder meshes must have complete three-dimensional geometry");
+            fRequire(lOAxeMesh.vertexCount >= 24 && lOMaceMesh.vertexCount >= 32
+                && lOAxeMesh.bounds.size.x > lOBladeMesh.bounds.size.x
+                && lOMaceMesh.bounds.size.y > lOBladeMesh.bounds.size.y,
+                "Axe and mace must be distinct from the sword silhouette and have true 3D volume");
+            fRequire(UWVRWeaponShape.Classify(WeaponTypes.RightHandSword) == UWVRWeaponShape.Kind.Sword
+                && UWVRWeaponShape.Classify(WeaponTypes.LeftHandAxe) == UWVRWeaponShape.Kind.Axe
+                && UWVRWeaponShape.Classify(WeaponTypes.RightHandMace) == UWVRWeaponShape.Kind.Mace
+                && UWVRWeaponShape.Classify(WeaponTypes.LeftHandFist) == UWVRWeaponShape.Kind.Fist,
+                "Original weapon family must select matching VR mesh and blade contact length");
+            UWVRWeaponShape.Profile lOSwordProfile = UWVRWeaponShape.Get(UWVRWeaponShape.Kind.Sword);
+            fRequire((UWVRWeaponShape.ContactPoint(new Ray(Vector3.zero, Vector3.forward),
+                    lOSwordProfile, 1f, 16f) - Vector3.forward * 11.68f).sqrMagnitude < 0.00001f,
+                "Physical blade endpoint must match the rendered model when world scale changes");
             fRequire((UWVRHandWeaponVisual.GripOrigin(new Ray(Vector3.zero, Vector3.forward), 16f)
                     - Vector3.back * 0.96f).sqrMagnitude < 0.00001f,
                 "Right Touch grip attachment must respect scaled physical metres");
@@ -145,6 +163,8 @@ public static class UWVRDiagnostics
         finally
         {
             UnityEngine.Object.DestroyImmediate(lOBladeMesh);
+            UnityEngine.Object.DestroyImmediate(lOAxeMesh);
+            UnityEngine.Object.DestroyImmediate(lOMaceMesh);
             UnityEngine.Object.DestroyImmediate(lOGripMesh);
         }
 
@@ -598,8 +618,103 @@ public static class UWVRDiagnostics
             UnityEngine.Object.DestroyImmediate(lOCameraObject);
         }
 
-        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, dual Touch aim, simulated slash/hack/stab, motion jitter/teleport/lost-tracking safeguards, scaled weapon meshes, stereo UI and real inventory take/swap/place.");
+        Debug.Log("[UWVR-OFFLINE] PASS: OpenXR, dual Touch aim, simulated sword motion, swept blade contact, first obstacle/through-wall blocking, no double hit, sword/axe/mace/fist geometry, stereo UI and real inventory take/swap/place.");
         Debug.Log("[UWVR-OFFLINE] HMD stereo output, head tracking and UI visibility still require an actual headset.");
+    }
+
+    private static void fTestVRBladeSweep()
+    {
+        GameObject lORoot = new GameObject("UW VR blade physics test parent");
+        GameObject lOAvatar = new GameObject("UW VR test avatar");
+        GameObject lOWall = new GameObject("UW VR test physical wall");
+        GameObject lOTarget = new GameObject("UW VR test damageable enemy");
+        try
+        {
+            lOAvatar.transform.SetParent(lORoot.transform, false);
+            lOWall.transform.SetParent(lORoot.transform, false);
+            lOTarget.transform.SetParent(lORoot.transform, false);
+            lOAvatar.transform.position = new Vector3(-0.32f, 0f, 0.70f);
+            BoxCollider lOAvatarCollider = lOAvatar.AddComponent<BoxCollider>();
+            lOAvatarCollider.size = new Vector3(0.12f, 0.20f, 0.20f);
+            lOTarget.transform.position = new Vector3(0f, 0f, 0.70f);
+            BoxCollider lOTargetCollider = lOTarget.AddComponent<BoxCollider>();
+            lOTargetCollider.size = new Vector3(0.18f, 0.20f, 0.16f);
+            lOTarget.AddComponent<UWEntityInfo>();
+            lOTarget.AddComponent<UWDamageable>().Initialise(12, 0, 0);
+            lOWall.transform.position = new Vector3(0f, 0f, 0.35f);
+            BoxCollider lOWallCollider = lOWall.AddComponent<BoxCollider>();
+            lOWallCollider.size = new Vector3(0.45f, 0.35f, 0.07f);
+            Physics.SyncTransforms();
+
+            fRequire(UWVRBladeSweep.TryFirstSurface(
+                    new Vector3(-0.50f, 0f, 0.70f), new Vector3(0.40f, 0f, 0.70f),
+                    0.03f, lOAvatar.transform, out RaycastHit lOFirst)
+                && lOFirst.collider == lOTargetCollider,
+                "Blade swept-sphere failed to select a damageable instead of its own avatar collider");
+            fRequire(!UWVRBladeSweep.HasClearPath(Vector3.zero,
+                    new Vector3(0f, 0f, 0.70f), lOTargetCollider, lOAvatar.transform),
+                "A wall between eye and an enemy must block blade contact even under one scene parent");
+
+            // Nearest obstacle must win, not the ordering of RaycastAll.
+            lOWall.transform.position = new Vector3(-0.24f, 0f, 0.70f);
+            Physics.SyncTransforms();
+            fRequire(UWVRBladeSweep.TryFirstSurface(
+                    new Vector3(-0.50f, 0f, 0.70f), new Vector3(0.40f, 0f, 0.70f),
+                    0.03f, lOAvatar.transform, out lOFirst)
+                && lOFirst.collider == lOWallCollider,
+                "Sword sweep must hit the nearer wall before the enemy, not penetrate the wall");
+            lOWallCollider.isTrigger = true;
+            Physics.SyncTransforms();
+            fRequire(UWVRBladeSweep.TryFirstSurface(
+                    new Vector3(-0.50f, 0f, 0.70f), new Vector3(0.40f, 0f, 0.70f),
+                    0.03f, lOAvatar.transform, out lOFirst)
+                && lOFirst.collider == lOTargetCollider,
+                "Invisible trigger volumes must not stop a physical sword");
+            lOWallCollider.isTrigger = false;
+            lOWall.transform.position = new Vector3(1.0f, 0f, 0.35f);
+            Physics.SyncTransforms();
+            fRequire(UWVRBladeSweep.HasClearPath(Vector3.zero,
+                    new Vector3(0f, 0f, 0.70f), lOTargetCollider, lOAvatar.transform),
+                "Sufficiently exposed enemy should be reachable with blade contact");
+
+            // Actual physics against a dummy game entity, but no damage
+            // applied: the authoritative combat routine owns that later.
+            UWVRBladeSweep lOSweep = new UWVRBladeSweep();
+            UWVRWeaponShape.Profile lOProfile = UWVRWeaponShape.Get(UWVRWeaponShape.Kind.Sword);
+            for (int li = 0; li <= 12; li++)
+                lOSweep.Sample(true, new Vector3(-0.50f + 0.045f * li, 0f, 0f),
+                    Quaternion.identity, lOProfile, 1f, Vector3.zero, 2f,
+                    lOAvatar.transform, 0.02f);
+            fRequire(lOSweep.TryFinish(out UWVRBladeSweep.Contact lOContact)
+                && lOContact.Collider == lOTargetCollider && lOContact.Distance < 2f,
+                "Actual swept Touch blade failed to record the first contact with a damageable");
+            fRequire(!lOSweep.TryFinish(out _),
+                "One blade gesture must never produce two independent physical hits");
+
+            UWVRBladeSweep lODropped = new UWVRBladeSweep();
+            for (int li = 0; li <= 12; li++)
+                lODropped.Sample(true, new Vector3(-0.50f + 0.045f * li, 0f, 0f),
+                    Quaternion.identity, lOProfile, 1f, Vector3.zero, 2f,
+                    lOAvatar.transform, 0.02f);
+            lODropped.Sample(false, Vector3.zero, Quaternion.identity, lOProfile,
+                1f, Vector3.zero, 2f, lOAvatar.transform, 0.02f);
+            fRequire(!lODropped.TryFinish(out _),
+                "Losing Touch tracking must invalidate a previously contacted enemy");
+
+            // A legitimate contact outside the original game's melee reach
+            // must not turn into a free long-range attack.
+            UWVRBladeSweep lOFar = new UWVRBladeSweep();
+            for (int li = 0; li <= 12; li++)
+                lOFar.Sample(true, new Vector3(-0.50f + 0.045f * li, 0f, 0f),
+                    Quaternion.identity, lOProfile, 1f, Vector3.zero, 0.25f,
+                    lOAvatar.transform, 0.02f);
+            fRequire(!lOFar.TryFinish(out _),
+                "A blade touch beyond the original attack distance must be refused");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(lORoot);
+        }
     }
 
     private static void fTestVRStroke(UWVRMeleeMotion.Strike peExpected, Vector3 pOTravel)
